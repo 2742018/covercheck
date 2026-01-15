@@ -407,42 +407,10 @@ button, input{ font: inherit; }
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-.mediaStage{
-  max-height: clamp(360px, 62vh, 720px);
-}
-@media (max-width: 980px){
-  .analyzeGrid2{ grid-template-columns: 1fr; }
-}
 
 .sideStack{ display:grid; gap:16px; }
 
-/* Viewer stage: use for both square and non-square */
-.mediaStage{
-  position: relative;
-  width: min(100%, 720px);  /* “standard” feel, not edge-to-edge huge */
-  margin: 0 auto;           /* center in the panel */
-  aspect-ratio: 1 / 1;      /* force album-cover square */
-  background: rgba(0,0,0,.22);
-  overflow: hidden;
-  touch-action: none;
-}
-
-.mediaStage .mediaImg{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  user-select: none;
-  pointer-events: none;
-}
-
-.mediaStage .overlayCanvas{
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
+/* ===== Viewer stage (CROP/FULL) ===== */
 
 
 /* Analysis sections */
@@ -558,6 +526,73 @@ button, input{ font: inherit; }
 .sLine{ margin-top: 8px; }
 .sLine b{ color: rgba(242,242,242,.85); font-weight: 700; }
 
+/* ===== Viewer stage (CROP/FULL) ===== */
+.mediaStage{
+  position: relative;
+  width: min(100%, 720px);
+  margin: 0 auto;
+  background: rgba(0,0,0,.22);
+  overflow: hidden;
+  touch-action: none;
+  border: 1px solid rgba(242,242,242,.10);
+}
+
+.mediaStage.crop{ aspect-ratio: 1 / 1; }
+.mediaStage.full{ max-height: clamp(360px, 62vh, 720px); }
+
+.mediaStage.isPanning{ cursor: grab; }
+.mediaStage.isPanning:active{ cursor: grabbing; }
+
+.mediaImg{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.mediaImg.crop{ object-fit: cover; }
+.mediaImg.full{ object-fit: contain; }
+
+.overlayCanvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
+
+/* Toolbar below image */
+.imageToolbar{
+  border-top: 1px solid rgba(242,242,242,.08);
+  padding: 12px 14px 14px;
+  display: grid;
+  gap: 10px;
+}
+.toolbarRow{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.zoomControl{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.zoomLabel{
+  font-size: 11px;
+  letter-spacing:.10em;
+  text-transform: uppercase;
+  color: rgba(242,242,242,.62);
+}
+.range{ width: 180px; }
+@media (max-width: 520px){ .range{ width: 140px; } }
+
+
 /* Thumbs */
 .thumbRowWrap{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px; }
 @media (max-width: 520px){ .thumbRowWrap{ grid-template-columns: 1fr; } }
@@ -595,58 +630,7 @@ button, input{ font: inherit; }
 .emptyTitle{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
 .emptySub{ margin-top: 10px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; }
 
-/* Cover viewer stays square + standard-album size feel */
-.mediaStage{
-  position: relative;
-  width: min(100%, 520px);
-  margin: 0 auto;
-  aspect-ratio: 1 / 1;
-  background: rgba(0,0,0,.22);
-  overflow: hidden;
-  touch-action: none;
-  border-radius: 0;
-}
-.mediaStage.isPanning{ cursor: grab; }
-.mediaStage.isPanning:active{ cursor: grabbing; }
 
-.cropLayer{
-  position:absolute;
-  inset:0;
-}
-
-/* Toolbar below image */
-.imageToolbar{
-  border-top: 1px solid rgba(242,242,242,.08);
-  padding: 12px 14px 14px;
-  display: grid;
-  gap: 10px;
-}
-.toolbarRow{
-  display:flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.zoomControl{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.zoomLabel{
-  font-size: 11px;
-  letter-spacing:.10em;
-  text-transform: uppercase;
-  color: rgba(242,242,242,.62);
-}
-.range{
-  width: 180px;
-}
-@media (max-width: 520px){
-  .range{ width: 140px; }
-}
 /* =========================================================
    REPORT
    ========================================================= */

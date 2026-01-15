@@ -8,9 +8,17 @@ export function readLocal<T>(key: string, fallback: T): T {
   }
 }
 
-export function writeLocal<T>(key: string, value: T) {
+export function writeLocal<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
+}
+
+export function removeLocal(key: string): void {
+  try {
+    localStorage.removeItem(key);
   } catch {
     // ignore
   }

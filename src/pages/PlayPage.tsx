@@ -1,14 +1,11 @@
-// src/pages/PlayPage.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { makeCoverSvgDataUrl } from "../lib/art";
-import { fileToDataUrl, readLocal, writeLocal } from "../lib/storage";
+import { fileToDataUrl } from "../lib/storage";
 
 type Tile =
   | { id: string; kind: "generated"; seed: number }
   | { id: string; kind: "upload"; dataUrl: string | null };
-
-const LS_KEY = "covercheck.play.v1";
 
 function makeInitialTiles(): Tile[] {
   const seeds = [11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 222];
@@ -30,26 +27,18 @@ export default function PlayPage() {
   const navigate = useNavigate();
   const fileRef = React.useRef<HTMLInputElement | null>(null);
 
-  const [tiles, setTiles] = React.useState<Tile[]>(() => {
-    const saved = readLocal<{ tiles: Tile[] }>(LS_KEY, { tiles: makeInitialTiles() });
-    if (!Array.isArray(saved.tiles) || saved.tiles.length === 0) return makeInitialTiles();
-    return saved.tiles;
-  });
-
-  React.useEffect(() => {
-    writeLocal(LS_KEY, { tiles });
-  }, [tiles]);
+  // NOTE: no persistence -> uploads do not remain after leaving/reloading.
+  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
 
   function shuffleGenerated() {
     setTiles((prev) =>
-      prev.map((t) =>
-        t.kind === "generated" ? { ...t, seed: t.seed + Math.floor(Math.random() * 10_000) } : t
-      )
+      prev.map((t) => (t.kind === "generated" ? { ...t, seed: t.seed + Math.floor(Math.random() * 10_000) } : t))
     );
   }
 
   async function handleUpload(file: File) {
     const dataUrl = await fileToDataUrl(file);
+    // Optional: show it briefly in the slot while you're on Play; it disappears when you leave.
     setTiles((prev) => prev.map((t) => (t.kind === "upload" ? { ...t, dataUrl } : t)));
     navigate("/analyze", { state: { dataUrl } });
   }
@@ -62,11 +51,7 @@ export default function PlayPage() {
     }
 
     setTiles((prev) =>
-      prev.map((x) =>
-        x.id === t.id && x.kind === "generated"
-          ? { ...x, seed: x.seed + Math.floor(Math.random() * 10_000) }
-          : x
-      )
+      prev.map((x) => (x.kind === "generated" && x.id === t.id ? { ...x, seed: x.seed + Math.floor(Math.random() * 10_000) } : x))
     );
   }
 
@@ -74,7 +59,7 @@ export default function PlayPage() {
     <div className="playWrap">
       <div className="playHeader">
         <div>
-          <div className="playTitle">ANALYZE</div>
+          <div className="playTitle">PLAY</div>
           <div className="playSub">
             Click any tile to shuffle. Click the empty slot to upload your cover, then analyze.
           </div>
@@ -133,7 +118,7 @@ export default function PlayPage() {
       </div>
 
       <div className="playFooterHint">
-        Tip: the grid is just the “gallery entry”. The real tool happens in <b>Analyze</b>.
+        Tip: your upload stays local and is not stored. Reload/exit clears it.
       </div>
     </div>
   );
