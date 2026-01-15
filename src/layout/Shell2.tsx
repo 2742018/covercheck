@@ -25,7 +25,7 @@ export default function Shell() {
 
           <nav className="topLinks" aria-label="Primary">
             <NavLink to="/play" className={({ isActive }) => cx("topLink", isActive && "active")}>
-              PLAY
+              ANALYZE
             </NavLink>
             <NavLink to="/test" className={({ isActive }) => cx("topLink", isActive && "active")}>
               TEST
@@ -39,7 +39,7 @@ export default function Shell() {
         <div className="topbarRight">
           <div className="statusPill" title="No upload leaves your device">
             <span className="statusDot" />
-            PRIVATE • IN-BROWSER
+            PRIVATE-USE • DISSERTATION • WEB-BROWSER
           </div>
         </div>
       </header>
@@ -52,15 +52,15 @@ export default function Shell() {
         <div className="bottomInner">
           <div className="bottomLeft">
             <NavLink to="/play" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
-              PLAY
+              ANALYZE
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/test" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
-              PERSONALITY TEST
+              TEST
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/about" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
-              ABOUT / ACADEMIC
+              ABOUT
             </NavLink>
           </div>
         </div>

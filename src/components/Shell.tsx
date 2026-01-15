@@ -33,7 +33,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="topbarRight">
           <div className="statusPill">
             <span className="statusDot" aria-hidden />
-            PRIVATE • IN-BROWSER
+            PRIVATE-USE • DISSERTATION • WEB-BROWSER
           </div>
         </div>
       </header>
@@ -48,11 +48,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
             </NavLink>
             <span className="sep">|</span>
             <NavLink className={({ isActive }) => cx("bottomLink", isActive && "active")} to="/test">
-              PERSONALITY TEST
+              TEST
             </NavLink>
             <span className="sep">|</span>
             <NavLink className={({ isActive }) => cx("bottomLink", isActive && "active")} to="/about">
-              ABOUT / ACADEMIC
+              ABOUT
             </NavLink>
           </div>
         </div>

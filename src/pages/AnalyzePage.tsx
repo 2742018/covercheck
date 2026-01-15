@@ -733,7 +733,7 @@ export default function AnalyzePage() {
       {!dataUrl && (
         <div className="emptyState">
           <div className="emptyTitle">No cover uploaded yet.</div>
-          <div className="emptySub">Go to PLAY and click the empty slot, or upload here.</div>
+          <div className="emptySub">Go to ANALYZE and click the empty slot, or upload here.</div>
           <button className="primaryBtn" onClick={() => fileRef.current?.click()}>UPLOAD COVER</button>
 
           <input

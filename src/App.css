@@ -1,5 +1,5 @@
 /* =========================================================
-   FILE: src/styles.css  (REPLACE ENTIRE FILE)
+   FILE: src/styles.css
    ========================================================= */
 
 /* ---------- Tokens ---------- */
@@ -14,7 +14,7 @@
   --line:rgba(242,242,242,.10);
   --line2:rgba(242,242,242,.16);
 
-  --yellow:#ffc400;
+  --yellow:#ffdd00;
 
   --r:18px;
   --shadow: 0 18px 60px rgba(0,0,0,.62);
@@ -24,6 +24,14 @@
 
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
+
+
+  --cover-max-full: 720px;  /* FULL view max width */
+  --cover-max-crop: 520px;  /* CROP view max width (smaller square) */
+  --analyze-left-col: 560px;
+
+  --coverCol: 520px;      /* LEFT column max width (smaller = more room for analysis) */
+  --coverStageMax: 480px;
 }
 
 /* ---------- Reset ---------- */
@@ -397,15 +405,17 @@ button, input{ font: inherit; }
 }
 
 .analyzeGrid2{
+  display:grid;
+  gap: 16px;
+  align-items: start;
+
+  /* left = limited, right = flexible (focus on analysis) */
+  grid-template-columns: minmax(0, var(--coverCol)) minmax(0, 1fr);
+
   max-width: 100%;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
 }
-.analyzeGrid2 > *{ min-width: 0; }
-.sideStack{ min-width: 0; }
-.panelDark{ max-width: 100%; }
-.panelNote, .miniHint, .suggestDetail, .detailLine, .metricSub, .miniSub{
-  overflow-wrap: anywhere;
-  word-break: break-word;
+@media (max-width: 980px){
+  .analyzeGrid2{ grid-template-columns: 1fr; }
 }
 
 .sideStack{ display:grid; gap:16px; }
@@ -529,7 +539,7 @@ button, input{ font: inherit; }
 /* ===== Viewer stage (CROP/FULL) ===== */
 .mediaStage{
   position: relative;
-  width: min(100%, 720px);
+  width: min(100%, var(--cover-max-full));
   margin: 0 auto;
   background: rgba(0,0,0,.22);
   overflow: hidden;
@@ -537,8 +547,17 @@ button, input{ font: inherit; }
   border: 1px solid rgba(242,242,242,.10);
 }
 
-.mediaStage.crop{ aspect-ratio: 1 / 1; }
-.mediaStage.full{ max-height: clamp(360px, 62vh, 720px); }
+/* CROP view only = smaller square */
+.mediaStage.crop{
+  width: min(100%, var(--cover-max-crop));
+  aspect-ratio: 1 / 1;
+}
+
+/* FULL view can be larger + respects your TSX aspectRatio */
+.mediaStage.full{
+  width: min(100%, var(--cover-max-full));
+  max-height: clamp(360px, 62vh, 720px);
+}
 
 .mediaStage.isPanning{ cursor: grab; }
 .mediaStage.isPanning:active{ cursor: grabbing; }
@@ -654,10 +673,14 @@ button, input{ font: inherit; }
 
 .reportGrid{
   display:grid;
-  grid-template-columns: 1.2fr 0.8fr;
+  grid-template-columns: minmax(0, 550px) minmax(0, 1fr);
   gap: 16px;
   align-items:start;
 }
+.reportGrid > *{
+  min-width: 0;
+}
+
 @media (max-width: 980px){
   .reportGrid{ grid-template-columns: 1fr; }
 }
@@ -665,16 +688,22 @@ button, input{ font: inherit; }
 .reportFigure{
   position: relative;
   width: 100%;
+  aspect-ratio: 1 / 1;      /* album cover shape */
   background: rgba(0,0,0,.20);
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(242,242,242,.10);
 }
+
 .reportFigure img{
-  position:absolute; inset:0;
-  width:100%; height:100%;
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
   object-fit: contain;
+  display:block;
 }
+
 .reportFigure svg{
   position:absolute; inset:0;
   width:100%; height:100%;
@@ -724,4 +753,180 @@ button, input{ font: inherit; }
   }
   .suggestTitle{ color:#000 !important; }
   .miniHint, .panelNote, .tag, .metricSub, .suggestDetail{ color:#000 !important; }
+}
+
+
+/* =========================================================
+   ABOUT
+   ========================================================= */
+
+body.lightMode{
+  /* override tokens just for About */
+  --bg:#efefea;
+  --ink:#101114;
+  --muted:rgba(16,17,20,.62);
+  --muted2:rgba(16,17,20,.46);
+  --line:rgba(16,17,20,.12);
+  --line2:rgba(16,17,20,.18);
+
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(0,0,0,.05), transparent 55%),
+    radial-gradient(1000px 700px at 10% 20%, rgba(0,0,0,.04), transparent 55%),
+    radial-gradient(1000px 700px at 90% 20%, rgba(0,0,0,.03), transparent 55%),
+    var(--bg);
+}
+
+body.lightMode .shell::before{
+  opacity: .12;
+  mix-blend-mode: multiply;
+}
+
+body.lightMode .topLink{ color: rgba(16,17,20,.62); }
+body.lightMode .topLink:hover{ color: rgba(16,17,20,.88); }
+body.lightMode .topLink.active{ color: rgba(16,17,20,.92); }
+
+body.lightMode .statusPill{
+  border-color: var(--line);
+  background: rgba(255,255,255,.55);
+  color: rgba(16,17,20,.70);
+}
+
+body.lightMode .ghostBtn{
+  border-color: var(--line);
+  background: rgba(255,255,255,.55);
+  color: rgba(16,17,20,.78);
+}
+body.lightMode .ghostBtn:hover{
+  border-color: var(--line2);
+  color: rgba(16,17,20,.92);
+}
+
+/* Remove the big “card” look on About */
+body.lightMode .simplePage.aboutBlend{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 18px 90px;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* About layout */
+.aboutTopRow{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 16px;
+  padding-top: 86px; /* clears fixed topbar */
+}
+.aboutKicker{
+  letter-spacing:.18em;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity:.72;
+  margin-bottom: 10px;
+}
+.aboutTitleBig{
+  font-size: 64px;
+  letter-spacing: -.02em;
+  line-height: 0.95;
+}
+.aboutBackBtn{ white-space: nowrap; }
+
+.aboutBody{ padding-top: 10px; }
+.aboutLead{
+  max-width: 78ch;
+  color: rgba(16,17,20,.70);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.aboutRule{
+  height: 1px;
+  background: rgba(16,17,20,.14);
+  margin: 22px 0;
+}
+
+/* 3-column about grid like your references */
+.aboutGrid{
+  display:grid;
+  grid-template-columns: 220px minmax(0, 1fr) 260px;
+  gap: 28px;
+  align-items:start;
+}
+@media (max-width: 980px){
+  .aboutGrid{ grid-template-columns: 1fr; }
+  .aboutTitleBig{ font-size: 48px; }
+  .aboutTopRow{ padding-top: 78px; }
+}
+
+.aboutSectionLabel{
+  letter-spacing:.18em;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: .62;
+  margin-bottom: 10px;
+}
+
+.aboutLink{
+  display:block;
+  padding: 8px 0;
+  color: rgba(16,17,20,.88);
+}
+.aboutLink:hover{ text-decoration: underline; }
+
+.aboutPara{
+  color: rgba(16,17,20,.78);
+  font-size: 14px;
+  line-height: 1.9;
+  max-width: 80ch;
+}
+.aboutSmall{
+  color: rgba(16,17,20,.66);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* Metrics: no boxes; just subtle left rules */
+.aboutMetrics{
+  display:grid;
+  gap: 14px;
+  margin-top: 10px;
+}
+.aboutMetric{
+  padding-left: 14px;
+  border-left: 1px solid rgba(16,17,20,.16);
+}
+.aboutMetricHead{
+  letter-spacing:.16em;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: rgba(16,17,20,.90);
+  margin-bottom: 8px;
+}
+.aboutMetricText{
+  color: rgba(16,17,20,.72);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.aboutMetricTarget{
+  margin-top: 8px;
+  color: rgba(16,17,20,.62);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+/* Quick facts: also boxless */
+.aboutFact{
+  padding: 12px 0;
+  border-top: 1px solid rgba(16,17,20,.12);
+}
+.aboutFact:first-of-type{ border-top: 0; }
+.aboutFactHead{
+  letter-spacing:.14em;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: rgba(16,17,20,.90);
+  margin-bottom: 6px;
 }

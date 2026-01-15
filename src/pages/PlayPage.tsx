@@ -38,7 +38,6 @@ export default function PlayPage() {
 
   async function handleUpload(file: File) {
     const dataUrl = await fileToDataUrl(file);
-    // Optional: show it briefly in the slot while you're on Play; it disappears when you leave.
     setTiles((prev) => prev.map((t) => (t.kind === "upload" ? { ...t, dataUrl } : t)));
     navigate("/analyze", { state: { dataUrl } });
   }
@@ -59,7 +58,7 @@ export default function PlayPage() {
     <div className="playWrap">
       <div className="playHeader">
         <div>
-          <div className="playTitle">PLAY</div>
+          <div className="playTitle">PLAY / ANALYZE</div>
           <div className="playSub">
             Click any tile to shuffle. Click the empty slot to upload your cover, then analyze.
           </div>
