@@ -1,73 +1,58 @@
-# React + TypeScript + Vite
+# CoverCheck
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CoverCheck is a **privacy-first album cover readability tool** that helps you verify whether your **title/artist area** stays legible when platforms display artwork as **small, square thumbnails** (often with crop/rounded corners/overlay UI).
 
-Currently, two official plugins are available:
+Everything runs **entirely in the browser** — no server uploads.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Crop Preview (Square Thumbnails)**  
+  Simulates the most common “streaming-style” square crop.
 
-## Expanding the ESLint configuration
+- **Full View (Contain)**  
+  Inspect the full cover without cropping.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Region Analysis**  
+  Draw a region around your title/artist area to evaluate readability where it matters most.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Explainable Metrics**
+  - **Contrast**: estimates separation between text and background in your selected region  
+  - **Clutter**: estimates background “busyness” (edge density) that can reduce readability  
+  - **Safe Area**: warns when important content sits too close to edges (crop/rounded-corner/overlay risk)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Color Palette + Compatible Suggestions**  
+  Extracts key colors from the image and suggests compatible options (useful for overlays, type, labels, UI accents).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Report Generation**  
+  Generates a clean summary based on the current analysis for documentation / write-ups.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## How it works (high level)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Upload an album cover (local file)
+2. Use **Crop View** (default) to see how it will appear as a square thumbnail
+3. Draw a region around the title/artist area
+4. Review metrics + suggestions
+5. Generate a report when ready
+
+> **Privacy note:** Images stay local in your browser. CoverCheck does not upload your artwork to a server.
+
+---
+
+## Tech Stack
+
+- React + TypeScript
+- Vite
+- HTML Canvas (for pixel analysis + overlays)
+- GitHub Pages-friendly build
+
+---
+
+## Local Development
+
+```bash
+npm install
+npm run dev
