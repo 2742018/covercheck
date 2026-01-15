@@ -36,10 +36,6 @@ function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
 
-function clamp01(v: number) {
-  return clamp(v, 0, 1);
-}
-
 function srgbToLinear01(v01: number) {
   if (v01 <= 0.04045) return v01 / 12.92;
   return Math.pow((v01 + 0.055) / 1.055, 2.4);

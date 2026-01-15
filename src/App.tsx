@@ -1,4 +1,3 @@
-import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import Shell from "./components/Shell";
 import PlayPage from "./pages/PlayPage.tsx";

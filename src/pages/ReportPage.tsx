@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import { readLocal } from "../lib/storage";
 import type { NormalizedRect } from "../analysis/metrics";

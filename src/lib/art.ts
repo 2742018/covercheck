@@ -37,7 +37,7 @@ export function makeCoverSvgDataUrl(seed: number) {
   const c2 = randColor(rng);
   const c3 = randColor(rng);
 
-  const shapes = Array.from({ length: 10 }).map((_, i) => {
+  const shapes = Array.from({ length: 10 }).map((_) => {
     const x = Math.floor(rng() * 100);
     const y = Math.floor(rng() * 100);
     const w = Math.floor(20 + rng() * 60);
