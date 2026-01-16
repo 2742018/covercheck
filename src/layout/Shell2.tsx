@@ -39,7 +39,7 @@ export default function Shell() {
         <div className="topbarRight">
           <div className="statusPill" title="No upload leaves your device">
             <span className="statusDot" />
-            PRIVATE-USE • DISSERTATION • WEB-BROWSER
+            PRIVATE-USE • DISSERTATION • IN-BROWSER
           </div>
         </div>
       </header>

@@ -33,7 +33,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         <div className="topbarRight">
           <div className="statusPill">
             <span className="statusDot" aria-hidden />
-            PRIVATE-USE • DISSERTATION • WEB-BROWSER
+            PRIVATE-USE • DISSERTATION • IN-BROWSER
           </div>
         </div>
       </header>

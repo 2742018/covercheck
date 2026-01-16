@@ -640,15 +640,41 @@ button, input{ font: inherit; }
 .thumbEmptyDark{ color: rgba(242,242,242,.40); font-size: 20px; }
 
 /* Empty state */
+/* ---------- Empty state (nicer spacing on dark pages) ---------- */
 .emptyState{
-  border: 1px solid rgba(242,242,242,.10);
-  background: rgba(0,0,0,.24);
-  border-radius: 18px;
-  padding: 18px;
-}
-.emptyTitle{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
-.emptySub{ margin-top: 10px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; }
+  max-width: 1120px;
+  margin: 22px auto 0;
+  padding: 28px 28px 30px;
 
+  display: grid;
+  gap: 12px;
+
+  border: 1px solid rgba(242,242,242,.10);
+  border-radius: calc(var(--r) + 8px);
+  background: rgba(0,0,0,.20);
+}
+
+.emptyTitle{
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  opacity: .92;
+}
+
+.emptySub{
+  margin: 0;
+  color: rgba(242,242,242,.64);
+  font-size: 12px;
+  letter-spacing: .04em;
+  line-height: 1.7;
+  max-width: 78ch;
+}
+
+.emptyState .primaryBtn{
+  justify-self: start;
+  margin-top: 6px;
+}
 
 /* =========================================================
    REPORT
@@ -757,11 +783,10 @@ button, input{ font: inherit; }
 
 
 /* =========================================================
-   ABOUT
+   ABOUT (light page)
    ========================================================= */
 
 body.lightMode{
-  /* override tokens just for About */
   --bg:#efefea;
   --ink:#101114;
   --muted:rgba(16,17,20,.62);
@@ -769,19 +794,15 @@ body.lightMode{
   --line:rgba(16,17,20,.12);
   --line2:rgba(16,17,20,.18);
 
-  color: var(--ink);
-  background:
-    radial-gradient(1200px 700px at 50% -10%, rgba(0,0,0,.05), transparent 55%),
-    radial-gradient(1000px 700px at 10% 20%, rgba(0,0,0,.04), transparent 55%),
-    radial-gradient(1000px 700px at 90% 20%, rgba(0,0,0,.03), transparent 55%),
-    var(--bg);
 }
 
+/* soften grain on light */
 body.lightMode .shell::before{
-  opacity: .12;
+  opacity: .08;
   mix-blend-mode: multiply;
 }
 
+/* nav colors on light */
 body.lightMode .topLink{ color: rgba(16,17,20,.62); }
 body.lightMode .topLink:hover{ color: rgba(16,17,20,.88); }
 body.lightMode .topLink.active{ color: rgba(16,17,20,.92); }
@@ -791,7 +812,6 @@ body.lightMode .statusPill{
   background: rgba(255,255,255,.55);
   color: rgba(16,17,20,.70);
 }
-
 body.lightMode .ghostBtn{
   border-color: var(--line);
   background: rgba(255,255,255,.55);
@@ -802,25 +822,22 @@ body.lightMode .ghostBtn:hover{
   color: rgba(16,17,20,.92);
 }
 
-/* Remove the big “card” look on About */
-body.lightMode .simplePage.aboutBlend{
+/* About layout (no card/box) */
+.aboutPage{
   max-width: 1200px;
   margin: 0 auto;
-  padding: 18px 18px 90px;
-  background: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
+  padding: 92px 18px 90px; /* clears fixed topbar + bottombar */
 }
 
-/* About layout */
-.aboutTopRow{
+.aboutHero{
   display:flex;
   align-items:flex-start;
   justify-content:space-between;
   gap: 16px;
-  padding-top: 86px; /* clears fixed topbar */
 }
+
+.aboutHeroRight{ display:flex; gap:10px; align-items:center; }
+
 .aboutKicker{
   letter-spacing:.18em;
   font-size: 12px;
@@ -828,37 +845,38 @@ body.lightMode .simplePage.aboutBlend{
   opacity:.72;
   margin-bottom: 10px;
 }
-.aboutTitleBig{
-  font-size: 64px;
+
+.aboutTitle{
+  margin:0;
+  font-size: clamp(40px, 7vw, 68px);
   letter-spacing: -.02em;
   line-height: 0.95;
 }
-.aboutBackBtn{ white-space: nowrap; }
 
-.aboutBody{ padding-top: 10px; }
 .aboutLead{
-  max-width: 78ch;
+  margin: 18px 0 0;
+  max-width: 82ch;
   color: rgba(16,17,20,.70);
   font-size: 14px;
-  line-height: 1.9;
+  line-height: 1.95;
 }
+
 .aboutRule{
   height: 1px;
   background: rgba(16,17,20,.14);
-  margin: 22px 0;
+  margin: 26px 0;
 }
 
-/* 3-column about grid like your references */
 .aboutGrid{
   display:grid;
   grid-template-columns: 220px minmax(0, 1fr) 260px;
-  gap: 28px;
+  gap: 32px;
   align-items:start;
 }
+
 @media (max-width: 980px){
   .aboutGrid{ grid-template-columns: 1fr; }
-  .aboutTitleBig{ font-size: 48px; }
-  .aboutTopRow{ padding-top: 78px; }
+  .aboutHero{ flex-direction: column; align-items:flex-start; }
 }
 
 .aboutSectionLabel{
@@ -869,29 +887,33 @@ body.lightMode .simplePage.aboutBlend{
   margin-bottom: 10px;
 }
 
+.aboutSpacer{ margin-top: 18px; }
+
 .aboutLink{
   display:block;
-  padding: 8px 0;
-  color: rgba(16,17,20,.88);
+  padding: 10px 0;
+  color: rgba(16,17,20,.90);
+  font-size: 18px;
 }
 .aboutLink:hover{ text-decoration: underline; }
 
 .aboutPara{
   color: rgba(16,17,20,.78);
   font-size: 14px;
-  line-height: 1.9;
-  max-width: 80ch;
+  line-height: 1.95;
+  max-width: 85ch;
 }
+
 .aboutSmall{
   color: rgba(16,17,20,.66);
   font-size: 13px;
-  line-height: 1.8;
+  line-height: 1.9;
 }
 
-/* Metrics: no boxes; just subtle left rules */
+/* Metrics: subtle left rule, no boxes */
 .aboutMetrics{
   display:grid;
-  gap: 14px;
+  gap: 18px;
   margin-top: 10px;
 }
 .aboutMetric{
@@ -908,7 +930,7 @@ body.lightMode .simplePage.aboutBlend{
 .aboutMetricText{
   color: rgba(16,17,20,.72);
   font-size: 13px;
-  line-height: 1.8;
+  line-height: 1.85;
 }
 .aboutMetricTarget{
   margin-top: 8px;
@@ -917,7 +939,7 @@ body.lightMode .simplePage.aboutBlend{
   letter-spacing: .04em;
 }
 
-/* Quick facts: also boxless */
+/* Quick facts: simple separators */
 .aboutFact{
   padding: 12px 0;
   border-top: 1px solid rgba(16,17,20,.12);
@@ -929,4 +951,209 @@ body.lightMode .simplePage.aboutBlend{
   text-transform: uppercase;
   color: rgba(16,17,20,.90);
   margin-bottom: 6px;
+}
+
+
+/* =========================================================
+   TEST PAGE
+   ========================================================= */
+
+.testPage{ max-width: 1200px; }
+
+.testHero{
+  padding: 10px 0 6px;
+}
+
+.testHeroTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.testHeroTools{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+  flex-wrap: wrap;
+  justify-content:flex-end;
+}
+
+.testKicker{
+  margin-top: 18px;
+  font-size: 12px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(242,242,242,.62);
+}
+
+.testTitle{
+  margin: 10px 0 0;
+  font-size: clamp(56px, 7vw, 70px);
+  line-height: .95;
+  letter-spacing: .01em;
+  color: rgba(242,242,242,.96);
+  font-weight: 800;
+}
+
+.testLead{
+  margin-top: 14px;
+  max-width: 92ch;
+  font-size: 14px;
+  line-height: 1.9;
+  letter-spacing: .02em;
+  color: rgba(242,242,242,.78);
+}
+
+.testRule{
+  margin-top: 22px;
+  height: 1px;
+  width: 100%;
+  background: rgba(242,242,242,.10);
+}
+
+/* spacing between the three panels */
+.testStack{
+  display:grid;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+/* Question layout: 1&2 then 3&4 etc (2-col grid) */
+.testQuestionsGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px){
+  .testQuestionsGrid{ grid-template-columns: 1fr; }
+}
+
+.testQuestion{
+  min-width: 0;
+}
+
+/* options wrap nicely */
+.testOptionRow{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* small prompt text inside each question */
+.testPrompt{
+  margin-top: 8px;
+}
+
+.testSelected{
+  margin-top: 10px;
+}
+
+/* footer bar under questions */
+.testFinishBar{
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(242,242,242,.08);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.testUnlockHint{
+  margin-top: 12px;
+}
+
+/* progress bar */
+.testProgressBar{
+  margin-top: 12px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.18);
+  overflow:hidden;
+}
+
+.testProgressFill{
+  height:100%;
+  background: rgba(255,196,0,.60);
+}
+
+/* actions row in locked/results blocks */
+.testActionsRow{
+  margin-top: 14px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items:center;
+}
+
+/* Results header title inside results block */
+.testResultTitle{
+  font-size: 22px;
+  letter-spacing: .02em;
+  color: rgba(242,242,242,.96);
+  font-weight: 750;
+}
+
+/* breakdown bars */
+.testBreakdown{
+  display:grid;
+  gap: 10px;
+}
+
+.testBarRow{
+  display:grid;
+  grid-template-columns: 220px 1fr 40px;
+  gap: 10px;
+  align-items:center;
+}
+
+@media (max-width: 720px){
+  .testBarRow{
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.testBarLabel{
+  color: rgba(242,242,242,.72);
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.testBarTrack{
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.18);
+  overflow:hidden;
+}
+
+.testBarFill{
+  height:100%;
+  background: rgba(255,196,0,.55);
+}
+
+.testBarValue{
+  color: rgba(242,242,242,.62);
+  font-size: 12px;
+  text-align:right;
+}
+
+/* lists look cleaner */
+.testList{
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(242,242,242,.72);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.testList li{
+  margin: 6px 0;
 }
