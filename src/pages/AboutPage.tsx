@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const LINKS = {
-  github: "https://github.com/<YOUR_USERNAME>/<YOUR_REPO>", 
-  university: "https://<YOUR_UNI_PAGE>", 
+  github: "https://github.com/2742018/covercheck.git", 
+  university: "https://www.gla.ac.uk/", 
   };
 
 export default function AboutPage() {
@@ -30,9 +30,13 @@ export default function AboutPage() {
       </header>
 
       <p className="aboutLead">
-        CoverCheck is a privacy-first album cover readability tool. It helps you test whether the title/artist area stays
-        legible when platforms display your cover as small, square thumbnails (and sometimes crop, round corners, or add
-        overlay UI).
+        CoverCheck helps you test whether an album cover stays readable when it is displayed the way people actually see
+        it on streaming platforms: small, square thumbnails, often with cropping, rounded corners, and interface overlays.
+        <br />
+        <br />
+        You upload a cover (or pick a sample), draw a box around the area you care about (usually title + artist), and the
+        tool estimates how well that region will perform at tiny sizes. It then gives clear, actionable guidance on what
+        to adjust — like text color choice, placement, or background treatment — without uploading anything to a server.
       </p>
 
       <div className="aboutRule" />
@@ -50,7 +54,11 @@ export default function AboutPage() {
 
           <div className="aboutSectionLabel aboutSpacer">NOTES</div>
           <p className="aboutSmall">
-            Runs fully in-browser. No server uploads. Designed for explainable, dissertation-friendly reporting.
+            Everything runs locally in your browser — no server, no account, no image uploads.
+            <br />
+            <br />
+            The goal is to support design decisions with explainable checks you can reference in documentation or academic
+            reporting (e.g., “contrast was below target, so we adjusted text color and added an overlay”).
           </p>
         </aside>
 
@@ -58,9 +66,17 @@ export default function AboutPage() {
         <main className="aboutMain">
           <div className="aboutSectionLabel">WHAT IT DOES</div>
           <p className="aboutPara">
-            You upload a cover, then draw a region (usually the title/artist zone). CoverCheck estimates how readable
-            that region will be at small sizes, and flags common failure modes like poor contrast, background busyness,
-            and unsafe placement near edges.
+            CoverCheck is built around a simple workflow:
+            <br />
+            <br />
+            <b>1) Choose a cover</b> (upload your own or use a sample).<br />
+            <b>2) Select a region</b> you want to evaluate (typically title/artist).<br />
+            <b>3) Review results</b> — readability metrics, safe-area warnings, and suggested fixes.<br />
+            <b>4) Generate a report</b> if you need a printable summary for a portfolio or dissertation.
+            <br />
+            <br />
+            The tool focuses on common failure modes in real thumbnail contexts: text blending into the background,
+            textures behind letters, and placing important elements too close to edges where cropping/UI can cut them off.
           </p>
 
           <div className="aboutSectionLabel aboutSpacer">HOW THE METRICS WORK</div>
@@ -69,26 +85,34 @@ export default function AboutPage() {
             <section className="aboutMetric">
               <div className="aboutMetricHead">CONTRAST</div>
               <div className="aboutMetricText">
-                Estimates how strongly text separates from its background within your selected region.
+                Estimates how clearly text can separate from the background in your selected region. Low contrast means
+                the title may “disappear” at small sizes, especially on mobile.
               </div>
-              <div className="aboutMetricTarget">Target: ≥ 4.5 (small text), ≥ 3.0 (large/bold)</div>
+              <div className="aboutMetricTarget">
+                Target: ≥ 4.5 for small text • ≥ 3.0 for large/bold display text
+              </div>
             </section>
 
             <section className="aboutMetric">
               <div className="aboutMetricHead">CLUTTER</div>
               <div className="aboutMetricText">
-                Approximates background “busyness” (edge density). Busy textures behind letters reduce readability.
+                Estimates how visually busy the background is behind your text (based on edge/detail density). Even with
+                good contrast, a highly detailed background can reduce legibility because letterforms compete with texture.
               </div>
-              <div className="aboutMetricTarget">Target: ≥ 60/100 for reliable small-thumbnail readability</div>
+              <div className="aboutMetricTarget">
+                Target: ≥ 60/100 for reliable small-thumbnail readability
+              </div>
             </section>
 
             <section className="aboutMetric">
               <div className="aboutMetricHead">SAFE AREA</div>
               <div className="aboutMetricText">
-                Shows a recommended boundary so important text/logos don’t get clipped by cropping, rounded corners, or
-                UI overlays.
+                Shows a recommended boundary for important text and logos. Platforms often crop square thumbnails, round
+                corners, or place UI elements over edges — safe-area helps avoid accidental clipping.
               </div>
-              <div className="aboutMetricTarget">Target: ≥ 95/100 (keep critical text inside)</div>
+              <div className="aboutMetricTarget">
+                Target: ≥ 95/100 • Keep critical text inside the guide
+              </div>
             </section>
           </div>
         </main>
@@ -99,17 +123,24 @@ export default function AboutPage() {
 
           <div className="aboutFact">
             <div className="aboutFactHead">PRIVACY-FIRST</div>
-            <div className="aboutSmall">Images stay local in your browser.</div>
+            <div className="aboutSmall">
+              Your image never leaves your device. Everything is processed in-browser.
+            </div>
           </div>
 
           <div className="aboutFact">
             <div className="aboutFactHead">EXPLAINABLE</div>
-            <div className="aboutSmall">Readable targets + clear suggestions.</div>
+            <div className="aboutSmall">
+              Metrics are designed to be understandable — they point to specific issues (contrast, clutter, edge risk) and
+              suggest what to try next.
+            </div>
           </div>
 
           <div className="aboutFact">
             <div className="aboutFactHead">REPORT-READY</div>
-            <div className="aboutSmall">Generate a clean printable summary.</div>
+            <div className="aboutSmall">
+              Generate a clean summary you can screenshot, print, or include in design evaluation notes.
+            </div>
           </div>
         </aside>
       </div>

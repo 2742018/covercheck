@@ -42,7 +42,7 @@ Everything runs **entirely in the browser** — no server uploads.
 
 ---
 
-## Tech Stack
+## Tech used in building the website
 
 - React + TypeScript
 - Vite
@@ -50,9 +50,3 @@ Everything runs **entirely in the browser** — no server uploads.
 - GitHub Pages-friendly build
 
 ---
-
-## Local Development
-
-```bash
-npm install
-npm run dev
