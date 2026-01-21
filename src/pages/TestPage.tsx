@@ -561,7 +561,6 @@ export default function TestPage() {
 
   return (
     <div className="analyzeWrap testPage">
-      {/* HERO (no big “box” — just content over your gradient) */}
       <div className="testHero">
         <div className="testHeroTop">
           <button className="ghostBtn" onClick={() => navigate("/play")}>
@@ -588,7 +587,6 @@ export default function TestPage() {
         <div className="testRule" />
       </div>
 
-      {/* STACKED PANELS with consistent spacing */}
       <div className="testStack">
         {/* 1) Explanation */}
         <div className="panelDark">

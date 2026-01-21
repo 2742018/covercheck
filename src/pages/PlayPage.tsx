@@ -1,39 +1,49 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { makeCoverSvgDataUrl } from "../lib/art";
 import { fileToDataUrl } from "../lib/storage";
 
 type Tile =
-  | { id: string; kind: "generated"; seed: number }
+  | { id: string; kind: "static"; src: string }
   | { id: string; kind: "upload"; dataUrl: string | null };
 
 function makeInitialTiles(): Tile[] {
-  const seeds = [11, 22, 33, 44, 55, 66, 77, 88, 99, 111, 222];
+  const images = Array.from({ length: 11 }, (_, i) => `/play/${String(i + 1).padStart(2, "0")}.jpg`);
+
   const tiles: Tile[] = [];
-  let s = 0;
+  let imgIndex = 0;
 
   for (let i = 0; i < 12; i++) {
     if (i === 6) {
       tiles.push({ id: "upload-slot", kind: "upload", dataUrl: null });
     } else {
-      tiles.push({ id: `gen-${i}`, kind: "generated", seed: seeds[s % seeds.length] + i * 13 });
-      s++;
+      tiles.push({ id: `static-${i}`, kind: "static", src: images[imgIndex % images.length] });
+      imgIndex++;
     }
   }
   return tiles;
 }
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function PlayPage() {
   const navigate = useNavigate();
-  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const fileRef = React.useRef<HTMLInputElement | null>(null);  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
 
-  // NOTE: no persistence -> uploads do not remain after leaving/reloading.
-  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
+  function shuffleStatic() {
+    setTiles((prev) => {
+      const statics = prev.filter((t) => t.kind === "static") as Extract<Tile, { kind: "static" }>[];
+      const shuffled = shuffleArray(statics);
 
-  function shuffleGenerated() {
-    setTiles((prev) =>
-      prev.map((t) => (t.kind === "generated" ? { ...t, seed: t.seed + Math.floor(Math.random() * 10_000) } : t))
-    );
+      let si = 0;
+      return prev.map((t) => (t.kind === "static" ? shuffled[si++] : t));
+    });
   }
 
   async function handleUpload(file: File) {
@@ -49,9 +59,7 @@ export default function PlayPage() {
       return;
     }
 
-    setTiles((prev) =>
-      prev.map((x) => (x.kind === "generated" && x.id === t.id ? { ...x, seed: x.seed + Math.floor(Math.random() * 10_000) } : x))
-    );
+    navigate("/analyze", { state: { dataUrl: t.src } });
   }
 
   return (
@@ -59,15 +67,14 @@ export default function PlayPage() {
       <div className="playHeader">
         <div>
           <div className="playTitle">PLAY / ANALYZE</div>
-          <div className="playSub">
-            Click any tile to shuffle. Click the empty slot to upload your cover, then analyze.
-          </div>
+          <div className="playSub">Click the empty slot to upload your own cover. You can shuffle the surrounding gallery.</div>
         </div>
 
         <div className="playActions">
-          <button className="ghostBtn" onClick={shuffleGenerated}>
+          <button className="ghostBtn" onClick={shuffleStatic}>
             SHUFFLE ALL
           </button>
+
           <input
             ref={fileRef}
             className="hiddenFile"
@@ -84,11 +91,10 @@ export default function PlayPage() {
 
       <div className="gallery">
         {tiles.map((t) => {
-          if (t.kind === "generated") {
-            const src = makeCoverSvgDataUrl(t.seed);
+          if (t.kind === "static") {
             return (
-              <button key={t.id} className="tile" onClick={() => onTileClick(t)} title="Click to shuffle">
-                <img src={src} alt="Generated album tile" />
+              <button key={t.id} className="tile" onClick={() => onTileClick(t)} title="Click to view/analyze">
+                <img src={t.src} alt="Album tile" />
               </button>
             );
           }
@@ -116,9 +122,7 @@ export default function PlayPage() {
         })}
       </div>
 
-      <div className="playFooterHint">
-        Tip: your upload stays local and is not stored. Reload/exit clears it.
-      </div>
+      <div className="playFooterHint">Tip: your upload stays local and is not stored. Reload/exit clears it.</div>
     </div>
   );
 }

@@ -1,4 +1,3 @@
-// FILE: src/pages/ReportPage.tsx
 import { useLocation, useNavigate } from "react-router-dom";
 
 type NormalizedRect = { x: number; y: number; w: number; h: number };

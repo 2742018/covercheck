@@ -30,7 +30,7 @@ Everything runs **entirely in the browser** — no server uploads.
 
 ---
 
-## How it works (high level)
+## How it works
 
 1. Upload an album cover (local file)
 2. Use **Crop View** (default) to see how it will appear as a square thumbnail

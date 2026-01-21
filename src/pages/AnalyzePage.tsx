@@ -64,7 +64,6 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Center-crop rect from src into dst aspect ratio (object-fit: cover). */
 function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   const srcAR = srcW / srcH;
   const dstAR = dstW / dstH;
@@ -84,7 +83,6 @@ function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   return { sx, sy, sw, sh };
 }
 
-/** Cover crop with user-adjusted crop position (0..1) + zoom (>=1). */
 function coverCropWithPosZoom(srcW: number, srcH: number, dstW: number, dstH: number, posX01: number, posY01: number, zoom: number) {
   const base = coverCrop(srcW, srcH, dstW, dstH);
   const sw = Math.max(1, base.sw / zoom);
@@ -375,7 +373,6 @@ export default function AnalyzePage() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataUrl]);
 
   // Rebuild thumbs + recompute analysis when crop changes
@@ -392,7 +389,6 @@ export default function AnalyzePage() {
 
     if (regionRef.current) computeAllNow(regionRef.current);
     requestAnimationFrame(() => redraw());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cropPos.x, cropPos.y, zoom]);
 
   const redraw = useCallback(() => {

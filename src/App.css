@@ -26,11 +26,11 @@
   text-rendering: geometricPrecision;
 
 
-  --cover-max-full: 720px;  /* FULL view max width */
-  --cover-max-crop: 520px;  /* CROP view max width (smaller square) */
+  --cover-max-full: 720px; 
+  --cover-max-crop: 520px; 
   --analyze-left-col: 560px;
 
-  --coverCol: 520px;      /* LEFT column max width (smaller = more room for analysis) */
+  --coverCol: 520px; 
   --coverStageMax: 480px;
 }
 
@@ -113,7 +113,7 @@ button, input{ font: inherit; }
 .wordmarkLink{
   font-weight: 780;
   letter-spacing: .12em;
-  font-size: 22px;   /* slightly bigger */
+  font-size: 22px;  
   opacity:.92;
   cursor:pointer;
   display:inline-flex;
@@ -378,7 +378,7 @@ button, input{ font: inherit; }
    ========================================================= */
 .analyzeWrap{ max-width: 1280px; margin: 0 auto; padding: 18px 18px 40px; }
 
-/* Header = back | title | actions (clean alignment) */
+/* Header */
 .analyzeHeader2{
   display:grid;
   grid-template-columns: auto 1fr auto;
@@ -420,8 +420,9 @@ button, input{ font: inherit; }
 
 .sideStack{ display:grid; gap:16px; }
 
-/* ===== Viewer stage (CROP/FULL) ===== */
 
+
+/* ===== Viewer stage (CROP/FULL) ===== */
 
 /* Analysis sections */
 .analysisSections{ display:grid; gap: 14px; }
@@ -553,7 +554,7 @@ button, input{ font: inherit; }
   aspect-ratio: 1 / 1;
 }
 
-/* FULL view can be larger + respects your TSX aspectRatio */
+/* FULL view */
 .mediaStage.full{
   width: min(100%, var(--cover-max-full));
   max-height: clamp(360px, 62vh, 720px);
@@ -640,7 +641,6 @@ button, input{ font: inherit; }
 .thumbEmptyDark{ color: rgba(242,242,242,.40); font-size: 20px; }
 
 /* Empty state */
-/* ---------- Empty state (nicer spacing on dark pages) ---------- */
 .emptyState{
   max-width: 1120px;
   margin: 22px auto 0;
@@ -826,7 +826,7 @@ body.lightMode .ghostBtn:hover{
 .aboutPage{
   max-width: 1200px;
   margin: 0 auto;
-  padding: 92px 18px 90px; /* clears fixed topbar + bottombar */
+  padding: 92px 18px 90px;
 }
 
 .aboutHero{
@@ -939,7 +939,7 @@ body.lightMode .ghostBtn:hover{
   letter-spacing: .04em;
 }
 
-/* Quick facts: simple separators */
+/* Quick facts */
 .aboutFact{
   padding: 12px 0;
   border-top: 1px solid rgba(16,17,20,.12);
@@ -1020,7 +1020,7 @@ body.lightMode .ghostBtn:hover{
   margin-top: 12px;
 }
 
-/* Question layout: 1&2 then 3&4 etc (2-col grid) */
+/* Question layout: 2-col grid */
 .testQuestionsGrid{
   display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
