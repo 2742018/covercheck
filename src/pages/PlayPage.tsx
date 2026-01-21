@@ -3,11 +3,29 @@ import { useNavigate } from "react-router-dom";
 import { fileToDataUrl } from "../lib/storage";
 
 type Tile =
-  | { id: string; kind: "static"; src: string }
+  | { id: string; kind: "static"; src: string; label: string }
   | { id: string; kind: "upload"; dataUrl: string | null };
 
+const STATIC_COUNT = 11; // number of static images available
+
+function buildStaticImageUrls(): Array<{ src: string; label: string }> {
+  const BASE = import.meta.env.BASE_URL;
+
+  return Array.from({ length: STATIC_COUNT }, (_, i) => {
+    const name = String(i + 1).padStart(2, "0");
+    return {
+      src: `${BASE}play/${name}.jpg`,
+      label: `Sample cover ${name}`,
+    };
+  });
+}
+
 function makeInitialTiles(): Tile[] {
-  const images = Array.from({ length: 11 }, (_, i) => `/play/${String(i + 1).padStart(2, "0")}.jpg`);
+  const BASE = import.meta.env.BASE_URL; // "/covercheck/" on GitHub Pages
+  const images = Array.from(
+    { length: 11 },
+    (_, i) => `${BASE}play/${String(i + 1).padStart(2, "0")}.jpg`
+  );
 
   const tiles: Tile[] = [];
   let imgIndex = 0;
@@ -16,7 +34,8 @@ function makeInitialTiles(): Tile[] {
     if (i === 6) {
       tiles.push({ id: "upload-slot", kind: "upload", dataUrl: null });
     } else {
-      tiles.push({ id: `static-${i}`, kind: "static", src: images[imgIndex % images.length] });
+      const name = String((imgIndex % images.length) + 1).padStart(2, "0");
+      tiles.push({ id: `static-${i}`, kind: "static", src: images[imgIndex % images.length], label: `Sample cover ${name}` });
       imgIndex++;
     }
   }
@@ -34,7 +53,19 @@ function shuffleArray<T>(arr: T[]): T[] {
 
 export default function PlayPage() {
   const navigate = useNavigate();
-  const fileRef = React.useRef<HTMLInputElement | null>(null);  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+
+  // No persistence: reload/exit clears uploads
+  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
+
+  // Optionally pre-load all static images
+  React.useEffect(() => {
+    const images = buildStaticImageUrls();
+    images.forEach(({ src }) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   function shuffleStatic() {
     setTiles((prev) => {
@@ -59,6 +90,7 @@ export default function PlayPage() {
       return;
     }
 
+    // Static image → analyze directly
     navigate("/analyze", { state: { dataUrl: t.src } });
   }
 
@@ -67,7 +99,9 @@ export default function PlayPage() {
       <div className="playHeader">
         <div>
           <div className="playTitle">PLAY / ANALYZE</div>
-          <div className="playSub">Click the empty slot to upload your own cover. You can shuffle the surrounding gallery.</div>
+          <div className="playSub">
+            Click a tile to analyze it. Use the empty slot to upload your own cover. Shuffle changes the gallery order.
+          </div>
         </div>
 
         <div className="playActions">
@@ -93,8 +127,15 @@ export default function PlayPage() {
         {tiles.map((t) => {
           if (t.kind === "static") {
             return (
-              <button key={t.id} className="tile" onClick={() => onTileClick(t)} title="Click to view/analyze">
-                <img src={t.src} alt="Album tile" />
+              <button key={t.id} className="tile" onClick={() => onTileClick(t)} title="Click to analyze">
+                <img
+                  src={t.src}
+                  alt={t.label}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.opacity = "0.2";
+                    (e.currentTarget as HTMLImageElement).alt = `Missing: ${t.src}`;
+                  }}
+                />
               </button>
             );
           }
@@ -104,7 +145,7 @@ export default function PlayPage() {
               key={t.id}
               className={`tile uploadTile ${t.dataUrl ? "hasImage" : ""}`}
               onClick={() => onTileClick(t)}
-              title={t.dataUrl ? "Click to analyze" : "Click to upload"}
+              title={t.dataUrl ? "Click to analyze upload" : "Click to upload"}
             >
               {t.dataUrl ? (
                 <>
@@ -122,7 +163,7 @@ export default function PlayPage() {
         })}
       </div>
 
-      <div className="playFooterHint">Tip: your upload stays local and is not stored. Reload/exit clears it.</div>
+      <div className="playFooterHint">Tip: uploads stay local and clear when you reload/exit.</div>
     </div>
   );
 }
