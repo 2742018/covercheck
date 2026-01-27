@@ -30,6 +30,9 @@ export default function Shell() {
             <NavLink to="/test" className={({ isActive }) => cx("topLink", isActive && "active")}>
               TEST
             </NavLink>
+            <NavLink to="/match" className={({ isActive }) => cx("topLink", isActive && "active")}>
+              MATCH
+            </NavLink>
             <NavLink to="/about" className={({ isActive }) => cx("topLink", isActive && "active")}>
               ABOUT
             </NavLink>
@@ -57,6 +60,10 @@ export default function Shell() {
             <span className="sep">|</span>
             <NavLink to="/test" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
               TEST
+            </NavLink>
+            <span className="sep">|</span>
+            <NavLink to="/match" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
+              MATCH
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/about" className={({ isActive }) => cx("bottomLink", isActive && "active")}>

@@ -1157,3 +1157,86 @@ body.lightMode .ghostBtn:hover{
 .testList li{
   margin: 6px 0;
 }
+
+
+/* =========================================================
+   MATCH (Cover ↔ Track Match)
+   ========================================================= */
+
+.matchGrid{
+  display:grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: 16px;
+  align-items:start;
+}
+@media (max-width: 980px){
+  .matchGrid{ grid-template-columns: 1fr; }
+}
+
+.matchUploadRow{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 560px){
+  .matchUploadRow{ grid-template-columns: 1fr; }
+}
+
+.matchUpload{
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.18);
+  border-radius: 16px;
+  padding: 12px;
+  display:grid;
+  gap: 8px;
+}
+.matchUploadLabel{
+  font-size: 12px;
+  letter-spacing:.10em;
+  text-transform: uppercase;
+  color: rgba(242,242,242,.72);
+}
+.matchUpload input{
+  width: 100%;
+}
+
+.matchPreview{
+  margin-top: 12px;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.20);
+  border-radius: 16px;
+  overflow:hidden;
+  aspect-ratio: 1 / 1;
+  display:grid;
+  place-items:center;
+}
+.matchPreview img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+}
+.matchEmpty{
+  color: rgba(242,242,242,.55);
+  font-size: 12px;
+  letter-spacing:.04em;
+}
+
+.matchPalette{
+  margin-top: 12px;
+  display:grid;
+  gap: 8px;
+}
+
+.matchScoreRow{
+  display:flex;
+  gap: 14px;
+  align-items:center;
+}
+.matchScoreBig{
+  font-size: 44px;
+  letter-spacing: -.02em;
+  color: rgba(255,196,0,.95);
+}
+.matchScoreMeta{
+  min-width: 0;
+}
