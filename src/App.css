@@ -1459,3 +1459,140 @@ body.lightMode .ghostBtn:hover{
 }
 .mockMatchRow{ margin-top: 12px; }
 .mockNextActions{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+
+
+
+
+/* ===== POLICY PAGE (uses lightMode tokens) ===== */
+body.lightMode .policyPage{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 18px 90px;
+}
+
+.policyHero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 16px;
+  padding-top: 86px; /* clears fixed topbar */
+}
+.policyKicker{
+  letter-spacing:.18em;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity:.72;
+  margin-bottom: 10px;
+}
+.policyTitle{
+  font-size: 56px;
+  letter-spacing: -.02em;
+  line-height: 0.98;
+  margin: 0;
+}
+@media (max-width: 980px){
+  .policyTitle{ font-size: 44px; }
+  .policyHero{ padding-top: 78px; }
+}
+
+.policyHeroRight{ white-space: nowrap; }
+
+.policyLead{
+  max-width: 78ch;
+  color: rgba(16,17,20,.74);
+  font-size: 14px;
+  line-height: 1.9;
+  margin-top: 14px;
+}
+
+.policyRule{
+  height: 1px;
+  background: rgba(16,17,20,.14);
+  margin: 22px 0;
+}
+
+.policyGrid{
+  display:grid;
+  grid-template-columns: 240px minmax(0, 1fr) 280px;
+  gap: 28px;
+  align-items:start;
+}
+@media (max-width: 980px){
+  .policyGrid{ grid-template-columns: 1fr; }
+}
+
+.policyLabel{
+  letter-spacing:.18em;
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: .62;
+  margin-bottom: 10px;
+}
+
+.policyLink{
+  display:block;
+  padding: 8px 0;
+  color: rgba(16,17,20,.88);
+}
+.policyLink:hover{ text-decoration: underline; }
+
+.policyPara{
+  color: rgba(16,17,20,.78);
+  font-size: 14px;
+  line-height: 1.9;
+  max-width: 84ch;
+  margin: 0;
+}
+
+.policySmall{
+  color: rgba(16,17,20,.66);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.policySpacer{ margin-top: 18px; }
+
+.policyBullets{
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(16,17,20,.70);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.policyCallouts{
+  display:grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.policyCallout{
+  padding-left: 14px;
+  border-left: 1px solid rgba(16,17,20,.16);
+}
+.policyCalloutHead{
+  letter-spacing:.16em;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: rgba(16,17,20,.90);
+  margin-bottom: 6px;
+}
+
+.policyFact{
+  padding: 12px 0;
+  border-top: 1px solid rgba(16,17,20,.12);
+}
+.policyFact:first-of-type{ border-top: 0; }
+.policyFactHead{
+  letter-spacing:.14em;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: rgba(16,17,20,.90);
+  margin-bottom: 6px;
+}
+
+.policyActions{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}

@@ -8,6 +8,7 @@ import TestPage from "./pages/TestPage";
 import AboutPage from "./pages/AboutPage";
 import MatchPage from "./pages/MatchPage";
 import MockupsPage from "./pages/MockupsPage";
+import LicensingPage from "./pages/LicensingPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/match" element={<MatchPage />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/licensing" element={<LicensingPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="*" element={<Navigate to="/play" replace />} />
       </Route>
