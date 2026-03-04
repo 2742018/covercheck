@@ -1596,3 +1596,12 @@ body.lightMode .policyPage{
   flex-wrap: wrap;
   margin-top: 16px;
 }
+
+.compGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 560px){
+  .compGrid{ grid-template-columns: 1fr; }
+}
