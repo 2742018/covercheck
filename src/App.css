@@ -399,23 +399,29 @@ button, input{ font: inherit; }
   justify-self:end;
 }
 
-@media (max-width: 860px){
+@media (max-width: 520px){
   .analyzeHeader2{ grid-template-columns: 1fr; }
   .analyzeActions2{ justify-content:flex-start; justify-self:start; }
 }
 
+/* --- Analyze layout: keep right panel visible --- */
 .analyzeGrid2{
-  display:grid;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr); /* LEFT smaller, RIGHT flexible */
+  gap: 18px;
   align-items: start;
-
-  /* left = limited, right = flexible (focus on analysis) */
-  grid-template-columns: minmax(0, var(--coverCol)) minmax(0, 1fr);
-
   max-width: 100%;
 }
-@media (max-width: 980px){
-  .analyzeGrid2{ grid-template-columns: 1fr; }
+
+.analyzeGrid2 > *{ min-width: 0; } /* prevents overflow */
+.sideStack{ min-width: 0; }
+.panelDark{ max-width: 100%; }
+
+/* Stack on smaller screens */
+@media (max-width: 1060px){
+  .analyzeGrid2{
+    grid-template-columns: 1fr;
+  }
 }
 
 .sideStack{ display:grid; gap:16px; }
@@ -476,7 +482,7 @@ button, input{ font: inherit; }
 }
 .miniValue{
   margin-top: 8px;
-  font-size: 20px;
+  font-size: 16px;
   letter-spacing:.02em;
   color: rgba(242,242,242,.92);
 }
@@ -540,7 +546,7 @@ button, input{ font: inherit; }
 /* ===== Viewer stage (CROP/FULL) ===== */
 .mediaStage{
   position: relative;
-  width: min(100%, var(--cover-max-full));
+  width: min(100%, 520px);
   margin: 0 auto;
   background: rgba(0,0,0,.22);
   overflow: hidden;
@@ -612,33 +618,6 @@ button, input{ font: inherit; }
 .range{ width: 180px; }
 @media (max-width: 520px){ .range{ width: 140px; } }
 
-
-/* Thumbs */
-.thumbRowWrap{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 14px; }
-@media (max-width: 520px){ .thumbRowWrap{ grid-template-columns: 1fr; } }
-
-.thumbMini{
-  border: 1px solid rgba(242,242,242,.10);
-  border-radius: 18px;
-  background: rgba(0,0,0,.16);
-  overflow:hidden;
-}
-.thumbMiniLabel{
-  padding: 10px 12px 8px;
-  border-bottom: 1px solid rgba(242,242,242,.08);
-  font-size: 12px;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color: rgba(242,242,242,.78);
-}
-.thumbMiniBody{
-  aspect-ratio: 1 / 1;
-  display:grid;
-  place-items:center;
-  background: rgba(0,0,0,.20);
-}
-.thumbMiniBody img{ width:100%; height:100%; object-fit: contain; }
-.thumbEmptyDark{ color: rgba(242,242,242,.40); font-size: 20px; }
 
 /* Empty state */
 .emptyState{
@@ -2038,3 +2017,87 @@ body.lightMode .policyPage{
     color:#000 !important;
   }
 }
+
+/* =========================================================
+   ANALYZE PAGE LAYOUT OVERRIDE (Composition under image)
+   ========================================================= */
+
+/* Main 2-column workspace */
+.analyzeWorkspace{
+  display:grid;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+  gap: 18px;
+  align-items:start;
+}
+
+/* Stack panels neatly in each column */
+.analyzeLeft,
+.analyzeRight{
+  min-width:0;
+  display:grid;
+  gap:16px;
+}
+
+/* Keep cover stage smaller so right column never clips */
+.mediaStage{
+  width: min(100%, 460px);
+}
+.mediaStage.crop{
+  width: min(100%, 460px);
+  aspect-ratio: 1 / 1;
+}
+.mediaStage.full{
+  width: min(100%, 620px);
+  max-height: clamp(320px, 56vh, 620px);
+}
+
+/* Composition grid: 2 columns, clean */
+.compGrid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 620px){
+  .compGrid{ grid-template-columns: 1fr; }
+}
+
+/* Make colour chips not crush the right column */
+.chipRow{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 520px){
+  .chipRow{ grid-template-columns: 1fr; }
+}
+
+/* Make text never overflow */
+.panelNote,
+.miniHint,
+.suggestDetail,
+.detailLine,
+.metricSub,
+.miniSub,
+.readyMeta,
+.readyFixList{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+/* Mobile: stack everything */
+@media (max-width: 1060px){
+  .analyzeWorkspace{
+    grid-template-columns: 1fr;
+  }
+  .mediaStage,
+  .mediaStage.crop,
+  .mediaStage.full{
+    width: min(100%, 620px);
+  }
+}
+
+/* Analyze hero spacing (reusing mockHero styles) */
+.analyzeHero{
+  margin: 6px 0 16px;
+}
+

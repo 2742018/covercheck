@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fileToDataUrl } from "../lib/storage";
 import {
@@ -16,15 +10,8 @@ import {
   type RegionMetrics,
   type SafeMarginResult,
 } from "../analysis/metrics";
-import {
-  computeCompositionMetrics,
-  type CompositionMetrics,
-} from "../analysis/composition";
-import {
-  computeReleaseReadiness,
-  type ReleaseReadiness,
-  type Thumb64Snapshot,
-} from "../lib/release";
+import { computeCompositionMetrics, type CompositionMetrics } from "../analysis/composition";
+import { computeReleaseReadiness, type ReleaseReadiness, type Thumb64Snapshot } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
 
 type AnalyzeState = { dataUrl?: string };
@@ -32,12 +19,7 @@ type ViewMode = "crop" | "full";
 type Handle = "nw" | "ne" | "sw" | "se";
 type DragMode = "idle" | "new" | "move" | "resize";
 
-type Suggestion = {
-  title: string;
-  why: string;
-  try: string;
-  target?: string;
-};
+type Suggestion = { title: string; why: string; try: string; target?: string };
 
 type ReportData = {
   createdAt: string;
@@ -55,6 +37,7 @@ type ReportData = {
   suggestions: Suggestion[];
 };
 
+// ---------------- helpers ----------------
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
@@ -87,6 +70,7 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+/** Center-crop rect for a square target. */
 function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   const srcAR = srcW / srcH;
   const dstAR = dstW / dstH;
@@ -106,13 +90,7 @@ function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   return { sx, sy, sw, sh };
 }
 
-function coverCropWithPosZoom(
-  srcW: number,
-  srcH: number,
-  posX01: number,
-  posY01: number,
-  zoom: number
-) {
+function coverCropWithPosZoom(srcW: number, srcH: number, posX01: number, posY01: number, zoom: number) {
   const base = coverCrop(srcW, srcH, 1, 1);
   const sw = Math.max(1, base.sw / zoom);
   const sh = Math.max(1, base.sh / zoom);
@@ -172,34 +150,17 @@ async function buildAnalysisImageData(dataUrl: string, maxDim = 1024) {
   if (!ctx) throw new Error("Canvas not available");
 
   ctx.drawImage(img, 0, 0, w, h);
-  return {
-    imageData: ctx.getImageData(0, 0, w, h),
-    natural: { w: w0, h: h0 },
-  };
+  return { imageData: ctx.getImageData(0, 0, w, h), natural: { w: w0, h: h0 } };
 }
 
-function buildThumbDataUrl(
-  sourceCanvas: HTMLCanvasElement,
-  cropPos: { x: number; y: number },
-  zoom: number,
-  size: number
-) {
-  const out = document.createElement("canvas");
-  out.width = size;
-  out.height = size;
-  const ctx = out.getContext("2d", { willReadFrequently: true });
+function ensureSourceCanvas(imageData: ImageData) {
+  const c = document.createElement("canvas");
+  c.width = imageData.width;
+  c.height = imageData.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
-
-  const { sx, sy, sw, sh } = coverCropWithPosZoom(
-    sourceCanvas.width,
-    sourceCanvas.height,
-    cropPos.x,
-    cropPos.y,
-    zoom
-  );
-
-  ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, size, size);
-  return out.toDataURL("image/png");
+  ctx.putImageData(imageData, 0, 0);
+  return c;
 }
 
 function mapCropRegionToImageRectWithCrop(
@@ -239,27 +200,18 @@ function buildThumb64Snapshot(
       clutterScore: 0,
       regionMinPx: 0,
       pass: false,
-      note: "64px preview could not be generated.",
+      note: "64px check could not be generated.",
     };
   }
 
-  const { sx, sy, sw, sh } = coverCropWithPosZoom(
-    sourceCanvas.width,
-    sourceCanvas.height,
-    cropPos.x,
-    cropPos.y,
-    zoom
-  );
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(sourceCanvas.width, sourceCanvas.height, cropPos.x, cropPos.y, zoom);
   ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, size, size);
 
   const thumbData = ctx.getImageData(0, 0, size, size);
   const regionMetrics = computeRegionMetrics(thumbData, regionInCrop);
   const regionMinPx = Math.min(regionInCrop.w * size, regionInCrop.h * size);
 
-  const pass =
-    regionMetrics.contrastRatio >= 3 &&
-    regionMetrics.clutterScore >= 55 &&
-    regionMinPx >= 10;
+  const pass = regionMetrics.contrastRatio >= 3 && regionMetrics.clutterScore >= 55 && regionMinPx >= 10;
 
   return {
     size: 64,
@@ -308,8 +260,8 @@ function buildSuggestions(args: {
     out.push({
       title: "Contrast is too low",
       why: `Estimated contrast is ${rm.contrastRatio.toFixed(2)}.`,
-      try: `Use the recommended text colour (${palette.text.primary}) and add a 20–40% dark/light overlay behind text.`,
-      target: "≥ 4.5 for small text, ≥ 3.0 for large display text",
+      try: `Use the recommended text colour (${palette.text.primary}) and add a 20–40% overlay behind text.`,
+      target: "≥ 4.5 small text, ≥ 3.0 large text",
     });
   } else if (rm.contrastRatio < 4.5) {
     out.push({
@@ -331,9 +283,11 @@ function buildSuggestions(args: {
 
   if (thumb64 && !thumb64.pass && viewMode === "crop") {
     out.push({
-      title: "64px thumbnail still fails",
-      why: `Tiny preview check: contrast ${thumb64.contrastRatio.toFixed(2)}, clutter ${Math.round(thumb64.clutterScore)}, region size ${Math.round(thumb64.regionMinPx)}px.`,
-      try: "Increase type size/weight, reduce background texture, or choose a cleaner crop for the square thumbnail.",
+      title: "64px check still fails",
+      why: `Tiny check: contrast ${thumb64.contrastRatio.toFixed(2)}, clutter ${Math.round(
+        thumb64.clutterScore
+      )}, region size ${Math.round(thumb64.regionMinPx)}px.`,
+      try: "Increase type size/weight, reduce background texture, or choose a cleaner square crop.",
       target: "Readable at 64px",
     });
   }
@@ -341,53 +295,34 @@ function buildSuggestions(args: {
   if (composition.lightDark.label === "Dark") {
     out.push({
       title: "Very dark overall image",
-      why: "Dark covers can lose detail and subtle type in dark-mode interfaces.",
-      try: "Use a lighter text/overlay combination and ensure the title zone has stronger tonal separation.",
-      target: "Maintain visible focal separation in dark UI",
+      why: "Dark covers can crush detail and subtle type in dark-mode UIs.",
+      try: "Use a lighter text/overlay combination and increase tonal separation in the title zone.",
     });
   } else if (composition.lightDark.label === "Light") {
     out.push({
       title: "Very light overall image",
       why: "Light covers can wash out pale typography or weak focal points.",
       try: "Use a darker text tone or slightly deepen the title region with an overlay.",
-      target: "Keep title region visually anchored",
-    });
-  }
-
-  if (composition.symmetry.label === "Asymmetrical" && !safe.pass) {
-    out.push({
-      title: "Asymmetry is increasing crop risk",
-      why: "Asymmetrical placement can be effective, but edge-heavy composition increases platform clipping risk.",
-      try: "Keep asymmetry in the image, but move the critical text block farther from the edge.",
-      target: "Intentional asymmetry without unsafe placement",
-    });
-  }
-
-  if (composition.organicTechnical.label === "Technical" && rm.clutterScore < 60) {
-    out.push({
-      title: "Technical structure + high texture may overcrowd type",
-      why: "Strong directional edges plus texture can make text compete with the artwork.",
-      try: "Introduce one calmer text zone or use an overlay panel for hierarchy.",
-      target: "Clearer type hierarchy",
     });
   }
 
   out.push({
     title: "Use palette-compatible accents",
-    why: `Your region-average colour is ${palette.regionAvg}. Compatible accents are already calculated from it.`,
-    try: `Try accent ${palette.text.accent} or use the compatible palette as overlay/highlight options.`,
-    target: "Keep accents readable against the image",
+    why: `Region-average colour is ${palette.regionAvg}.`,
+    try: `Try accent ${palette.text.accent} or use the palette as overlay/highlight options.`,
   });
 
   return out.slice(0, 10);
 }
 
+// ---------------- page ----------------
 export default function AnalyzePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state || {}) as AnalyzeState;
 
   const [dataUrl, setDataUrl] = useState<string | null>(() => state.dataUrl ?? null);
+
   const [viewMode, setViewMode] = useState<ViewMode>("crop");
   const [region, setRegion] = useState<NormalizedRect | null>(null);
 
@@ -396,15 +331,12 @@ export default function AnalyzePage() {
   const [panCrop, setPanCrop] = useState(false);
 
   const [busy, setBusy] = useState(false);
-  const [thumbsBusy, setThumbsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
-
   const [showSafe, setShowSafe] = useState(true);
-  const [showThumbs, setShowThumbs] = useState(false);
 
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  // outputs
   const [regionMetrics, setRegionMetrics] = useState<RegionMetrics | null>(null);
   const [safeMargin, setSafeMargin] = useState<SafeMarginResult | null>(null);
   const [palette, setPalette] = useState<PaletteResult | null>(null);
@@ -431,22 +363,9 @@ export default function AnalyzePage() {
     startNx: number;
     startNy: number;
     baseRect: NormalizedRect | null;
-  }>({
-    mode: "idle",
-    handle: null,
-    startNx: 0,
-    startNy: 0,
-    baseRect: null,
-  });
+  }>({ mode: "idle", handle: null, startNx: 0, startNy: 0, baseRect: null });
 
-  const panRef = useRef({
-    active: false,
-    startX: 0,
-    startY: 0,
-    basePos: { x: 0.5, y: 0.5 },
-  });
-
-  const cropChangeTimeoutRef = useRef<number | null>(null);
+  const panRef = useRef({ active: false, startX: 0, startY: 0, basePos: { x: 0.5, y: 0.5 } });
 
   const safeInset = 0.08;
 
@@ -466,17 +385,7 @@ export default function AnalyzePage() {
     ? release.overallPass
       ? `READY • ${release.score}/100`
       : `NOT READY • ${release.score}/100`
-    : "No readiness yet";
-
-  function ensureSourceCanvas(imageData: ImageData) {
-    const c = document.createElement("canvas");
-    c.width = imageData.width;
-    c.height = imageData.height;
-    const ctx = c.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.putImageData(imageData, 0, 0);
-    return c;
-  }
+    : "NO READINESS YET";
 
   const redraw = useCallback(() => {
     const host = hostRef.current;
@@ -500,16 +409,16 @@ export default function AnalyzePage() {
     ctx.clearRect(0, 0, cssW, cssH);
 
     const drawRect =
-      viewMode === "crop" || !imgSize
-        ? { x: 0, y: 0, w: cssW, h: cssH }
-        : computeContainRect(imgSize.w, imgSize.h, cssW, cssH);
+      viewMode === "crop" || !imgSize ? { x: 0, y: 0, w: cssW, h: cssH } : computeContainRect(imgSize.w, imgSize.h, cssW, cssH);
 
+    // image area border
     ctx.save();
     ctx.strokeStyle = "rgba(245,245,245,0.14)";
     ctx.lineWidth = 1;
     ctx.strokeRect(drawRect.x + 0.5, drawRect.y + 0.5, drawRect.w - 1, drawRect.h - 1);
     ctx.restore();
 
+    // safe area
     if (showSafe) {
       const mx = drawRect.x + drawRect.w * safeInset;
       const my = drawRect.y + drawRect.h * safeInset;
@@ -523,10 +432,10 @@ export default function AnalyzePage() {
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 1;
       ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
-      ctx.setLineDash([]);
       ctx.restore();
     }
 
+    // region
     const rgn = regionRef.current;
     if (!rgn) return;
 
@@ -578,11 +487,7 @@ export default function AnalyzePage() {
     const py = clientY - r.top;
 
     if (viewMode === "crop") {
-      return {
-        nx: clamp01(px / r.width),
-        ny: clamp01(py / r.height),
-        inside: true,
-      };
+      return { nx: clamp01(px / r.width), ny: clamp01(py / r.height), inside: true };
     }
 
     if (!imgSize) return null;
@@ -592,11 +497,7 @@ export default function AnalyzePage() {
     const cy = py - contain.y;
 
     const inside = cx >= 0 && cy >= 0 && cx <= contain.w && cy <= contain.h;
-    return {
-      nx: clamp01(cx / contain.w),
-      ny: clamp01(cy / contain.h),
-      inside,
-    };
+    return { nx: clamp01(cx / contain.w), ny: clamp01(cy / contain.h), inside };
   }
 
   function setRegionBoth(next: NormalizedRect | null) {
@@ -608,15 +509,32 @@ export default function AnalyzePage() {
     setRegionMetrics(null);
     setSafeMargin(null);
     setPalette(null);
-    setComposition(null);
     setThumb64(null);
     setRelease(null);
     setSuggestions([]);
+    // NOTE: we do NOT clear composition — it can be computed without a region
+  }
+
+  function computeCompositionNow() {
+    const imageData = analysisRef.current;
+    if (!imageData) {
+      setComposition(null);
+      return;
+    }
+    const cropRect =
+      viewMode === "crop"
+        ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
+        : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
+
+    setComposition(computeCompositionMetrics(imageData, cropRect));
   }
 
   function computeAllNow(nextRegion: NormalizedRect | null) {
     const imageData = analysisRef.current;
     const srcCanvas = srcCanvasRef.current;
+
+    // composition can update even without a region
+    computeCompositionNow();
 
     if (!imageData || !srcCanvas || !imgSize || !dataUrl || !nextRegion) {
       clearAnalysisOnly();
@@ -638,14 +556,10 @@ export default function AnalyzePage() {
         : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
 
     const comp = computeCompositionMetrics(imageData, cropRect);
-    const t64 = viewMode === "crop" ? buildThumb64Snapshot(srcCanvas, cropPos, zoom, nextRegion) : null;
+    setComposition(comp);
 
-    const rel = computeReleaseReadiness({
-      region: nextRegion,
-      regionMetrics: rm,
-      safe: sm,
-      thumb64: t64,
-    });
+    const t64 = viewMode === "crop" ? buildThumb64Snapshot(srcCanvas, cropPos, zoom, nextRegion) : null;
+    const rel = computeReleaseReadiness({ region: nextRegion, regionMetrics: rm, safe: sm, thumb64: t64 });
 
     const sug = buildSuggestions({
       region: nextRegion,
@@ -660,34 +574,15 @@ export default function AnalyzePage() {
     setRegionMetrics(rm);
     setSafeMargin(sm);
     setPalette(pal);
-    setComposition(comp);
     setThumb64(t64);
     setRelease(rel);
     setSuggestions(sug);
-  }
-
-  async function buildThumbPreviews() {
-    const srcCanvas = srcCanvasRef.current;
-    if (!srcCanvas || !showThumbs) return;
-
-    setThumbsBusy(true);
-    try {
-      const next = {
-        "256": buildThumbDataUrl(srcCanvas, cropPos, zoom, 256) ?? "",
-        "128": buildThumbDataUrl(srcCanvas, cropPos, zoom, 128) ?? "",
-        "64": buildThumbDataUrl(srcCanvas, cropPos, zoom, 64) ?? "",
-      };
-      setThumbs(next);
-    } finally {
-      setThumbsBusy(false);
-    }
   }
 
   function buildReport(): ReportData | null {
     if (!dataUrl || !imgSize || !regionRef.current || !regionMetrics || !safeMargin || !palette || !composition || !release) {
       return null;
     }
-
     const imageData = analysisRef.current;
     if (!imageData) return null;
 
@@ -716,19 +611,12 @@ export default function AnalyzePage() {
   function goToReport(finalAction: "report" | "ready") {
     const report = buildReport();
     if (!report) return;
-
     saveReportToSession(report);
     navigate("/report", { state: { finalAction } });
   }
 
   function endDragAndScore() {
-    dragRef.current = {
-      mode: "idle",
-      handle: null,
-      startNx: 0,
-      startNy: 0,
-      baseRect: null,
-    };
+    dragRef.current = { mode: "idle", handle: null, startNx: 0, startNy: 0, baseRect: null };
     requestAnimationFrame(() => redraw());
     computeAllNow(regionRef.current);
   }
@@ -740,13 +628,8 @@ export default function AnalyzePage() {
     e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
-    if (viewMode === "crop" && panCrop && imgSize) {
-      panRef.current = {
-        active: true,
-        startX: e.clientX,
-        startY: e.clientY,
-        basePos: { ...cropPos },
-      };
+    if (viewMode === "crop" && panCrop) {
+      panRef.current = { active: true, startX: e.clientX, startY: e.clientY, basePos: { ...cropPos } };
       return;
     }
 
@@ -754,38 +637,21 @@ export default function AnalyzePage() {
     if (current) {
       const hit = handleHitTest(current, p.nx, p.ny);
       if (hit) {
-        dragRef.current = {
-          mode: "resize",
-          handle: hit,
-          startNx: p.nx,
-          startNy: p.ny,
-          baseRect: current,
-        };
+        dragRef.current = { mode: "resize", handle: hit, startNx: p.nx, startNy: p.ny, baseRect: current };
         return;
       }
       if (rectContains(current, p.nx, p.ny)) {
-        dragRef.current = {
-          mode: "move",
-          handle: null,
-          startNx: p.nx,
-          startNy: p.ny,
-          baseRect: current,
-        };
+        dragRef.current = { mode: "move", handle: null, startNx: p.nx, startNy: p.ny, baseRect: current };
         return;
       }
     }
 
-    dragRef.current = {
-      mode: "new",
-      handle: null,
-      startNx: p.nx,
-      startNy: p.ny,
-      baseRect: null,
-    };
+    dragRef.current = { mode: "new", handle: null, startNx: p.nx, startNy: p.ny, baseRect: null };
     setRegionBoth({ x: p.nx, y: p.ny, w: 0.02, h: 0.02 });
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    // PAN CROP
     if (panRef.current.active && viewMode === "crop" && imgSize) {
       const host = hostRef.current;
       if (!host) return;
@@ -794,14 +660,7 @@ export default function AnalyzePage() {
       const dx = e.clientX - panRef.current.startX;
       const dy = e.clientY - panRef.current.startY;
 
-      const { sw, sh } = coverCropWithPosZoom(
-        imgSize.w,
-        imgSize.h,
-        panRef.current.basePos.x,
-        panRef.current.basePos.y,
-        zoom
-      );
-
+      const { sw, sh } = coverCropWithPosZoom(imgSize.w, imgSize.h, panRef.current.basePos.x, panRef.current.basePos.y, zoom);
       const maxX = Math.max(1, imgSize.w - sw);
       const maxY = Math.max(1, imgSize.h - sh);
 
@@ -815,6 +674,7 @@ export default function AnalyzePage() {
       return;
     }
 
+    // REGION DRAG
     const dr = dragRef.current;
     if (dr.mode === "idle") return;
 
@@ -836,17 +696,7 @@ export default function AnalyzePage() {
     if (dr.mode === "move" && dr.baseRect) {
       const dx = p.nx - dr.startNx;
       const dy = p.ny - dr.startNy;
-      setRegionBoth(
-        clampRect(
-          {
-            x: dr.baseRect.x + dx,
-            y: dr.baseRect.y + dy,
-            w: dr.baseRect.w,
-            h: dr.baseRect.h,
-          },
-          0.02
-        )
-      );
+      setRegionBoth(clampRect({ x: dr.baseRect.x + dx, y: dr.baseRect.y + dy, w: dr.baseRect.w, h: dr.baseRect.h }, 0.02));
       requestAnimationFrame(() => redraw());
       return;
     }
@@ -860,19 +710,10 @@ export default function AnalyzePage() {
       let x2 = base.x + base.w;
       let y2 = base.y + base.h;
 
-      if (dr.handle === "nw") {
-        x1 = p.nx;
-        y1 = p.ny;
-      } else if (dr.handle === "ne") {
-        x2 = p.nx;
-        y1 = p.ny;
-      } else if (dr.handle === "sw") {
-        x1 = p.nx;
-        y2 = p.ny;
-      } else {
-        x2 = p.nx;
-        y2 = p.ny;
-      }
+      if (dr.handle === "nw") { x1 = p.nx; y1 = p.ny; }
+      else if (dr.handle === "ne") { x2 = p.nx; y1 = p.ny; }
+      else if (dr.handle === "sw") { x1 = p.nx; y2 = p.ny; }
+      else { x2 = p.nx; y2 = p.ny; }
 
       const x = Math.min(x1, x2);
       const y = Math.min(y1, y2);
@@ -888,7 +729,6 @@ export default function AnalyzePage() {
     panRef.current.active = false;
     endDragAndScore();
   }
-
   function onPointerCancel() {
     panRef.current.active = false;
     endDragAndScore();
@@ -907,7 +747,6 @@ export default function AnalyzePage() {
       setPanCrop(false);
 
       setRegionBoth(null);
-      setThumbs({});
       clearAnalysisOnly();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -916,11 +755,11 @@ export default function AnalyzePage() {
     }
   }
 
+  // load image → analysis buffers
   useEffect(() => {
     if (!dataUrl) return;
 
     let alive = true;
-
     (async () => {
       setBusy(true);
       setError(null);
@@ -931,6 +770,16 @@ export default function AnalyzePage() {
         analysisRef.current = analysis.imageData;
         srcCanvasRef.current = ensureSourceCanvas(analysis.imageData);
         setImgSize({ w: analysis.natural.w, h: analysis.natural.h });
+
+        // composition can be computed immediately (no region needed)
+        setComposition(
+          computeCompositionMetrics(analysis.imageData, {
+            sx: 0,
+            sy: 0,
+            sw: analysis.imageData.width,
+            sh: analysis.imageData.height,
+          })
+        );
       } catch (e) {
         if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to process image");
@@ -945,96 +794,82 @@ export default function AnalyzePage() {
     };
   }, [dataUrl, redraw]);
 
+  // debounce crop changes (also updates composition)
   useEffect(() => {
-    if (!showThumbs) return;
-    void buildThumbPreviews();
-  }, [showThumbs]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (cropChangeTimeoutRef.current) {
-      window.clearTimeout(cropChangeTimeoutRef.current);
-    }
-
-    cropChangeTimeoutRef.current = window.setTimeout(() => {
+    const t = window.setTimeout(() => {
+      computeCompositionNow();
       if (regionRef.current) computeAllNow(regionRef.current);
-      if (showThumbs) void buildThumbPreviews();
       redraw();
     }, 140);
 
-    return () => {
-      if (cropChangeTimeoutRef.current) {
-        window.clearTimeout(cropChangeTimeoutRef.current);
-      }
-    };
-  }, [cropPos.x, cropPos.y, zoom, viewMode, showThumbs]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropPos.x, cropPos.y, zoom, viewMode]);
 
   return (
     <div className="analyzeWrap">
-      <div className="analyzeHeader2">
-        <button className="ghostBtn" onClick={() => navigate("/play")}>
-          ← BACK
-        </button>
+{/* Mockups-style HERO */}
+<div className="mockHero analyzeHero">
+  <div className="mockHeroTop">
+    <button className="ghostBtn" onClick={() => navigate("/play")}>
+      ← BACK
+    </button>
 
-        <div className="analyzeTitle">
-          <div className="h1">ANALYZE</div>
-          <div className="h2">
-            Draw a title/artist region, test it against thumbnail conditions, and use the release checklist as your final decision.
-          </div>
-        </div>
+    <div className="mockHeroActions">
+      <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
+        UPLOAD NEW
+      </button>
 
-        <div className="analyzeActions2">
-          <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
-            UPLOAD NEW
-          </button>
+      <button
+        className="ghostBtn"
+        onClick={() => {
+          setRegionBoth(null);
+          clearAnalysisOnly();
+          requestAnimationFrame(() => redraw());
+        }}
+        disabled={!hasRegion}
+      >
+        CLEAR REGION
+      </button>
 
-          <button
-            className="ghostBtn"
-            onClick={() => {
-              setRegionBoth(null);
-              clearAnalysisOnly();
-              requestAnimationFrame(() => redraw());
-            }}
-            disabled={!hasRegion}
-          >
-            CLEAR REGION
-          </button>
+      <button className="primaryBtn" disabled={!hasAnalysis} onClick={() => goToReport("ready")}>
+        GENERATE REPORT
+      </button>
+    </div>
+  </div>
 
-          <button
-            className="primaryBtn"
-            disabled={!hasAnalysis}
-            onClick={() => goToReport("ready")}
-          >
-            GENERATE REPORT
-          </button>
+  <div className="mockKicker">COVERCHECK</div>
+  <div className="mockTitle">Analyze</div>
+  <div className="mockLead">
+    Draw a region for title/artist, review readability + composition, then use Release Readiness as your final decision.
+  </div>
 
-          <input
-            ref={fileRef}
-            className="hiddenFile"
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleUpload(f);
-              e.currentTarget.value = "";
-            }}
-          />
-        </div>
-      </div>
+  <hr className="mockRule" />
+
+  <input
+    ref={fileRef}
+    className="hiddenFile"
+    type="file"
+    accept="image/*"
+    onChange={(e) => {
+      const f = e.target.files?.[0];
+      if (f) void handleUpload(f);
+      e.currentTarget.value = "";
+    }}
+  />
+</div>
 
       {!dataUrl && (
         <div className="emptyState">
           <div className="emptyTitle">No cover uploaded yet.</div>
-          <div className="emptySub">
-            Upload a cover or start from PLAY, then use Analyze to test readability and composition.
-          </div>
-          <button className="primaryBtn" onClick={() => fileRef.current?.click()}>
-            UPLOAD COVER
-          </button>
+          <div className="emptySub">Upload a cover or start from PLAY, then use Analyze to test readability and composition.</div>
+          <button className="primaryBtn" onClick={() => fileRef.current?.click()}>UPLOAD COVER</button>
         </div>
       )}
 
       {dataUrl && (
         <div className="analyzeWorkspace">
+          {/* LEFT */}
           <div className="analyzeLeft">
             <div className="panelDark">
               <div className="panelTop">
@@ -1055,13 +890,7 @@ export default function AnalyzePage() {
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerCancel}
               >
-                <img
-                  className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`}
-                  src={dataUrl}
-                  alt="Uploaded cover"
-                  draggable={false}
-                  style={imgStyle}
-                />
+                <img className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`} src={dataUrl} alt="Uploaded cover" draggable={false} style={imgStyle} />
                 <canvas ref={canvasRef} className="overlayCanvas" />
               </div>
 
@@ -1093,13 +922,6 @@ export default function AnalyzePage() {
 
                   <button className={`pillBtn ${showSafe ? "on" : ""}`} onClick={() => setShowSafe((v) => !v)}>
                     SAFE AREA
-                  </button>
-
-                  <button
-                    className={`pillBtn ${showThumbs ? "on" : ""}`}
-                    onClick={() => setShowThumbs((v) => !v)}
-                  >
-                    THUMBS
                   </button>
 
                   <button
@@ -1141,219 +963,98 @@ export default function AnalyzePage() {
                   {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
                   <span className="tag">view: {viewMode.toUpperCase()}</span>
                   {region ? (
-                    <span className="tag">
-                      region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%
-                    </span>
+                    <span className="tag">region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%</span>
                   ) : (
                     <span className="tag">region: none</span>
                   )}
-                  <span className={`statusTag ${release?.overallPass ? "pass" : "fail"}`}>
-                    {releaseBadgeText}
-                  </span>
+                  <span className={`statusTag ${release?.overallPass ? "pass" : "fail"}`}>{releaseBadgeText}</span>
                 </div>
 
                 {error && <div className="errorLine">{error}</div>}
               </div>
             </div>
 
-            <div className="analysisSubgrid">
-              <div className="panelDark">
-                <div className="panelTop">
-                  <div className="panelTitle">Composition</div>
-                  <div className="panelNote">
-                    These five metrics help you understand the overall character of the image and how it may interact with text legibility and 64px thumbnail conditions. Consider how each metric might influence your design decisions for 
-                    the composition layer: light/dark, colour balance, symmetry, texture, and organic vs technical shape language.
-                  </div>
-                </div>
 
-                <div className="panelBody">
-                  {!composition ? (
-                    <div className="miniHint">Draw a region to unlock full analysis.</div>
-                  ) : (
-                    <div className="compGrid">
-                      <div className="miniCard">
-                        <div className="miniLabel">Light vs dark</div>
-                        <div className="miniValue">{composition.lightDark.label}</div>
-                        <div className="miniSub">
-                          Average luminance: {composition.lightDark.averageLuminance}/100
-                        </div>
-                        <div className="detailLine">{composition.lightDark.warning}</div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Colour balance</div>
-                        <div className="miniValue">{composition.colorBalance.label}</div>
-                        <div className="miniSub">
-                          Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Saturation spread {composition.colorBalance.saturationSpread}/100
-                        </div>
-                        <div className="detailLine">
-                          Dominant colour weight: {composition.colorBalance.dominantWeight}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Symmetry vs asymmetry</div>
-                        <div className="miniValue">{composition.symmetry.label}</div>
-                        <div className="miniSub">
-                          Vertical mirror similarity: {composition.symmetry.score}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Texture / complexity</div>
-                        <div className="miniValue">{composition.texture.label}</div>
-                        <div className="miniSub">
-                          Texture energy: {composition.texture.energy}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Organic vs technical</div>
-                        <div className="miniValue">{composition.organicTechnical.label}</div>
-                        <div className="miniSub">
-                          Structure score: {composition.organicTechnical.score}/100
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="panelDark">
-                <div className="panelTop">
-                  <div className="panelTitle">Thumbnail context</div>
-                  <div className="panelNote">
-                    Small-size evidence belongs in Analyze because real streaming conditions are where album covers succeed or fail.
-                  </div>
-                </div>
-
-                <div className="panelBody">
-                  {!region ? (
-                    <div className="miniHint">Draw a region first to test the 64px release check.</div>
-                  ) : (
-                    <>
-                      <div className="factCard">
-                        <div className="factTitle">64px release check</div>
-                        {thumb64 ? (
-                          <>
-                            <div className="factMeta">
-                              {thumb64.pass ? "PASS" : "FAIL"} • Contrast {thumb64.contrastRatio.toFixed(2)} • Clutter {Math.round(thumb64.clutterScore)} • Region {Math.round(thumb64.regionMinPx)}px
-                            </div>
-                            <div className="factBody">{thumb64.note}</div>
-                          </>
-                        ) : (
-                          <div className="factBody">
-                            Switch to crop view for the most realistic 64px thumbnail test.
-                          </div>
-                        )}
-                      </div>
-
-                      {showThumbs && (
-                        <div className="thumbPreviewGrid">
-                          {thumbsBusy ? (
-                            <div className="miniHint">Generating previews…</div>
-                          ) : (
-                            ["256", "128", "64"].map((k) => (
-                              <div className="thumbMini" key={k}>
-                                <div className="thumbMiniLabel">{k}px</div>
-                                <div className="thumbMiniBody">
-                                  {thumbs[k] ? (
-                                    <img src={thumbs[k]} alt={`${k}px preview`} />
-                                  ) : (
-                                    <div className="thumbEmptyDark">—</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="analyzeRight">
+                      {/* 2) COMPOSITION (5 metrics) */}
             <div className="panelDark">
               <div className="panelTop">
-                <div className="panelTitle">Release readiness</div>
+                <div className="panelTitle">Composition</div>
                 <div className="panelNote">
-                  Final decision using explicit thresholds: contrast, safe area, clutter, and a 64px thumbnail check.
+                  A “composition layer” to complement readability. These five metrics describe overall character: light/dark, colour balance, symmetry, texture, and organic vs technical shape language.
                 </div>
               </div>
 
               <div className="panelBody">
-                {!release ? (
-                  <div className="miniHint">Draw a region to compute release readiness.</div>
+                {!composition ? (
+                  <div className="miniHint">Composition will appear after the image loads.</div>
                 ) : (
-                  <>
-                    <div className="readyTop">
-                      <span className={`statusTag ${release.overallPass ? "pass" : "fail"}`}>
-                        {release.overallPass ? "READY TO UPLOAD" : "NOT READY"} • {release.score}/100
-                      </span>
+                  <div className="compGrid compGridBig">
+                    <div className="miniCard">
+                      <div className="miniLabel">Light vs dark</div>
+                      <div className="miniValue">{composition.lightDark.label}</div>
+                      <div className="miniSub">Average luminance: {composition.lightDark.averageLuminance}/100</div>
+                      {composition.lightDark.warning && <div className="detailLine">{composition.lightDark.warning}</div>}
                     </div>
 
-                    <div className="readyList">
-                      {release.checks.map((c) => (
-                        <div key={c.id} className="readyRow">
-                          <div>
-                            <div className="readyLabel">{c.label}</div>
-                            <div className="readyMeta">
-                              <b>Value:</b> {c.value} • <b>Target:</b> {c.target}
-                            </div>
-                            <div className="readyMeta">{c.why}</div>
-                          </div>
-                          <span className={`statusTag ${c.pass ? "pass" : "fail"}`}>
-                            {c.pass ? "PASS" : "FAIL"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {!release.overallPass && (
-                      <div className="readyFixes">
-                        <div className="sectionHead">What to change next</div>
-                        <ul className="readyFixList">
-                          {release.nextChanges.map((x) => (
-                            <li key={x}>{x}</li>
-                          ))}
-                        </ul>
+                    <div className="miniCard">
+                      <div className="miniLabel">Colour balance</div>
+                      <div className="miniValue">{composition.colorBalance.label}</div>
+                      <div className="miniSub">
+                        Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Saturation spread {composition.colorBalance.saturationSpread}/100
                       </div>
-                    )}
-
-                    <div className="readyActions">
-                      <button className="primaryBtn" onClick={() => goToReport("ready")}>
-                        GENERATE REPORT
-                      </button>
+                      <div className="detailLine">Dominant colour weight: {composition.colorBalance.dominantWeight}/100</div>
                     </div>
-                  </>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Symmetry vs asymmetry</div>
+                      <div className="miniValue">{composition.symmetry.label}</div>
+                      <div className="miniSub">Vertical mirror similarity: {composition.symmetry.score}/100</div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Texture / complexity</div>
+                      <div className="miniValue">{composition.texture.label}</div>
+                      <div className="miniSub">Texture energy: {composition.texture.energy}/100</div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Organic vs technical</div>
+                      <div className="miniValue">{composition.organicTechnical.label}</div>
+                      <div className="miniSub">Structure score: {composition.organicTechnical.score}/100</div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
 
+            
+          </div>
+
+          {/* RIGHT */}
+          <div className="analyzeRight">
+            {/* 1) REGION ANALYSIS */}
             <div className="panelDark">
               <div className="panelTop">
                 <div className="panelTitle">Region analysis</div>
                 <div className="panelNote">
-                  These are the core album-cover checks: readability, placement risk, and palette guidance for the selected title/artist region.
+                  Core album-cover checks for the selected title/artist region: readability, placement risk, and palette guidance.
                 </div>
               </div>
 
               <div className="panelBody">
-                {!hasAnalysis || !regionMetrics || !safeMargin || !palette ? (
+                {!region || !regionMetrics || !safeMargin || !palette ? (
                   <div className="miniHint">Draw a region to analyze the title/artist area.</div>
                 ) : (
                   <div className="analysisSections">
                     <div className="sectionBlock">
                       <div className="sectionHead">Readability</div>
+
                       <div className="metricsGrid">
                         <div className="metricCard">
                           <div className="metricLabel">Contrast</div>
                           <div className="metricValue">{regionMetrics.contrastRatio.toFixed(2)}</div>
                           <div className="metricSub">
-                            {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small text / ≥ 3.0 large text
+                            {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small / ≥ 3.0 large
                           </div>
                         </div>
 
@@ -1373,6 +1074,7 @@ export default function AnalyzePage() {
 
                     <div className="sectionBlock">
                       <div className="sectionHead">Placement</div>
+
                       <div className="twoCol">
                         <div className="miniCard">
                           <div className="miniLabel">Safe area score</div>
@@ -1385,7 +1087,7 @@ export default function AnalyzePage() {
                         <div className="miniCard">
                           <div className="miniLabel">Why it matters</div>
                           <div className="miniSub">
-                            Streaming platforms crop artwork, round corners, and add UI overlays. Edge text is the first thing to fail.
+                            Platforms crop artwork, round corners, and add UI overlays. Edge text is the first thing to fail.
                           </div>
                         </div>
                       </div>
@@ -1404,25 +1106,19 @@ export default function AnalyzePage() {
                         <div className="chipMeta">
                           <div className="miniLabel">Best text</div>
                           <div className="chip" style={{ background: palette.text.primary }} title={palette.text.primary} />
-                          <div className="miniSub">
-                            {palette.text.primary} • {palette.text.primaryRatio.toFixed(2)}×
-                          </div>
+                          <div className="miniSub">{palette.text.primary} • {palette.text.primaryRatio.toFixed(2)}×</div>
                         </div>
 
                         <div className="chipMeta">
                           <div className="miniLabel">Alt text</div>
                           <div className="chip" style={{ background: palette.text.secondary }} title={palette.text.secondary} />
-                          <div className="miniSub">
-                            {palette.text.secondary} • {palette.text.secondaryRatio.toFixed(2)}×
-                          </div>
+                          <div className="miniSub">{palette.text.secondary} • {palette.text.secondaryRatio.toFixed(2)}×</div>
                         </div>
 
                         <div className="chipMeta">
                           <div className="miniLabel">Accent</div>
                           <div className="chip" style={{ background: palette.text.accent }} title={palette.text.accent} />
-                          <div className="miniSub">
-                            {palette.text.accent} • {palette.text.accentRatio.toFixed(2)}×
-                          </div>
+                          <div className="miniSub">{palette.text.accent} • {palette.text.accentRatio.toFixed(2)}×</div>
                         </div>
                       </div>
 
@@ -1455,10 +1151,70 @@ export default function AnalyzePage() {
               </div>
             </div>
 
+            {/* 3) RELEASE READINESS */}
+            <div className="panelDark">
+              <div className="panelTop">
+                <div className="panelTitle">Release readiness</div>
+                <div className="panelNote">
+                  Final decision using explicit thresholds: contrast, safe area, clutter, and a 64px check (no preview here — mockups page is your visual check).
+                </div>
+              </div>
+
+              <div className="panelBody">
+                {!release ? (
+                  <div className="miniHint">Draw a region to compute release readiness.</div>
+                ) : (
+                  <>
+                    <div className="readyTop">
+                      <span className={`statusTag ${release.overallPass ? "pass" : "fail"}`}>
+                        {release.overallPass ? "READY TO UPLOAD" : "NOT READY"} • {release.score}/100
+                      </span>
+                    </div>
+
+                    <div className="readyList">
+                      {release.checks.map((c) => (
+                        <div key={c.id} className="readyRow">
+                          <div>
+                            <div className="readyLabel">{c.label}</div>
+                            <div className="readyMeta">
+                              <b>Value:</b> {c.value} • <b>Target:</b> {c.target}
+                            </div>
+                            <div className="readyMeta">{c.why}</div>
+                          </div>
+                          <span className={`statusTag ${c.pass ? "pass" : "fail"}`}>{c.pass ? "PASS" : "FAIL"}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {!release.overallPass && (
+                      <div className="readyFixes">
+                        <div className="sectionHead">What to change next</div>
+                        <ul className="readyFixList">
+                          {release.nextChanges.map((x) => (
+                            <li key={x}>{x}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="readyActions">
+                      <button className="primaryBtn" onClick={() => goToReport("ready")}>
+                        GENERATE REPORT
+                      </button>
+                      <button className="ghostBtn" onClick={() => navigate("/mockups", { state: { dataUrl } })}>
+                        OPEN MOCKUPS
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* 4) SUGGESTIONS */}
             <div className="panelDark">
               <div className="panelTop">
                 <div className="panelTitle">Suggestions</div>
-                <div className="panelNote">Plain-language actions based on the selected region and current crop.</div>
+                <div className="panelNote">Plain-language actions based on region + crop + composition.</div>
               </div>
 
               <div className="panelBody">
@@ -1470,17 +1226,9 @@ export default function AnalyzePage() {
                       <div key={i} className="suggestItem">
                         <div className="suggestTitle">{s.title}</div>
                         <div className="suggestDetail">
-                          <div className="sLine">
-                            <b>Why:</b> {s.why}
-                          </div>
-                          <div className="sLine">
-                            <b>Try:</b> {s.try}
-                          </div>
-                          {s.target && (
-                            <div className="sLine">
-                              <b>Target:</b> {s.target}
-                            </div>
-                          )}
+                          <div className="sLine"><b>Why:</b> {s.why}</div>
+                          <div className="sLine"><b>Try:</b> {s.try}</div>
+                          {s.target && <div className="sLine"><b>Target:</b> {s.target}</div>}
                         </div>
                       </div>
                     ))}
@@ -1488,6 +1236,7 @@ export default function AnalyzePage() {
                 )}
               </div>
             </div>
+
           </div>
         </div>
       )}

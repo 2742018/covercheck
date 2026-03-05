@@ -90,7 +90,15 @@ async function makeSquareThumbs(
     const ctx = canvas.getContext("2d");
     if (!ctx) continue;
 
-    const { sx, sy, sw, sh } = coverCropWithPosZoom(img.naturalWidth, img.naturalHeight, 1, 1, cropPos.x, cropPos.y, zoom);
+    const { sx, sy, sw, sh } = coverCropWithPosZoom(
+      img.naturalWidth,
+      img.naturalHeight,
+      1,
+      1,
+      cropPos.x,
+      cropPos.y,
+      zoom
+    );
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, s, s);
     thumbs[String(s)] = canvas.toDataURL("image/png");
   }
@@ -254,6 +262,75 @@ function statsFromPalette(pal: PaletteResult): ColorStats {
   return { hue: h, sat: s, light: l, brightnessLabel, saturationLabel, temperatureLabel };
 }
 
+// ---------- Composition UI normalization ----------
+type CompositionUiMetrics = {
+  luminanceLabel: string;
+  textureEnergy: number; // 0..100
+  symmetryScore: number; // 0..100
+  structureScore: number; // 0..100
+};
+
+function asNumber(v: unknown): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+function toPct01Or100(v: number): number {
+  return v <= 1 ? v * 100 : v;
+}
+
+function luminanceToLabel(lum01: number): string {
+  return lum01 < 0.35 ? "dark" : lum01 > 0.68 ? "light" : "mid";
+}
+
+function normalizeCompositionForUi(raw: CompositionMetrics | null): CompositionUiMetrics | null {
+  if (!raw) return null;
+
+  const r = raw as unknown as Record<string, unknown>;
+
+  const label =
+    (typeof r.luminanceLabel === "string" && r.luminanceLabel) ||
+    (typeof r.brightnessLabel === "string" && r.brightnessLabel) ||
+    (typeof r.lumaLabel === "string" && r.lumaLabel) ||
+    null;
+
+  const lum =
+    asNumber(r.luminance) ??
+    asNumber(r.luma) ??
+    asNumber(r.avgLuminance) ??
+    asNumber(r.meanLuminance) ??
+    null;
+
+  const luminanceLabel = label ?? (lum != null ? luminanceToLabel(lum <= 1 ? lum : lum / 255) : "—");
+
+  const tex =
+    asNumber(r.textureEnergy) ??
+    asNumber(r.texture) ??
+    asNumber(r.textureScore) ??
+    asNumber(r.texture_level) ??
+    null;
+
+  const sym =
+    asNumber(r.symmetryScore) ??
+    asNumber(r.symmetry) ??
+    asNumber(r.symmetry_metric) ??
+    null;
+
+  const str =
+    asNumber(r.structureScore) ??
+    asNumber(r.structure) ??
+    asNumber(r.shapeScore) ??
+    asNumber(r.edgeStructure) ??
+    asNumber(r.compositionStructure) ??
+    null;
+
+  return {
+    luminanceLabel,
+    textureEnergy: tex != null ? toPct01Or100(tex) : 0,
+    symmetryScore: sym != null ? toPct01Or100(sym) : 0,
+    structureScore: str != null ? toPct01Or100(str) : 0,
+  };
+}
+
 // ---------- Genre Mood Lens ----------
 type GenreKey =
   | "Pop"
@@ -414,17 +491,20 @@ export default function MockupsPage() {
   const [genre, setGenre] = React.useState<GenreKey>("Indie");
 
   const [composition, setComposition] = React.useState<CompositionMetrics | null>(null);
+  const compositionUi = React.useMemo(() => normalizeCompositionForUi(composition), [composition]);
 
   // export sheet mode (print preview)
   const [sheetMode, setSheetMode] = React.useState(false);
 
   const stageRef = React.useRef<HTMLDivElement | null>(null);
-  const panRef = React.useRef<{ active: boolean; startX: number; startY: number; basePos: { x: number; y: number } }>({
-    active: false,
-    startX: 0,
-    startY: 0,
-    basePos: { x: 0.5, y: 0.5 },
-  });
+  const panRef = React.useRef<{ active: boolean; startX: number; startY: number; basePos: { x: number; y: number } }>(
+    {
+      active: false,
+      startX: 0,
+      startY: 0,
+      basePos: { x: 0.5, y: 0.5 },
+    }
+  );
 
   const distScale = React.useMemo(() => Math.max(0.72, 1 - distance * 0.0035), [distance]);
   const distBlur = React.useMemo(() => Math.min(3, distance * 0.035), [distance]);
@@ -568,7 +648,15 @@ export default function MockupsPage() {
     const dx = e.clientX - panRef.current.startX;
     const dy = e.clientY - panRef.current.startY;
 
-    const { sw, sh } = coverCropWithPosZoom(imgSize.w, imgSize.h, 1, 1, panRef.current.basePos.x, panRef.current.basePos.y, zoom);
+    const { sw, sh } = coverCropWithPosZoom(
+      imgSize.w,
+      imgSize.h,
+      1,
+      1,
+      panRef.current.basePos.x,
+      panRef.current.basePos.y,
+      zoom
+    );
 
     const maxX = Math.max(1, imgSize.w - sw);
     const maxY = Math.max(1, imgSize.h - sh);
@@ -685,18 +773,22 @@ export default function MockupsPage() {
 
                   <div className="mockCropMeta">
                     <div className="metaRow">
-                      {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
+                      {imgSize && (
+                        <span className="tag">
+                          {imgSize.w}×{imgSize.h}
+                        </span>
+                      )}
                       <span className="tag">zoom {Math.round(zoom * 100)}%</span>
                       <span className="tag">{panCrop ? "mode: PAN" : "mode: VIEW"}</span>
                       <span className="tag">thumb {thumbSize}px</span>
                     </div>
 
-                    {composition && (
+                    {compositionUi && (
                       <div className="metaRow" style={{ marginTop: 8 }}>
-                        <span className="tag">brightness: {composition.luminanceLabel}</span>
-                        <span className="tag">texture: {Math.round(composition.textureEnergy)}/100</span>
-                        <span className="tag">symmetry: {Math.round(composition.symmetryScore)}/100</span>
-                        <span className="tag">shape: {Math.round(composition.structureScore)}/100</span>
+                        <span className="tag">brightness: {compositionUi.luminanceLabel}</span>
+                        <span className="tag">texture: {Math.round(compositionUi.textureEnergy)}/100</span>
+                        <span className="tag">symmetry: {Math.round(compositionUi.symmetryScore)}/100</span>
+                        <span className="tag">shape: {Math.round(compositionUi.structureScore)}/100</span>
                       </div>
                     )}
                   </div>
@@ -805,7 +897,11 @@ export default function MockupsPage() {
                       <div className="mockLabel">Thumbnail size</div>
                       <div className="pillRow">
                         {[48, 64, 96, 128].map((s) => (
-                          <button key={s} className={`pillBtn ${thumbSize === s ? "on" : ""}`} onClick={() => setThumbSize(s as ThumbSize)}>
+                          <button
+                            key={s}
+                            className={`pillBtn ${thumbSize === s ? "on" : ""}`}
+                            onClick={() => setThumbSize(s as ThumbSize)}
+                          >
                             {s}px
                           </button>
                         ))}
@@ -815,7 +911,14 @@ export default function MockupsPage() {
                     <div className="mockControl wide">
                       <div className="mockLabel">Viewing distance (glance)</div>
                       <div className="mockRangeRow">
-                        <input className="mockRange" type="range" min={0} max={80} value={distance} onChange={(e) => setDistance(parseInt(e.currentTarget.value, 10))} />
+                        <input
+                          className="mockRange"
+                          type="range"
+                          min={0}
+                          max={80}
+                          value={distance}
+                          onChange={(e) => setDistance(parseInt(e.currentTarget.value, 10))}
+                        />
                         <span className="tag">
                           scale {Math.round(distScale * 100)}% • blur {distBlur.toFixed(1)}px
                         </span>
@@ -824,7 +927,11 @@ export default function MockupsPage() {
                   </div>
 
                   {error && <div className="errorLine">{error}</div>}
-                  {busy && <div className="miniHint" style={{ marginTop: 10 }}>Processing…</div>}
+                  {busy && (
+                    <div className="miniHint" style={{ marginTop: 10 }}>
+                      Processing…
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -907,7 +1014,9 @@ export default function MockupsPage() {
                               </div>
                               <div className="mockSubLine">{isYou ? "Your Artist" : "Artist Name"}</div>
                             </div>
-                            <div className="mockTime">{3 + i}:{String((i * 7) % 60).padStart(2, "0")}</div>
+                            <div className="mockTime">
+                              {3 + i}:{String((i * 7) % 60).padStart(2, "0")}
+                            </div>
                           </div>
                         );
                       })}
@@ -979,14 +1088,6 @@ export default function MockupsPage() {
                         If the crop changes the meaning, reposition it with PAN CROP.
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="panelBottom">
-                  <div className="metaRow">
-                    <span className="tag">context evidence</span>
-                    <span className="tag">promo framing</span>
-                    <span className="tag">thumbnail identity</span>
                   </div>
                 </div>
               </div>
@@ -1136,9 +1237,7 @@ export default function MockupsPage() {
                           <li>
                             Use <b>compatible accents</b> for overlays, label strips, and UI-safe highlights.
                           </li>
-                          <li>
-                            If alignment is low, that can be intentional — but check grid identity + readability carefully.
-                          </li>
+                          <li>If alignment is low, that can be intentional — but check grid identity + readability carefully.</li>
                         </ul>
 
                         <div className="mockNextActions">
