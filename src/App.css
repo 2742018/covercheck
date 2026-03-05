@@ -1812,3 +1812,229 @@ body.lightMode .policyPage{
 @media (max-width: 560px){
   .compGrid{ grid-template-columns: 1fr; }
 }
+
+/* =========================================================
+   RELEASE READINESS UI (Analyze + Report)
+   ========================================================= */
+
+.readyTop{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items:center;
+  margin-bottom: 12px;
+}
+
+.readyList{ display:grid; gap: 10px; }
+
+.readyRow{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items:start;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.14);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.readyLabel{
+  font-size: 12px;
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  color: rgba(242,242,242,.88);
+}
+
+.readyMeta{
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(242,242,242,.62);
+}
+
+.readyFixes{
+  margin-top: 14px;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.12);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.readyFixList{
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(242,242,242,.65);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.readyActions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Print tweaks */
+@media print{
+  .ghostBtn, .pillBtn, .primaryBtn{ display:none !important; }
+  .readyRow{ border-color:#ddd !important; background:#fff !important; }
+  .readyMeta, .readyFixList{ color:#000 !important; }
+}
+
+/* =========================================================
+   ANALYZE WORKSPACE REFINEMENT
+   ========================================================= */
+
+.analyzeWorkspace{
+  display:grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 420px);
+  gap: 16px;
+  align-items:start;
+}
+@media (max-width: 1080px){
+  .analyzeWorkspace{ grid-template-columns: 1fr; }
+}
+
+.analyzeLeft,
+.analyzeRight{
+  min-width:0;
+  display:grid;
+  gap:16px;
+}
+
+.analysisSubgrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 860px){
+  .analysisSubgrid{ grid-template-columns: 1fr; }
+}
+
+.compGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 620px){
+  .compGrid{ grid-template-columns: 1fr; }
+}
+
+.factCard{
+  border: 1px solid rgba(242,242,242,.10);
+  border-radius: 18px;
+  background: rgba(0,0,0,.16);
+  padding: 12px;
+}
+.factTitle{
+  font-size: 12px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color: rgba(242,242,242,.88);
+}
+.factMeta{
+  margin-top: 8px;
+  color: rgba(242,242,242,.72);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.factBody{
+  margin-top: 8px;
+  color: rgba(242,242,242,.58);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.thumbPreviewGrid{
+  margin-top: 14px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 620px){
+  .thumbPreviewGrid{ grid-template-columns: 1fr; }
+}
+
+/* =========================================================
+   RELEASE READINESS
+   ========================================================= */
+
+.readyTop{
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items:center;
+  margin-bottom: 12px;
+}
+
+.readyList{
+  display:grid;
+  gap: 10px;
+}
+
+.readyRow{
+  display:grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items:start;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.14);
+  border-radius: 18px;
+  padding: 12px;
+}
+@media (max-width: 620px){
+  .readyRow{ grid-template-columns: 1fr; }
+}
+
+.readyLabel{
+  font-size: 12px;
+  letter-spacing:.12em;
+  text-transform: uppercase;
+  color: rgba(242,242,242,.88);
+}
+
+.readyMeta{
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(242,242,242,.62);
+}
+
+.readyFixes{
+  margin-top: 14px;
+  border: 1px solid rgba(242,242,242,.10);
+  background: rgba(0,0,0,.12);
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.readyFixList{
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: rgba(242,242,242,.66);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.readyActions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Report print safety */
+@media print{
+  .ghostBtn, .pillBtn, .primaryBtn{
+    display:none !important;
+  }
+  .readyRow{
+    background:#fff !important;
+    border-color:#ddd !important;
+  }
+  .readyMeta,
+  .readyFixList{
+    color:#000 !important;
+  }
+}

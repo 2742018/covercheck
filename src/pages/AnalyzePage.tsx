@@ -1,8 +1,10 @@
-/* =========================================================
-   FILE: src/pages/AnalyzePage.tsx  (REPLACE ENTIRE FILE)
-   ========================================================= */
-
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fileToDataUrl } from "../lib/storage";
 import {
@@ -14,15 +16,28 @@ import {
   type RegionMetrics,
   type SafeMarginResult,
 } from "../analysis/metrics";
-import { computeCompositionMetrics, type CompositionMetrics } from "../analysis/composition";
+import {
+  computeCompositionMetrics,
+  type CompositionMetrics,
+} from "../analysis/composition";
+import {
+  computeReleaseReadiness,
+  type ReleaseReadiness,
+  type Thumb64Snapshot,
+} from "../lib/release";
+import { saveReportToSession } from "../lib/reportStore";
 
 type AnalyzeState = { dataUrl?: string };
-
 type ViewMode = "crop" | "full";
 type Handle = "nw" | "ne" | "sw" | "se";
 type DragMode = "idle" | "new" | "move" | "resize";
 
-type Suggestion = { title: string; why: string; try: string; target?: string };
+type Suggestion = {
+  title: string;
+  why: string;
+  try: string;
+  target?: string;
+};
 
 type ReportData = {
   createdAt: string;
@@ -34,6 +49,9 @@ type ReportData = {
   regionMetrics: RegionMetrics;
   safeMargin: SafeMarginResult;
   palette: PaletteResult;
+  composition: CompositionMetrics;
+  thumb64: Thumb64Snapshot | null;
+  release: ReleaseReadiness;
   suggestions: Suggestion[];
 };
 
@@ -69,15 +87,14 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Center-crop rect from src into dst aspect ratio (like object-fit: cover). */
 function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   const srcAR = srcW / srcH;
   const dstAR = dstW / dstH;
 
-  let sw = srcW,
-    sh = srcH,
-    sx = 0,
-    sy = 0;
+  let sw = srcW;
+  let sh = srcH;
+  let sx = 0;
+  let sy = 0;
 
   if (srcAR > dstAR) {
     sw = Math.round(srcH * dstAR);
@@ -89,17 +106,14 @@ function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   return { sx, sy, sw, sh };
 }
 
-/** Crop rect with user pan+zoom. posX01/posY01 pick crop window location (0..1). zoom >= 1 */
 function coverCropWithPosZoom(
   srcW: number,
   srcH: number,
-  dstW: number,
-  dstH: number,
   posX01: number,
   posY01: number,
   zoom: number
 ) {
-  const base = coverCrop(srcW, srcH, dstW, dstH);
+  const base = coverCrop(srcW, srcH, 1, 1);
   const sw = Math.max(1, base.sw / zoom);
   const sh = Math.max(1, base.sh / zoom);
 
@@ -112,7 +126,6 @@ function coverCropWithPosZoom(
   return { sx, sy, sw: Math.round(sw), sh: Math.round(sh) };
 }
 
-/** Contain rect for mapping pointer positions in FULL view. */
 function computeContainRect(imgW: number, imgH: number, boxW: number, boxH: number) {
   const scale = Math.min(boxW / imgW, boxH / imgH);
   const w = imgW * scale;
@@ -142,26 +155,6 @@ function handleHitTest(r: NormalizedRect, nx: number, ny: number): Handle | null
   return null;
 }
 
-/** Thumbs that match current cropPos/zoom (square crop). */
-async function makeThumbs(dataUrl: string, sizes: number[], cropPos: { x: number; y: number }, zoom: number) {
-  const img = await loadImage(dataUrl);
-  const thumbs: Record<string, string> = {};
-
-  for (const s of sizes) {
-    const canvas = document.createElement("canvas");
-    canvas.width = s;
-    canvas.height = s;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) continue;
-
-    const { sx, sy, sw, sh } = coverCropWithPosZoom(img.naturalWidth, img.naturalHeight, 1, 1, cropPos.x, cropPos.y, zoom);
-    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, s, s);
-    thumbs[String(s)] = canvas.toDataURL("image/png");
-  }
-
-  return { thumbs, w: img.naturalWidth, h: img.naturalHeight };
-}
-
 async function buildAnalysisImageData(dataUrl: string, maxDim = 1024) {
   const img = await loadImage(dataUrl);
   const w0 = img.naturalWidth;
@@ -179,10 +172,36 @@ async function buildAnalysisImageData(dataUrl: string, maxDim = 1024) {
   if (!ctx) throw new Error("Canvas not available");
 
   ctx.drawImage(img, 0, 0, w, h);
-  return { imageData: ctx.getImageData(0, 0, w, h), natural: { w: w0, h: h0 } };
+  return {
+    imageData: ctx.getImageData(0, 0, w, h),
+    natural: { w: w0, h: h0 },
+  };
 }
 
-/** Map region from CROP VIEW square (0..1) into real image normalized (0..1), accounting for cropPos+zoom. */
+function buildThumbDataUrl(
+  sourceCanvas: HTMLCanvasElement,
+  cropPos: { x: number; y: number },
+  zoom: number,
+  size: number
+) {
+  const out = document.createElement("canvas");
+  out.width = size;
+  out.height = size;
+  const ctx = out.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(
+    sourceCanvas.width,
+    sourceCanvas.height,
+    cropPos.x,
+    cropPos.y,
+    zoom
+  );
+
+  ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, size, size);
+  return out.toDataURL("image/png");
+}
+
 function mapCropRegionToImageRectWithCrop(
   imageData: ImageData,
   regionInCrop01: NormalizedRect,
@@ -191,8 +210,7 @@ function mapCropRegionToImageRectWithCrop(
 ): NormalizedRect {
   const srcW = imageData.width;
   const srcH = imageData.height;
-
-  const { sx, sy, sw, sh } = coverCropWithPosZoom(srcW, srcH, 1, 1, cropPos.x, cropPos.y, zoom);
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(srcW, srcH, cropPos.x, cropPos.y, zoom);
 
   const x = (sx + regionInCrop01.x * sw) / srcW;
   const y = (sy + regionInCrop01.y * sh) / srcH;
@@ -202,98 +220,163 @@ function mapCropRegionToImageRectWithCrop(
   return clampRect({ x, y, w, h }, 0.0005);
 }
 
-function buildSuggestions(
-  region: NormalizedRect,
-  rm: RegionMetrics,
-  safe: SafeMarginResult,
-  palette: PaletteResult,
-  comp: CompositionMetrics | null
-): Suggestion[] {
+function buildThumb64Snapshot(
+  sourceCanvas: HTMLCanvasElement,
+  cropPos: { x: number; y: number },
+  zoom: number,
+  regionInCrop: NormalizedRect
+): Thumb64Snapshot {
+  const size = 64;
+  const out = document.createElement("canvas");
+  out.width = size;
+  out.height = size;
+  const ctx = out.getContext("2d", { willReadFrequently: true });
+
+  if (!ctx) {
+    return {
+      size: 64,
+      contrastRatio: 0,
+      clutterScore: 0,
+      regionMinPx: 0,
+      pass: false,
+      note: "64px preview could not be generated.",
+    };
+  }
+
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(
+    sourceCanvas.width,
+    sourceCanvas.height,
+    cropPos.x,
+    cropPos.y,
+    zoom
+  );
+  ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, size, size);
+
+  const thumbData = ctx.getImageData(0, 0, size, size);
+  const regionMetrics = computeRegionMetrics(thumbData, regionInCrop);
+  const regionMinPx = Math.min(regionInCrop.w * size, regionInCrop.h * size);
+
+  const pass =
+    regionMetrics.contrastRatio >= 3 &&
+    regionMetrics.clutterScore >= 55 &&
+    regionMinPx >= 10;
+
+  return {
+    size: 64,
+    contrastRatio: regionMetrics.contrastRatio,
+    clutterScore: regionMetrics.clutterScore,
+    regionMinPx,
+    pass,
+    note: pass
+      ? "Selected region remains readable at 64px."
+      : "Increase type contrast, reduce texture behind text, or enlarge the title area for tiny thumbnails.",
+  };
+}
+
+function buildSuggestions(args: {
+  region: NormalizedRect;
+  regionMetrics: RegionMetrics;
+  safe: SafeMarginResult;
+  palette: PaletteResult;
+  composition: CompositionMetrics;
+  thumb64: Thumb64Snapshot | null;
+  viewMode: ViewMode;
+}): Suggestion[] {
+  const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } = args;
   const out: Suggestion[] = [];
   const area = region.w * region.h;
 
-  if (comp?.luminanceExtreme) {
-    out.push({
-      title: "UI theme risk (very dark/light cover)",
-      why: `Overall brightness is extreme (${comp.luminanceLabel}).`,
-      try: "If text feels fragile, increase weight and/or add a subtle overlay behind the title region.",
-      target: "Keep title readable in both dark + light UI",
-    });
-  }
-
   if (!safe.pass) {
     out.push({
-      title: "Move text inward (crop risk)",
-      why: `${safe.outsidePct.toFixed(0)}% of your region is outside the safe area.`,
-      try: "Shift title/artist toward the center. Keep critical text inside the dashed safe box.",
-      target: "Safe score ≥ 95%",
-    });
-  } else {
-    out.push({
-      title: "Placement is safe",
-      why: "Your selected region stays inside the safe area.",
-      try: "Keep small type/logos inside this box too (rounded corners + UI overlays can clip edges).",
+      title: "Move text inward",
+      why: `${safe.outsidePct.toFixed(0)}% of your region falls outside the safe area.`,
+      try: "Shift title/artist toward the centre so important information stays inside the dashed guide.",
+      target: "Safe score ≥ 95/100",
     });
   }
 
   if (area < 0.04) {
     out.push({
-      title: "Region is very small for tiny thumbnails",
-      why: "Small type disappears quickly at 64–128px.",
-      try: "Increase size/weight or reserve more space for the title area.",
-      target: "Title area typically ≥ ~20% width",
+      title: "Increase title area",
+      why: "Very small title regions disappear quickly in 64–128px thumbnails.",
+      try: "Reserve more space for the title/artist block or use a larger/bolder type treatment.",
+      target: "Region should feel substantial at thumbnail scale",
     });
   }
 
   if (rm.contrastRatio < 3) {
     out.push({
-      title: "Contrast is very low",
-      why: `Estimated contrast ≈ ${rm.contrastRatio.toFixed(2)}.`,
-      try: `Use “Best text” (${palette.text.primary}) + add a 20–40% overlay behind text. Add 1–2px stroke if needed.`,
-      target: "Contrast ≥ 4.5 (best), ≥ 3.0 (large text)",
+      title: "Contrast is too low",
+      why: `Estimated contrast is ${rm.contrastRatio.toFixed(2)}.`,
+      try: `Use the recommended text colour (${palette.text.primary}) and add a 20–40% dark/light overlay behind text.`,
+      target: "≥ 4.5 for small text, ≥ 3.0 for large display text",
     });
   } else if (rm.contrastRatio < 4.5) {
     out.push({
       title: "Contrast is borderline",
-      why: `Estimated contrast ≈ ${rm.contrastRatio.toFixed(2)}.`,
-      try: "Try a subtle gradient overlay behind the title, or increase font weight one step.",
-      target: "Contrast ≥ 4.5",
-    });
-  } else {
-    out.push({
-      title: "Contrast is strong",
-      why: `Estimated contrast ≈ ${rm.contrastRatio.toFixed(2)}.`,
-      try: "Sanity-check at 128px.",
+      why: `Estimated contrast is ${rm.contrastRatio.toFixed(2)}.`,
+      try: "Try a gradient strip, stronger font weight, or a more separated text colour.",
+      target: "≥ 4.5 preferred",
     });
   }
 
-  if (rm.clutterScore < 40) {
+  if (rm.clutterScore < 60) {
     out.push({
-      title: "Background is busy behind text",
-      why: "High edge density means letters fight with texture/detail.",
-      try: "Move text to a calmer area, blur/simplify behind it, or add a panel shape behind the title.",
+      title: "Background is too busy behind text",
+      why: "Texture/detail behind letters reduces readability even when contrast is acceptable.",
+      try: "Move text to a calmer area, blur/simplify behind it, or add a panel shape behind the type.",
       target: "Clutter ≥ 60/100",
     });
-  } else if (rm.clutterScore < 60) {
+  }
+
+  if (thumb64 && !thumb64.pass && viewMode === "crop") {
     out.push({
-      title: "Some clutter behind text",
-      why: "May read at 256px but fail at 64px.",
-      try: "Add a soft overlay or move text to a quieter zone.",
-      target: "Clutter ≥ 60/100",
+      title: "64px thumbnail still fails",
+      why: `Tiny preview check: contrast ${thumb64.contrastRatio.toFixed(2)}, clutter ${Math.round(thumb64.clutterScore)}, region size ${Math.round(thumb64.regionMinPx)}px.`,
+      try: "Increase type size/weight, reduce background texture, or choose a cleaner crop for the square thumbnail.",
+      target: "Readable at 64px",
     });
-  } else {
+  }
+
+  if (composition.lightDark.label === "Dark") {
     out.push({
-      title: "Clutter looks manageable",
-      why: "The region is relatively clean.",
-      try: "Still check at 64px for tiny-detail noise.",
+      title: "Very dark overall image",
+      why: "Dark covers can lose detail and subtle type in dark-mode interfaces.",
+      try: "Use a lighter text/overlay combination and ensure the title zone has stronger tonal separation.",
+      target: "Maintain visible focal separation in dark UI",
+    });
+  } else if (composition.lightDark.label === "Light") {
+    out.push({
+      title: "Very light overall image",
+      why: "Light covers can wash out pale typography or weak focal points.",
+      try: "Use a darker text tone or slightly deepen the title region with an overlay.",
+      target: "Keep title region visually anchored",
+    });
+  }
+
+  if (composition.symmetry.label === "Asymmetrical" && !safe.pass) {
+    out.push({
+      title: "Asymmetry is increasing crop risk",
+      why: "Asymmetrical placement can be effective, but edge-heavy composition increases platform clipping risk.",
+      try: "Keep asymmetry in the image, but move the critical text block farther from the edge.",
+      target: "Intentional asymmetry without unsafe placement",
+    });
+  }
+
+  if (composition.organicTechnical.label === "Technical" && rm.clutterScore < 60) {
+    out.push({
+      title: "Technical structure + high texture may overcrowd type",
+      why: "Strong directional edges plus texture can make text compete with the artwork.",
+      try: "Introduce one calmer text zone or use an overlay panel for hierarchy.",
+      target: "Clearer type hierarchy",
     });
   }
 
   out.push({
-    title: "Use compatible accents",
-    why: `Generated from your region-average color (${palette.regionAvg}).`,
-    try: `Try complement ${palette.compatible.complement}, or analogous ${palette.compatible.analogous.join(", ")} for highlights.`,
-    target: "Accents should stay readable vs background",
+    title: "Use palette-compatible accents",
+    why: `Your region-average colour is ${palette.regionAvg}. Compatible accents are already calculated from it.`,
+    try: `Try accent ${palette.text.accent} or use the compatible palette as overlay/highlight options.`,
+    target: "Keep accents readable against the image",
   });
 
   return out.slice(0, 10);
@@ -304,54 +387,71 @@ export default function AnalyzePage() {
   const location = useLocation();
   const state = (location.state || {}) as AnalyzeState;
 
-  // No persistence: leaving/reloading clears.
   const [dataUrl, setDataUrl] = useState<string | null>(() => state.dataUrl ?? null);
-
   const [viewMode, setViewMode] = useState<ViewMode>("crop");
   const [region, setRegion] = useState<NormalizedRect | null>(null);
 
-  // Crop controls
-  const [cropPos, setCropPos] = useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
-  const [zoom, setZoom] = useState<number>(1);
-  const [panCrop, setPanCrop] = useState<boolean>(false);
+  const [cropPos, setCropPos] = useState({ x: 0.5, y: 0.5 });
+  const [zoom, setZoom] = useState(1);
+  const [panCrop, setPanCrop] = useState(false);
 
   const [busy, setBusy] = useState(false);
+  const [thumbsBusy, setThumbsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [imgSize, setImgSize] = useState<{ w: number; h: number } | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
 
   const [showSafe, setShowSafe] = useState(true);
   const [showThumbs, setShowThumbs] = useState(false);
 
-  // Region-dependent
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [regionMetrics, setRegionMetrics] = useState<RegionMetrics | null>(null);
   const [safeMargin, setSafeMargin] = useState<SafeMarginResult | null>(null);
   const [palette, setPalette] = useState<PaletteResult | null>(null);
+  const [composition, setComposition] = useState<CompositionMetrics | null>(null);
+  const [thumb64, setThumb64] = useState<Thumb64Snapshot | null>(null);
+  const [release, setRelease] = useState<ReleaseReadiness | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
-  // Composition (view-dependent, not region-dependent)
-  const [composition, setComposition] = useState<CompositionMetrics | null>(null);
-
-  // Report (state, so UI updates correctly)
-  const [reportData, setReportData] = useState<ReportData | null>(null);
-
   const analysisRef = useRef<ImageData | null>(null);
-  const regionRef = useRef<NormalizedRect | null>(region);
+  const srcCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const regionRef = useRef<NormalizedRect | null>(region);
   useEffect(() => {
     regionRef.current = region;
   }, [region]);
 
+  const dragRef = useRef<{
+    mode: DragMode;
+    handle: Handle | null;
+    startNx: number;
+    startNy: number;
+    baseRect: NormalizedRect | null;
+  }>({
+    mode: "idle",
+    handle: null,
+    startNx: 0,
+    startNy: 0,
+    baseRect: null,
+  });
+
+  const panRef = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    basePos: { x: 0.5, y: 0.5 },
+  });
+
+  const cropChangeTimeoutRef = useRef<number | null>(null);
+
   const safeInset = 0.08;
 
   const hasRegion = Boolean(region);
-  const hasAnalysis = Boolean(region && regionMetrics && safeMargin && palette);
-  const reportReady = Boolean(reportData);
+  const hasAnalysis = Boolean(region && regionMetrics && safeMargin && palette && composition && release);
 
   const imgStyle = useMemo(() => {
     if (viewMode !== "crop") return undefined;
@@ -362,140 +462,22 @@ export default function AnalyzePage() {
     } as const;
   }, [viewMode, cropPos.x, cropPos.y, zoom]);
 
-  // -----------------------------
-  // Composition
-  // -----------------------------
-  const computeCompositionNow = useCallback(() => {
-    const imageData = analysisRef.current;
-    if (!imageData) {
-      setComposition(null);
-      return;
-    }
+  const releaseBadgeText = release
+    ? release.overallPass
+      ? `READY • ${release.score}/100`
+      : `NOT READY • ${release.score}/100`
+    : "No readiness yet";
 
-    const rect =
-      viewMode === "crop"
-        ? coverCropWithPosZoom(imageData.width, imageData.height, 1, 1, cropPos.x, cropPos.y, zoom)
-        : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
+  function ensureSourceCanvas(imageData: ImageData) {
+    const c = document.createElement("canvas");
+    c.width = imageData.width;
+    c.height = imageData.height;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.putImageData(imageData, 0, 0);
+    return c;
+  }
 
-    setComposition(computeCompositionMetrics(imageData, rect));
-  }, [viewMode, cropPos.x, cropPos.y, zoom]);
-
-  // -----------------------------
-  // Region analysis
-  // -----------------------------
-  const computeAllNow = useCallback(
-    (nextRegion: NormalizedRect | null) => {
-      const imageData = analysisRef.current;
-      if (!imageData || !nextRegion || !imgSize || !dataUrl) {
-        setRegionMetrics(null);
-        setSafeMargin(null);
-        setPalette(null);
-        setSuggestions([]);
-        setReportData(null);
-        return;
-      }
-
-      const mapped =
-        viewMode === "crop" ? mapCropRegionToImageRectWithCrop(imageData, nextRegion, cropPos, zoom) : nextRegion;
-
-      const rm = computeRegionMetrics(imageData, mapped);
-      const sm = computeSafeMargin(nextRegion, safeInset); // view-space
-      const pal = computePalette(imageData, mapped);
-      const sug = buildSuggestions(nextRegion, rm, sm, pal, composition);
-
-      setRegionMetrics(rm);
-      setSafeMargin(sm);
-      setPalette(pal);
-      setSuggestions(sug);
-
-      setReportData({
-        createdAt: new Date().toISOString(),
-        dataUrl,
-        imageSize: imgSize,
-        viewMode,
-        region: nextRegion,
-        mappedRegion: mapped,
-        regionMetrics: rm,
-        safeMargin: sm,
-        palette: pal,
-        suggestions: sug,
-      });
-    },
-    [composition, cropPos.x, cropPos.y, dataUrl, imgSize, viewMode, zoom]
-  );
-
-  // -----------------------------
-  // Load image + buffers
-  // -----------------------------
-  useEffect(() => {
-    if (!dataUrl) return;
-
-    let alive = true;
-    (async () => {
-      setBusy(true);
-      setError(null);
-
-      // reset computed outputs
-      setRegionMetrics(null);
-      setSafeMargin(null);
-      setPalette(null);
-      setSuggestions([]);
-      setComposition(null);
-      setReportData(null);
-
-      try {
-        const analysis = await buildAnalysisImageData(dataUrl, 1024);
-        if (!alive) return;
-
-        analysisRef.current = analysis.imageData;
-        setImgSize({ w: analysis.natural.w, h: analysis.natural.h });
-
-        // thumbs for crop (even if user switches full later)
-        const res = await makeThumbs(dataUrl, [256, 128, 64], cropPos, zoom);
-        if (!alive) return;
-        setThumbs(res.thumbs);
-
-        // composition for current view
-        computeCompositionNow();
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to process image");
-      } finally {
-        if (alive) setBusy(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [dataUrl, cropPos.x, cropPos.y, zoom, computeCompositionNow]);
-
-  // Recompute thumbs + composition when crop changes
-  useEffect(() => {
-    if (!dataUrl) return;
-
-    (async () => {
-      try {
-        const res = await makeThumbs(dataUrl, [256, 128, 64], cropPos, zoom);
-        setThumbs(res.thumbs);
-      } catch {
-        /* ignore */
-      }
-    })();
-
-    computeCompositionNow();
-
-    if (regionRef.current) computeAllNow(regionRef.current);
-  }, [cropPos.x, cropPos.y, zoom, dataUrl, computeCompositionNow, computeAllNow]);
-
-  // Recompute composition if view mode changes (full vs crop)
-  useEffect(() => {
-    computeCompositionNow();
-  }, [viewMode, computeCompositionNow]);
-
-  // -----------------------------
-  // Overlay drawing (region + safe area)
-  // -----------------------------
   const redraw = useCallback(() => {
     const host = hostRef.current;
     const canvas = canvasRef.current;
@@ -518,9 +500,10 @@ export default function AnalyzePage() {
     ctx.clearRect(0, 0, cssW, cssH);
 
     const drawRect =
-      viewMode === "crop" || !imgSize ? { x: 0, y: 0, w: cssW, h: cssH } : computeContainRect(imgSize.w, imgSize.h, cssW, cssH);
+      viewMode === "crop" || !imgSize
+        ? { x: 0, y: 0, w: cssW, h: cssH }
+        : computeContainRect(imgSize.w, imgSize.h, cssW, cssH);
 
-    // border of image area
     ctx.save();
     ctx.strokeStyle = "rgba(245,245,245,0.14)";
     ctx.lineWidth = 1;
@@ -536,7 +519,7 @@ export default function AnalyzePage() {
       const fail = safeMargin ? !safeMargin.pass : false;
 
       ctx.save();
-      ctx.strokeStyle = fail ? "rgba(255,120,120,0.55)" : "rgba(245,245,245,0.12)";
+      ctx.strokeStyle = fail ? "rgba(255,120,120,0.55)" : "rgba(245,245,245,0.14)";
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 1;
       ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
@@ -559,20 +542,20 @@ export default function AnalyzePage() {
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
 
-    const dot = (hx: number, hy: number) => {
+    const drawHandle = (hx: number, hy: number) => {
       ctx.beginPath();
-      ctx.fillStyle = "rgba(0,0,0,0.70)";
+      ctx.fillStyle = "rgba(0,0,0,0.72)";
       ctx.strokeStyle = "rgba(255,196,0,0.95)";
       ctx.lineWidth = 2;
       ctx.arc(hx, hy, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     };
-    dot(x, y);
-    dot(x + w, y);
-    dot(x, y + h);
-    dot(x + w, y + h);
 
+    drawHandle(x, y);
+    drawHandle(x + w, y);
+    drawHandle(x, y + h);
+    drawHandle(x + w, y + h);
     ctx.restore();
   }, [imgSize, safeMargin, showSafe, viewMode]);
 
@@ -584,11 +567,8 @@ export default function AnalyzePage() {
 
   useEffect(() => {
     redraw();
-  }, [redraw, region, showSafe, viewMode]);
+  }, [redraw, region, viewMode, showSafe]);
 
-  // -----------------------------
-  // Pointer mapping / interaction
-  // -----------------------------
   function pointerToNormalized(clientX: number, clientY: number) {
     const host = hostRef.current;
     if (!host) return null;
@@ -598,7 +578,11 @@ export default function AnalyzePage() {
     const py = clientY - r.top;
 
     if (viewMode === "crop") {
-      return { nx: clamp01(px / r.width), ny: clamp01(py / r.height), inside: true, w: r.width, h: r.height };
+      return {
+        nx: clamp01(px / r.width),
+        ny: clamp01(py / r.height),
+        inside: true,
+      };
     }
 
     if (!imgSize) return null;
@@ -608,7 +592,11 @@ export default function AnalyzePage() {
     const cy = py - contain.y;
 
     const inside = cx >= 0 && cy >= 0 && cx <= contain.w && cy <= contain.h;
-    return { nx: clamp01(cx / contain.w), ny: clamp01(cy / contain.h), inside, w: contain.w, h: contain.h };
+    return {
+      nx: clamp01(cx / contain.w),
+      ny: clamp01(cy / contain.h),
+      inside,
+    };
   }
 
   function setRegionBoth(next: NormalizedRect | null) {
@@ -616,61 +604,189 @@ export default function AnalyzePage() {
     setRegion(next);
   }
 
-  const dragRef = useRef<{
-    mode: DragMode;
-    handle: Handle | null;
-    startNx: number;
-    startNy: number;
-    baseRect: NormalizedRect | null;
-  }>({ mode: "idle", handle: null, startNx: 0, startNy: 0, baseRect: null });
+  function clearAnalysisOnly() {
+    setRegionMetrics(null);
+    setSafeMargin(null);
+    setPalette(null);
+    setComposition(null);
+    setThumb64(null);
+    setRelease(null);
+    setSuggestions([]);
+  }
 
-  const panRef = useRef<{
-    active: boolean;
-    startX: number;
-    startY: number;
-    basePos: { x: number; y: number };
-  }>({ active: false, startX: 0, startY: 0, basePos: { x: 0.5, y: 0.5 } });
+  function computeAllNow(nextRegion: NormalizedRect | null) {
+    const imageData = analysisRef.current;
+    const srcCanvas = srcCanvasRef.current;
+
+    if (!imageData || !srcCanvas || !imgSize || !dataUrl || !nextRegion) {
+      clearAnalysisOnly();
+      return;
+    }
+
+    const mapped =
+      viewMode === "crop"
+        ? mapCropRegionToImageRectWithCrop(imageData, nextRegion, cropPos, zoom)
+        : nextRegion;
+
+    const rm = computeRegionMetrics(imageData, mapped);
+    const sm = computeSafeMargin(nextRegion, safeInset);
+    const pal = computePalette(imageData, mapped);
+
+    const cropRect =
+      viewMode === "crop"
+        ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
+        : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
+
+    const comp = computeCompositionMetrics(imageData, cropRect);
+    const t64 = viewMode === "crop" ? buildThumb64Snapshot(srcCanvas, cropPos, zoom, nextRegion) : null;
+
+    const rel = computeReleaseReadiness({
+      region: nextRegion,
+      regionMetrics: rm,
+      safe: sm,
+      thumb64: t64,
+    });
+
+    const sug = buildSuggestions({
+      region: nextRegion,
+      regionMetrics: rm,
+      safe: sm,
+      palette: pal,
+      composition: comp,
+      thumb64: t64,
+      viewMode,
+    });
+
+    setRegionMetrics(rm);
+    setSafeMargin(sm);
+    setPalette(pal);
+    setComposition(comp);
+    setThumb64(t64);
+    setRelease(rel);
+    setSuggestions(sug);
+  }
+
+  async function buildThumbPreviews() {
+    const srcCanvas = srcCanvasRef.current;
+    if (!srcCanvas || !showThumbs) return;
+
+    setThumbsBusy(true);
+    try {
+      const next = {
+        "256": buildThumbDataUrl(srcCanvas, cropPos, zoom, 256) ?? "",
+        "128": buildThumbDataUrl(srcCanvas, cropPos, zoom, 128) ?? "",
+        "64": buildThumbDataUrl(srcCanvas, cropPos, zoom, 64) ?? "",
+      };
+      setThumbs(next);
+    } finally {
+      setThumbsBusy(false);
+    }
+  }
+
+  function buildReport(): ReportData | null {
+    if (!dataUrl || !imgSize || !regionRef.current || !regionMetrics || !safeMargin || !palette || !composition || !release) {
+      return null;
+    }
+
+    const imageData = analysisRef.current;
+    if (!imageData) return null;
+
+    const mapped =
+      viewMode === "crop"
+        ? mapCropRegionToImageRectWithCrop(imageData, regionRef.current, cropPos, zoom)
+        : regionRef.current;
+
+    return {
+      createdAt: new Date().toISOString(),
+      dataUrl,
+      imageSize: imgSize,
+      viewMode,
+      region: regionRef.current,
+      mappedRegion: mapped,
+      regionMetrics,
+      safeMargin,
+      palette,
+      composition,
+      thumb64,
+      release,
+      suggestions,
+    };
+  }
+
+  function goToReport(finalAction: "report" | "ready") {
+    const report = buildReport();
+    if (!report) return;
+
+    saveReportToSession(report);
+    navigate("/report", { state: { finalAction } });
+  }
 
   function endDragAndScore() {
-    dragRef.current = { mode: "idle", handle: null, startNx: 0, startNy: 0, baseRect: null };
-    requestAnimationFrame(redraw);
+    dragRef.current = {
+      mode: "idle",
+      handle: null,
+      startNx: 0,
+      startNy: 0,
+      baseRect: null,
+    };
+    requestAnimationFrame(() => redraw());
     computeAllNow(regionRef.current);
   }
 
-  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+  function onPointerDown(e: React.PointerEvent) {
     const p = pointerToNormalized(e.clientX, e.clientY);
     if (!p || !p.inside) return;
 
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
-    // PAN MODE (crop only)
-    if (viewMode === "crop" && panCrop) {
-      panRef.current = { active: true, startX: e.clientX, startY: e.clientY, basePos: { ...cropPos } };
+    if (viewMode === "crop" && panCrop && imgSize) {
+      panRef.current = {
+        active: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        basePos: { ...cropPos },
+      };
       return;
     }
 
-    // REGION MODE
     const current = regionRef.current;
     if (current) {
       const hit = handleHitTest(current, p.nx, p.ny);
       if (hit) {
-        dragRef.current = { mode: "resize", handle: hit, startNx: p.nx, startNy: p.ny, baseRect: current };
+        dragRef.current = {
+          mode: "resize",
+          handle: hit,
+          startNx: p.nx,
+          startNy: p.ny,
+          baseRect: current,
+        };
         return;
       }
       if (rectContains(current, p.nx, p.ny)) {
-        dragRef.current = { mode: "move", handle: null, startNx: p.nx, startNy: p.ny, baseRect: current };
+        dragRef.current = {
+          mode: "move",
+          handle: null,
+          startNx: p.nx,
+          startNy: p.ny,
+          baseRect: current,
+        };
         return;
       }
     }
 
-    dragRef.current = { mode: "new", handle: null, startNx: p.nx, startNy: p.ny, baseRect: null };
+    dragRef.current = {
+      mode: "new",
+      handle: null,
+      startNx: p.nx,
+      startNy: p.ny,
+      baseRect: null,
+    };
     setRegionBoth({ x: p.nx, y: p.ny, w: 0.02, h: 0.02 });
   }
 
-  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    // PAN
-    if (panRef.current.active && viewMode === "crop" && analysisRef.current) {
+  function onPointerMove(e: React.PointerEvent) {
+    if (panRef.current.active && viewMode === "crop" && imgSize) {
       const host = hostRef.current;
       if (!host) return;
 
@@ -678,12 +794,16 @@ export default function AnalyzePage() {
       const dx = e.clientX - panRef.current.startX;
       const dy = e.clientY - panRef.current.startY;
 
-      const srcW = analysisRef.current.width;
-      const srcH = analysisRef.current.height;
+      const { sw, sh } = coverCropWithPosZoom(
+        imgSize.w,
+        imgSize.h,
+        panRef.current.basePos.x,
+        panRef.current.basePos.y,
+        zoom
+      );
 
-      const { sw, sh } = coverCropWithPosZoom(srcW, srcH, 1, 1, panRef.current.basePos.x, panRef.current.basePos.y, zoom);
-      const maxX = Math.max(1, srcW - sw);
-      const maxY = Math.max(1, srcH - sh);
+      const maxX = Math.max(1, imgSize.w - sw);
+      const maxY = Math.max(1, imgSize.h - sh);
 
       const deltaPosX = -(dx * (sw / r.width)) / maxX;
       const deltaPosY = -(dy * (sh / r.height)) / maxY;
@@ -695,7 +815,6 @@ export default function AnalyzePage() {
       return;
     }
 
-    // REGION DRAG
     const dr = dragRef.current;
     if (dr.mode === "idle") return;
 
@@ -710,15 +829,25 @@ export default function AnalyzePage() {
       const w = Math.max(0.02, Math.abs(p.nx - dr.startNx));
       const h = Math.max(0.02, Math.abs(p.ny - dr.startNy));
       setRegionBoth(clampRect({ x, y, w, h }, 0.02));
-      requestAnimationFrame(redraw);
+      requestAnimationFrame(() => redraw());
       return;
     }
 
     if (dr.mode === "move" && dr.baseRect) {
       const dx = p.nx - dr.startNx;
       const dy = p.ny - dr.startNy;
-      setRegionBoth(clampRect({ x: dr.baseRect.x + dx, y: dr.baseRect.y + dy, w: dr.baseRect.w, h: dr.baseRect.h }, 0.02));
-      requestAnimationFrame(redraw);
+      setRegionBoth(
+        clampRect(
+          {
+            x: dr.baseRect.x + dx,
+            y: dr.baseRect.y + dy,
+            w: dr.baseRect.w,
+            h: dr.baseRect.h,
+          },
+          0.02
+        )
+      );
+      requestAnimationFrame(() => redraw());
       return;
     }
 
@@ -732,13 +861,17 @@ export default function AnalyzePage() {
       let y2 = base.y + base.h;
 
       if (dr.handle === "nw") {
-        x1 = p.nx; y1 = p.ny;
+        x1 = p.nx;
+        y1 = p.ny;
       } else if (dr.handle === "ne") {
-        x2 = p.nx; y1 = p.ny;
+        x2 = p.nx;
+        y1 = p.ny;
       } else if (dr.handle === "sw") {
-        x1 = p.nx; y2 = p.ny;
+        x1 = p.nx;
+        y2 = p.ny;
       } else {
-        x2 = p.nx; y2 = p.ny;
+        x2 = p.nx;
+        y2 = p.ny;
       }
 
       const x = Math.min(x1, x2);
@@ -747,7 +880,7 @@ export default function AnalyzePage() {
       const h = Math.max(minSize, Math.abs(y2 - y1));
 
       setRegionBoth(clampRect({ x, y, w, h }, minSize));
-      requestAnimationFrame(redraw);
+      requestAnimationFrame(() => redraw());
     }
   }
 
@@ -761,9 +894,6 @@ export default function AnalyzePage() {
     endDragAndScore();
   }
 
-  // -----------------------------
-  // Upload/reset actions
-  // -----------------------------
   async function handleUpload(file: File) {
     setError(null);
     setBusy(true);
@@ -777,13 +907,8 @@ export default function AnalyzePage() {
       setPanCrop(false);
 
       setRegionBoth(null);
-      setRegionMetrics(null);
-      setSafeMargin(null);
-      setPalette(null);
-      setSuggestions([]);
-      setComposition(null);
-      setReportData(null);
       setThumbs({});
+      clearAnalysisOnly();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -791,25 +916,58 @@ export default function AnalyzePage() {
     }
   }
 
-  function clearRegion() {
-    setRegionBoth(null);
-    setRegionMetrics(null);
-    setSafeMargin(null);
-    setPalette(null);
-    setSuggestions([]);
-    setReportData(null);
-    requestAnimationFrame(redraw);
-  }
+  useEffect(() => {
+    if (!dataUrl) return;
 
-  function switchTo(mode: ViewMode) {
-    setViewMode(mode);
-    setPanCrop(false);
-    clearRegion();
-  }
+    let alive = true;
 
-  // -----------------------------
-  // Render
-  // -----------------------------
+    (async () => {
+      setBusy(true);
+      setError(null);
+      try {
+        const analysis = await buildAnalysisImageData(dataUrl, 1024);
+        if (!alive) return;
+
+        analysisRef.current = analysis.imageData;
+        srcCanvasRef.current = ensureSourceCanvas(analysis.imageData);
+        setImgSize({ w: analysis.natural.w, h: analysis.natural.h });
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : "Failed to process image");
+      } finally {
+        if (alive) setBusy(false);
+        requestAnimationFrame(() => redraw());
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [dataUrl, redraw]);
+
+  useEffect(() => {
+    if (!showThumbs) return;
+    void buildThumbPreviews();
+  }, [showThumbs]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (cropChangeTimeoutRef.current) {
+      window.clearTimeout(cropChangeTimeoutRef.current);
+    }
+
+    cropChangeTimeoutRef.current = window.setTimeout(() => {
+      if (regionRef.current) computeAllNow(regionRef.current);
+      if (showThumbs) void buildThumbPreviews();
+      redraw();
+    }, 140);
+
+    return () => {
+      if (cropChangeTimeoutRef.current) {
+        window.clearTimeout(cropChangeTimeoutRef.current);
+      }
+    };
+  }, [cropPos.x, cropPos.y, zoom, viewMode, showThumbs]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="analyzeWrap">
       <div className="analyzeHeader2">
@@ -820,19 +978,33 @@ export default function AnalyzePage() {
         <div className="analyzeTitle">
           <div className="h1">ANALYZE</div>
           <div className="h2">
-            1) Choose view + crop • 2) Draw title/artist region • 3) Review metrics + suggestions
+            Draw a title/artist region, test it against thumbnail conditions, and use the release checklist as your final decision.
           </div>
         </div>
 
-        <div />
-      </div>
+        <div className="analyzeActions2">
+          <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
+            UPLOAD NEW
+          </button>
 
-      {!dataUrl && (
-        <div className="emptyState">
-          <div className="emptyTitle">No cover loaded.</div>
-          <div className="emptySub">Upload a cover here, or start from PLAY.</div>
-          <button className="primaryBtn" onClick={() => fileRef.current?.click()}>
-            UPLOAD COVER
+          <button
+            className="ghostBtn"
+            onClick={() => {
+              setRegionBoth(null);
+              clearAnalysisOnly();
+              requestAnimationFrame(() => redraw());
+            }}
+            disabled={!hasRegion}
+          >
+            CLEAR REGION
+          </button>
+
+          <button
+            className="primaryBtn"
+            disabled={!hasAnalysis}
+            onClick={() => goToReport("ready")}
+          >
+            GENERATE REPORT
           </button>
 
           <input
@@ -847,293 +1019,355 @@ export default function AnalyzePage() {
             }}
           />
         </div>
+      </div>
+
+      {!dataUrl && (
+        <div className="emptyState">
+          <div className="emptyTitle">No cover uploaded yet.</div>
+          <div className="emptySub">
+            Upload a cover or start from PLAY, then use Analyze to test readability and composition.
+          </div>
+          <button className="primaryBtn" onClick={() => fileRef.current?.click()}>
+            UPLOAD COVER
+          </button>
+        </div>
       )}
 
       {dataUrl && (
-        <div className="analyzeGrid2">
-          {/* LEFT */}
-          <div className="panelDark">
-            <div className="panelTop">
-              <div className="panelTitle">Cover + Region</div>
-              <div className="panelNote">
-                {viewMode === "crop"
-                  ? "CROP VIEW is a square streaming thumbnail. Use PAN CROP to position, then draw your title/artist region."
-                  : "FULL VIEW shows the whole image. Draw your title/artist region in the visible area."}
-              </div>
-            </div>
-
-            <div
-              ref={hostRef}
-              className={`mediaStage ${viewMode === "crop" ? "crop" : "full"} ${panCrop ? "isPanning" : ""}`}
-              style={viewMode === "full" && imgSize ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` } : undefined}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              onPointerCancel={onPointerCancel}
-            >
-              <img
-                className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`}
-                src={dataUrl}
-                alt="Uploaded cover"
-                draggable={false}
-                style={imgStyle}
-              />
-              <canvas ref={canvasRef} className="overlayCanvas" />
-            </div>
-
-            <div className="imageToolbar">
-              <div className="toolbarRow">
-                <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
-                  UPLOAD NEW
-                </button>
-
-                <button className="ghostBtn" onClick={clearRegion} disabled={!hasRegion}>
-                  CLEAR REGION
-                </button>
-
-                <button
-                  className="primaryBtn"
-                  disabled={!reportReady}
-                  onClick={() => {
-                    if (!reportData) return;
-                    navigate("/report", { state: { report: reportData } });
-                  }}
-                >
-                  GENERATE REPORT
-                </button>
-
-                <input
-                  ref={fileRef}
-                  className="hiddenFile"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) void handleUpload(f);
-                    e.currentTarget.value = "";
-                  }}
-                />
-              </div>
-
-              <div className="toolbarRow">
-                <button className={`pillBtn ${viewMode === "crop" ? "on" : ""}`} onClick={() => switchTo("crop")}>
-                  CROP VIEW
-                </button>
-
-                <button className={`pillBtn ${viewMode === "full" ? "on" : ""}`} onClick={() => switchTo("full")}>
-                  FULL VIEW
-                </button>
-
-                <button className={`pillBtn ${showSafe ? "on" : ""}`} onClick={() => setShowSafe((v) => !v)}>
-                  SAFE AREA
-                </button>
-
-                <button className={`pillBtn ${showThumbs ? "on" : ""}`} onClick={() => setShowThumbs((v) => !v)}>
-                  THUMBS
-                </button>
-
-                <button
-                  className={`pillBtn ${panCrop ? "on" : ""}`}
-                  onClick={() => setPanCrop((v) => !v)}
-                  title="When ON, drag to reposition the crop (region drawing is disabled)."
-                  disabled={viewMode !== "crop"}
-                >
-                  PAN CROP
-                </button>
-
-                <div className="zoomControl">
-                  <span className="zoomLabel">ZOOM</span>
-                  <input
-                    className="range"
-                    type="range"
-                    min={1}
-                    max={2.5}
-                    step={0.01}
-                    value={zoom}
-                    onChange={(e) => setZoom(parseFloat(e.target.value))}
-                    disabled={viewMode !== "crop"}
-                  />
-                  <button
-                    className="ghostBtn"
-                    onClick={() => {
-                      setCropPos({ x: 0.5, y: 0.5 });
-                      setZoom(1);
-                    }}
-                    disabled={viewMode !== "crop"}
-                  >
-                    RESET CROP
-                  </button>
+        <div className="analyzeWorkspace">
+          <div className="analyzeLeft">
+            <div className="panelDark">
+              <div className="panelTop">
+                <div className="panelTitle">Cover + region</div>
+                <div className="panelNote">
+                  {viewMode === "crop"
+                    ? "Crop view simulates square streaming thumbnails. Use PAN CROP to choose the most realistic square framing."
+                    : "Full view shows the entire image using contain."}
                 </div>
               </div>
 
-              <div className="metaRow">
-                {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
-                <span className="tag">view: {viewMode.toUpperCase()}</span>
-                <span className="tag">{panCrop ? "mode: PAN" : "mode: REGION"}</span>
-                {region ? (
-                  <span className="tag">
-                    region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%
-                  </span>
-                ) : (
-                  <span className="tag">region: none</span>
-                )}
-                {safeMargin && (
-                  <span className={`statusTag ${safeMargin.pass ? "pass" : "fail"}`}>
-                    SAFE {safeMargin.pass ? "PASS" : "FAIL"} • {safeMargin.score.toFixed(0)}/100
-                  </span>
-                )}
+              <div
+                ref={hostRef}
+                className={`mediaStage ${viewMode === "crop" ? "crop" : "full"} ${panCrop ? "isPanning" : ""}`}
+                style={viewMode === "full" && imgSize ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` } : undefined}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
+              >
+                <img
+                  className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`}
+                  src={dataUrl}
+                  alt="Uploaded cover"
+                  draggable={false}
+                  style={imgStyle}
+                />
+                <canvas ref={canvasRef} className="overlayCanvas" />
               </div>
 
-              {error && <div className="errorLine">{error}</div>}
+              <div className="imageToolbar">
+                <div className="toolbarRow">
+                  <button
+                    className={`pillBtn ${viewMode === "crop" ? "on" : ""}`}
+                    onClick={() => {
+                      setViewMode("crop");
+                      setPanCrop(false);
+                      setRegionBoth(null);
+                      clearAnalysisOnly();
+                    }}
+                  >
+                    CROP VIEW
+                  </button>
+
+                  <button
+                    className={`pillBtn ${viewMode === "full" ? "on" : ""}`}
+                    onClick={() => {
+                      setViewMode("full");
+                      setPanCrop(false);
+                      setRegionBoth(null);
+                      clearAnalysisOnly();
+                    }}
+                  >
+                    FULL VIEW
+                  </button>
+
+                  <button className={`pillBtn ${showSafe ? "on" : ""}`} onClick={() => setShowSafe((v) => !v)}>
+                    SAFE AREA
+                  </button>
+
+                  <button
+                    className={`pillBtn ${showThumbs ? "on" : ""}`}
+                    onClick={() => setShowThumbs((v) => !v)}
+                  >
+                    THUMBS
+                  </button>
+
+                  <button
+                    className={`pillBtn ${panCrop ? "on" : ""}`}
+                    onClick={() => setPanCrop((v) => !v)}
+                    title="Turn on to drag the crop. Turn off to draw the text region."
+                  >
+                    PAN CROP
+                  </button>
+                </div>
+
+                <div className="toolbarRow">
+                  <div className="zoomControl">
+                    <span className="zoomLabel">ZOOM</span>
+                    <input
+                      className="range"
+                      type="range"
+                      min={1}
+                      max={2.5}
+                      step={0.01}
+                      value={zoom}
+                      onChange={(e) => setZoom(parseFloat(e.target.value))}
+                      disabled={viewMode !== "crop"}
+                    />
+                    <button
+                      className="ghostBtn"
+                      onClick={() => {
+                        setCropPos({ x: 0.5, y: 0.5 });
+                        setZoom(1);
+                      }}
+                      disabled={viewMode !== "crop"}
+                    >
+                      RESET CROP
+                    </button>
+                  </div>
+                </div>
+
+                <div className="metaRow">
+                  {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
+                  <span className="tag">view: {viewMode.toUpperCase()}</span>
+                  {region ? (
+                    <span className="tag">
+                      region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%
+                    </span>
+                  ) : (
+                    <span className="tag">region: none</span>
+                  )}
+                  <span className={`statusTag ${release?.overallPass ? "pass" : "fail"}`}>
+                    {releaseBadgeText}
+                  </span>
+                </div>
+
+                {error && <div className="errorLine">{error}</div>}
+              </div>
+            </div>
+
+            <div className="analysisSubgrid">
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Composition</div>
+                  <div className="panelNote">
+                    These five metrics help you understand the overall character of the image and how it may interact with text legibility and 64px thumbnail conditions. Consider how each metric might influence your design decisions for 
+                    the composition layer: light/dark, colour balance, symmetry, texture, and organic vs technical shape language.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!composition ? (
+                    <div className="miniHint">Draw a region to unlock full analysis.</div>
+                  ) : (
+                    <div className="compGrid">
+                      <div className="miniCard">
+                        <div className="miniLabel">Light vs dark</div>
+                        <div className="miniValue">{composition.lightDark.label}</div>
+                        <div className="miniSub">
+                          Average luminance: {composition.lightDark.averageLuminance}/100
+                        </div>
+                        <div className="detailLine">{composition.lightDark.warning}</div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Colour balance</div>
+                        <div className="miniValue">{composition.colorBalance.label}</div>
+                        <div className="miniSub">
+                          Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Saturation spread {composition.colorBalance.saturationSpread}/100
+                        </div>
+                        <div className="detailLine">
+                          Dominant colour weight: {composition.colorBalance.dominantWeight}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Symmetry vs asymmetry</div>
+                        <div className="miniValue">{composition.symmetry.label}</div>
+                        <div className="miniSub">
+                          Vertical mirror similarity: {composition.symmetry.score}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Texture / complexity</div>
+                        <div className="miniValue">{composition.texture.label}</div>
+                        <div className="miniSub">
+                          Texture energy: {composition.texture.energy}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Organic vs technical</div>
+                        <div className="miniValue">{composition.organicTechnical.label}</div>
+                        <div className="miniSub">
+                          Structure score: {composition.organicTechnical.score}/100
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Thumbnail context</div>
+                  <div className="panelNote">
+                    Small-size evidence belongs in Analyze because real streaming conditions are where album covers succeed or fail.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!region ? (
+                    <div className="miniHint">Draw a region first to test the 64px release check.</div>
+                  ) : (
+                    <>
+                      <div className="factCard">
+                        <div className="factTitle">64px release check</div>
+                        {thumb64 ? (
+                          <>
+                            <div className="factMeta">
+                              {thumb64.pass ? "PASS" : "FAIL"} • Contrast {thumb64.contrastRatio.toFixed(2)} • Clutter {Math.round(thumb64.clutterScore)} • Region {Math.round(thumb64.regionMinPx)}px
+                            </div>
+                            <div className="factBody">{thumb64.note}</div>
+                          </>
+                        ) : (
+                          <div className="factBody">
+                            Switch to crop view for the most realistic 64px thumbnail test.
+                          </div>
+                        )}
+                      </div>
+
+                      {showThumbs && (
+                        <div className="thumbPreviewGrid">
+                          {thumbsBusy ? (
+                            <div className="miniHint">Generating previews…</div>
+                          ) : (
+                            ["256", "128", "64"].map((k) => (
+                              <div className="thumbMini" key={k}>
+                                <div className="thumbMiniLabel">{k}px</div>
+                                <div className="thumbMiniBody">
+                                  {thumbs[k] ? (
+                                    <img src={thumbs[k]} alt={`${k}px preview`} />
+                                  ) : (
+                                    <div className="thumbEmptyDark">—</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="sideStack">
+          <div className="analyzeRight">
             <div className="panelDark">
               <div className="panelTop">
-                <div className="panelTitle">Analysis</div>
-                <div className="panelNote">Composition updates with your current view/crop. Readability needs a region.</div>
+                <div className="panelTitle">Release readiness</div>
+                <div className="panelNote">
+                  Final decision using explicit thresholds: contrast, safe area, clutter, and a 64px thumbnail check.
+                </div>
               </div>
 
               <div className="panelBody">
-                {/* COMPOSITION (always shown when available) */}
-                {composition ? (
-                  <div className="sectionBlock">
-                    <div className="sectionHead">Composition</div>
-
-                    <div className="compGrid">
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: streaming apps switch dark/light UI. Extreme brightness can crush detail or wash type."
-                        >
-                          Light vs Dark
-                        </div>
-                        <div className="miniValue">
-                          {composition.luminanceLabel}
-                          {composition.luminanceExtreme ? " ⚠" : ""}
-                        </div>
-                        <div className="miniSub">
-                          mean luminance {Math.round(composition.luminanceMean * 100)}/100
-                          {composition.luminanceExtreme ? " • consider stronger type/overlay choices" : ""}
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: palette balance affects perceived ‘weight’ and guides safe overlay/text decisions."
-                        >
-                          Color balance
-                        </div>
-                        <div className="miniValue">{Math.round(composition.warmPct)}% warm</div>
-                        <div className="miniSub">
-                          cool {Math.round(composition.coolPct)}% • neutral {Math.round(composition.neutralPct)}% • dominant hue ~
-                          {Math.round(composition.dominantHuePct)}%
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: symmetry often reads as stable/clear; asymmetry can be expressive but riskier at a glance."
-                        >
-                          Symmetry
-                        </div>
-                        <div className="miniValue">{Math.round(composition.symmetryScore)}/100</div>
-                        <div className="miniSub">
-                          {composition.symmetryScore >= 70
-                            ? "Stable / balanced"
-                            : composition.symmetryScore >= 45
-                              ? "Moderate asymmetry"
-                              : "Strong asymmetry (high tension)"}
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: heavy texture can fight typography even when contrast is technically OK."
-                        >
-                          Texture energy
-                        </div>
-                        <div className="miniValue">{Math.round(composition.textureEnergy)}/100</div>
-                        <div className="miniSub">
-                          {composition.textureEnergy >= 65
-                            ? "High texture (risky behind type)"
-                            : composition.textureEnergy >= 40
-                              ? "Moderate texture"
-                              : "Low texture (calmer)"}
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: strong dominant edge directions often feel geometric/technical; varied directions feel organic."
-                        >
-                          Shape language
-                        </div>
-                        <div className="miniValue">{Math.round(composition.structureScore)}/100</div>
-                        <div className="miniSub">
-                          {composition.structureScore >= 60
-                            ? "More technical / geometric"
-                            : composition.structureScore >= 40
-                              ? "Mixed"
-                              : "More organic / varied"}
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div
-                          className="miniLabel"
-                          title="Why it matters: high variation in saturation can look busy; low variation can feel cohesive."
-                        >
-                          Saturation spread
-                        </div>
-                        <div className="miniValue">{Math.round(composition.saturationStd * 100)}/100</div>
-                        <div className="miniSub">
-                          mean sat {Math.round(composition.saturationMean * 100)}/100 • higher = more mixed palette
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="detailLine">
-                      Composition metrics are cues (not pass/fail). Use them to justify decisions about balance, mood, and how the cover competes at thumbnail size.
-                    </div>
-                  </div>
+                {!release ? (
+                  <div className="miniHint">Draw a region to compute release readiness.</div>
                 ) : (
-                  <div className="miniHint">{busy ? "Processing…" : "Composition metrics will appear once the image is loaded."}</div>
-                )}
+                  <>
+                    <div className="readyTop">
+                      <span className={`statusTag ${release.overallPass ? "pass" : "fail"}`}>
+                        {release.overallPass ? "READY TO UPLOAD" : "NOT READY"} • {release.score}/100
+                      </span>
+                    </div>
 
-                {/* REGION DEPENDENT */}
-                {!hasRegion && (
-                  <div className="miniHint" style={{ marginTop: 12 }}>
-                    {panCrop && viewMode === "crop"
-                      ? "PAN CROP is ON. Turn it off to draw/move/resize the title/artist region."
-                      : "Draw a region (title/artist) to compute readability + palette + suggestions."}
-                  </div>
-                )}
+                    <div className="readyList">
+                      {release.checks.map((c) => (
+                        <div key={c.id} className="readyRow">
+                          <div>
+                            <div className="readyLabel">{c.label}</div>
+                            <div className="readyMeta">
+                              <b>Value:</b> {c.value} • <b>Target:</b> {c.target}
+                            </div>
+                            <div className="readyMeta">{c.why}</div>
+                          </div>
+                          <span className={`statusTag ${c.pass ? "pass" : "fail"}`}>
+                            {c.pass ? "PASS" : "FAIL"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
 
-                {hasAnalysis && regionMetrics && safeMargin && palette && (
-                  <div className="analysisSections" style={{ marginTop: 12 }}>
+                    {!release.overallPass && (
+                      <div className="readyFixes">
+                        <div className="sectionHead">What to change next</div>
+                        <ul className="readyFixList">
+                          {release.nextChanges.map((x) => (
+                            <li key={x}>{x}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="readyActions">
+                      <button className="primaryBtn" onClick={() => goToReport("ready")}>
+                        GENERATE REPORT
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="panelDark">
+              <div className="panelTop">
+                <div className="panelTitle">Region analysis</div>
+                <div className="panelNote">
+                  These are the core album-cover checks: readability, placement risk, and palette guidance for the selected title/artist region.
+                </div>
+              </div>
+
+              <div className="panelBody">
+                {!hasAnalysis || !regionMetrics || !safeMargin || !palette ? (
+                  <div className="miniHint">Draw a region to analyze the title/artist area.</div>
+                ) : (
+                  <div className="analysisSections">
                     <div className="sectionBlock">
                       <div className="sectionHead">Readability</div>
                       <div className="metricsGrid">
                         <div className="metricCard">
                           <div className="metricLabel">Contrast</div>
                           <div className="metricValue">{regionMetrics.contrastRatio.toFixed(2)}</div>
-                          <div className="metricSub">{scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5</div>
+                          <div className="metricSub">
+                            {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small text / ≥ 3.0 large text
+                          </div>
                         </div>
+
                         <div className="metricCard">
                           <div className="metricLabel">Clutter</div>
                           <div className="metricValue">{Math.round(regionMetrics.clutterScore)}</div>
-                          <div className="metricSub">{scoreLabel(regionMetrics.clutterScore)} • target ≥ 60/100</div>
+                          <div className="metricSub">
+                            {scoreLabel(regionMetrics.clutterScore)} • target ≥ 60/100
+                          </div>
                         </div>
                       </div>
+
                       <div className="detailLine">
-                        Contrast estimates separation inside your region. Clutter estimates texture/detail that competes with letterforms.
+                        Contrast estimates separation between text and background. Clutter estimates how much background detail competes with letterforms.
                       </div>
                     </div>
 
@@ -1147,15 +1381,18 @@ export default function AnalyzePage() {
                             {safeMargin.pass ? "PASS" : "FAIL"} • {safeMargin.outsidePct.toFixed(0)}% outside
                           </div>
                         </div>
+
                         <div className="miniCard">
-                          <div className="miniLabel">Meaning</div>
-                          <div className="miniSub">Failing = too close to edges (more likely to be clipped by crop / rounded corners / UI).</div>
+                          <div className="miniLabel">Why it matters</div>
+                          <div className="miniSub">
+                            Streaming platforms crop artwork, round corners, and add UI overlays. Edge text is the first thing to fail.
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="sectionBlock">
-                      <div className="sectionHead">Color</div>
+                      <div className="sectionHead">Colour guidance</div>
 
                       <div className="chipRow">
                         <div className="chipMeta">
@@ -1207,46 +1444,11 @@ export default function AnalyzePage() {
                             ))}
                           </div>
                         </div>
-
-                        <div className="paletteLine">
-                          <span className="miniLabel">Complement</span>
-                          <div className="paletteStrip">
-                            <span className="chip small" style={{ background: palette.compatible.complement }} title={palette.compatible.complement} />
-                          </div>
-                        </div>
-
-                        <div className="paletteLine">
-                          <span className="miniLabel">Analogous</span>
-                          <div className="paletteStrip">
-                            {palette.compatible.analogous.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} title={c} />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="paletteLine">
-                          <span className="miniLabel">Triadic</span>
-                          <div className="paletteStrip">
-                            {palette.compatible.triadic.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} title={c} />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="paletteLine">
-                          <span className="miniLabel">Tints / Shades</span>
-                          <div className="paletteStrip">
-                            {palette.compatible.tints.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} title={c} />
-                            ))}
-                            {palette.compatible.shades.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} title={c} />
-                            ))}
-                          </div>
-                        </div>
                       </div>
 
-                      <div className="detailLine">Palette suggestions are derived from your region-average hue.</div>
+                      <div className="detailLine">
+                        Use the best text chip for maximum separation, then build accents/overlays around that palette rather than guessing.
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1256,21 +1458,29 @@ export default function AnalyzePage() {
             <div className="panelDark">
               <div className="panelTop">
                 <div className="panelTitle">Suggestions</div>
-                <div className="panelNote">Actionable fixes (why → try → target).</div>
+                <div className="panelNote">Plain-language actions based on the selected region and current crop.</div>
               </div>
 
               <div className="panelBody">
-                {!hasAnalysis ? (
-                  <div className="miniHint">Draw a region to generate suggestions.</div>
+                {!suggestions.length ? (
+                  <div className="miniHint">Select a region to generate more detailed guidance.</div>
                 ) : (
                   <div className="suggestList">
                     {suggestions.map((s, i) => (
                       <div key={i} className="suggestItem">
                         <div className="suggestTitle">{s.title}</div>
                         <div className="suggestDetail">
-                          <div className="sLine"><b>Why:</b> {s.why}</div>
-                          <div className="sLine"><b>Try:</b> {s.try}</div>
-                          {s.target && <div className="sLine"><b>Target:</b> {s.target}</div>}
+                          <div className="sLine">
+                            <b>Why:</b> {s.why}
+                          </div>
+                          <div className="sLine">
+                            <b>Try:</b> {s.try}
+                          </div>
+                          {s.target && (
+                            <div className="sLine">
+                              <b>Target:</b> {s.target}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -1278,26 +1488,6 @@ export default function AnalyzePage() {
                 )}
               </div>
             </div>
-
-            {showThumbs && (
-              <div className="panelDark">
-                <div className="panelTop">
-                  <div className="panelTitle">Tiny previews</div>
-                  <div className="panelNote">Square crop previews for 256 / 128 / 64.</div>
-                </div>
-
-                <div className="thumbRowWrap">
-                  {(["256", "128", "64"] as const).map((k) => (
-                    <div className="thumbMini" key={k}>
-                      <div className="thumbMiniLabel">{k}px</div>
-                      <div className="thumbMiniBody">
-                        {thumbs[k] ? <img src={thumbs[k]} alt={`${k}px`} /> : <div className="thumbEmptyDark">—</div>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
