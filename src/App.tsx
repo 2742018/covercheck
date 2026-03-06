@@ -10,6 +10,7 @@ import MatchPage from "./pages/MatchPage";
 import MockupsPage from "./pages/MockupsPage";
 import LicensingPage from "./pages/LicensingPage";
 import MethodsReferencesPage from "./pages/MethodsReferencesPage.tsx";
+import ComparePage from "./pages/ComparePage";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/licensing" element={<LicensingPage />} />
         <Route path="/report" element={<ReportPage />} />
         <Route path="/methods and references" element={<MethodsReferencesPage />} />
+        <Route path="/compare" element={<ComparePage />} />
         <Route path="*" element={<Navigate to="/play" replace />} />
       </Route>
     </Routes>

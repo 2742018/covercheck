@@ -8,7 +8,6 @@ function cx(...parts: Array<string | false | null | undefined>) {
 
 export default function Shell() {
   React.useEffect(() => {
-    // Clear previously persisted images/reports so uploads never "stick" again.
     removeLocal("covercheck.play.v1");
     removeLocal("covercheck.analyze.v5");
     removeLocal("covercheck.report.v1");
@@ -35,12 +34,15 @@ export default function Shell() {
             </NavLink>
             <NavLink to="/mockups" className={({ isActive }) => cx("topLink", isActive && "active")}>
               MOCKUPS
-            </NavLink>           
-            <NavLink to="/about" className={({ isActive }) => cx("topLink", isActive && "active")}>
-              ABOUT
+            </NavLink>
+            <NavLink to="/compare" className={({ isActive }) => cx("topLink", isActive && "active")}>
+              COMPARE
             </NavLink>
             <NavLink to="/methods and references" className={({ isActive }) => cx("topLink", isActive && "active")}>
               METHODS & REFERENCES
+            </NavLink>           
+            <NavLink to="/about" className={({ isActive }) => cx("topLink", isActive && "active")}>
+              ABOUT
             </NavLink>
             <NavLink to="/licensing" className={({ isActive }) => cx("topLink", isActive && "active")}>
               LICENSING
@@ -79,12 +81,16 @@ export default function Shell() {
               MOCKUPS
             </NavLink>
             <span className="sep">|</span>
-            <NavLink to="/about" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
-              ABOUT
+            <NavLink to="/compare" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
+              COMPARE
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/methods and references" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
               METHODS & REFERENCES
+            </NavLink>
+            <span className="sep">|</span>
+            <NavLink to="/about" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
+              ABOUT
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/licensing" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
