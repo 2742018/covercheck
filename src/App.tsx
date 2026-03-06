@@ -9,6 +9,7 @@ import AboutPage from "./pages/AboutPage";
 import MatchPage from "./pages/MatchPage";
 import MockupsPage from "./pages/MockupsPage";
 import LicensingPage from "./pages/LicensingPage";
+import MethodsReferencesPage from "./pages/MethodsReferencesPage.tsx";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/licensing" element={<LicensingPage />} />
         <Route path="/report" element={<ReportPage />} />
+        <Route path="/methods and references" element={<MethodsReferencesPage />} />
         <Route path="*" element={<Navigate to="/play" replace />} />
       </Route>
     </Routes>

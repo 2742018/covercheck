@@ -2101,3 +2101,409 @@ body.lightMode .policyPage{
   margin: 6px 0 16px;
 }
 
+
+
+.methodsWrap {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0 56px;
+}
+
+.methodsHero {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at top right, rgba(255, 196, 0, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(10px);
+}
+
+.methodsHeroTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.methodsHeroActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.methodsKicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin-bottom: 8px;
+}
+
+.methodsTitle {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.95;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.methodsLead {
+  max-width: 900px;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  opacity: 0.88;
+}
+
+.methodsTabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.methodsTab {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.methodsTab:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.methodsTab.on {
+  border-color: rgba(255, 196, 0, 0.45);
+  background: rgba(255, 196, 0, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 196, 0, 0.08);
+}
+
+.methodsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.methodsMain,
+.methodsAside {
+  min-width: 0;
+}
+
+.methodSection {
+  margin-bottom: 18px;
+}
+
+.methodSectionCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.methodSectionHead {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.methodSectionTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.methodSectionIntro {
+  line-height: 1.6;
+  opacity: 0.84;
+}
+
+.methodSectionBody {
+  padding: 18px;
+}
+
+.methodUseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.methodUseCard {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.methodUseLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.68;
+  margin-bottom: 8px;
+}
+
+.methodUseText {
+  line-height: 1.55;
+}
+
+.methodRefCard {
+  margin-top: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(19, 19, 22, 0.92), rgba(27, 27, 31, 0.92));
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.methodRefHead {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 16px 16px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  text-align: left;
+}
+
+.methodRefHead:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.methodRefHeadContent {
+  min-width: 0;
+}
+
+.methodRefMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.methodRefTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.methodRefSub {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  opacity: 0.72;
+}
+
+.methodRefChevron {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+}
+
+.methodRefBody {
+  padding: 0 16px 16px;
+}
+
+.methodRefSummary {
+  line-height: 1.65;
+  opacity: 0.9;
+  margin-bottom: 14px;
+}
+
+.methodRefBlock {
+  margin-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+
+.methodRefBlockHead {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: 8px;
+}
+
+.methodRefList {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  line-height: 1.55;
+}
+
+.methodRefQuote {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 14px;
+  padding: 12px;
+  line-height: 1.55;
+}
+
+.methodRefQuoteLine + .methodRefQuoteLine {
+  margin-top: 8px;
+}
+
+.methodRefActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.methodBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.methodBadge.standard {
+  background: rgba(76, 201, 240, 0.12);
+  border-color: rgba(76, 201, 240, 0.24);
+}
+
+.methodBadge.industry {
+  background: rgba(168, 218, 220, 0.12);
+  border-color: rgba(168, 218, 220, 0.24);
+}
+
+.methodBadge.peer-reviewed {
+  background: rgba(255, 196, 0, 0.12);
+  border-color: rgba(255, 196, 0, 0.22);
+}
+
+.methodBadge.thesis {
+  background: rgba(181, 131, 255, 0.12);
+  border-color: rgba(181, 131, 255, 0.24);
+}
+
+.methodsAsideCard {
+  position: sticky;
+  top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.18);
+}
+
+.methodsAsideTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.methodsAsideNote {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  opacity: 0.76;
+  margin-bottom: 14px;
+}
+
+.methodsNavList {
+  display: grid;
+  gap: 10px;
+}
+
+.methodsNavBtn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  color: inherit;
+  border-radius: 16px;
+  padding: 12px;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.methodsNavBtn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.methodsNavBtn.on {
+  border-color: rgba(255, 196, 0, 0.4);
+  background: rgba(255, 196, 0, 0.11);
+}
+
+.methodsNavBtnTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.methodsNavBtnText {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+.methodsEvidenceNote {
+  margin-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.methodsEvidenceLine {
+  line-height: 1.55;
+  opacity: 0.82;
+}
+
+@media (max-width: 980px) {
+  .methodsLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .methodsAsideCard {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .methodsWrap {
+    width: min(100% - 20px, 1280px);
+    padding-top: 16px;
+  }
+
+  .methodsHero {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .methodsHeroTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .methodUseGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .methodRefHead {
+    flex-direction: column;
+  }
+}
