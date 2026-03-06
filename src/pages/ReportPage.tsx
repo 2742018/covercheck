@@ -13,6 +13,7 @@ type ReportData = {
   regionMetrics: {
     contrastRatio: number;
     clutterScore: number;
+    contrastScore?: number;
   };
   safeMargin: {
     score: number;
@@ -36,7 +37,7 @@ type ReportData = {
     lightDark: {
       averageLuminance: number;
       label: string;
-      warning: string;
+      warning?: string;
     };
     colorBalance: {
       warmPct: number;
@@ -75,7 +76,7 @@ type ReportData = {
       value: string;
       target: string;
       why: string;
-      fix: string;
+      fix?: string;
     }>;
     nextChanges: string[];
   };
@@ -87,23 +88,34 @@ type ReportData = {
   }>;
 };
 
+function formatDate(value: string) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
+
 export default function ReportPage() {
   const navigate = useNavigate();
-  const report = loadReportFromSession<ReportData>();
+
+  const store = loadReportFromSession<ReportData, "report" | "ready" | string>();
+  const report = store?.report ?? null;
+  const finalAction = store?.meta ?? null;
+
+  console.log("[ReportPage] store", store);
 
   if (!report) {
     return (
       <div className="reportWrap">
         <div className="panelDark">
           <div className="panelTop">
-            <div className="panelTitle">No report available</div>
+            <div className="panelTitle">REPORT</div>
             <div className="panelNote">
-              Generate a report from Analyze first.
+              No report data found. This can happen after a refresh because reports are only kept in memory.
             </div>
           </div>
           <div className="panelBody">
             <button className="primaryBtn" onClick={() => navigate("/analyze")}>
-              GO TO ANALYZE
+              BACK TO ANALYZE
             </button>
           </div>
         </div>
@@ -111,10 +123,20 @@ export default function ReportPage() {
     );
   }
 
+  const actionLabel =
+    finalAction === "ready"
+      ? "Release-readiness report"
+      : finalAction === "report"
+        ? "Analysis report"
+        : "Cover report";
+
   return (
     <div className="reportWrap">
       <div className="reportHeader">
-        <button className="ghostBtn" onClick={() => navigate("/analyze", { state: { dataUrl: report.dataUrl } })}>
+        <button
+          className="ghostBtn"
+          onClick={() => navigate("/analyze", { state: { dataUrl: report.dataUrl } })}
+        >
           ← BACK
         </button>
 
@@ -128,6 +150,29 @@ export default function ReportPage() {
       </div>
 
       <div className="panelDark">
+        <div className="panelTop">
+          <div className="panelTitle">Report overview</div>
+          <div className="panelNote">
+            {actionLabel} generated on {formatDate(report.createdAt)}.
+          </div>
+        </div>
+        <div className="panelBody">
+          <div className="metaRow">
+            <span className="tag">
+              image: {report.imageSize.w}×{report.imageSize.h}
+            </span>
+            <span className="tag">view: {report.viewMode.toUpperCase()}</span>
+            <span className="tag">
+              region: {Math.round(report.region.w * 100)}% × {Math.round(report.region.h * 100)}%
+            </span>
+            <span className={`statusTag ${report.release.overallPass ? "pass" : "fail"}`}>
+              {report.release.overallPass ? "READY TO UPLOAD" : "NOT READY"} • {report.release.score}/100
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="panelDark" style={{ marginTop: 16 }}>
         <div className="panelTop">
           <div className="panelTitle">Release readiness</div>
           <div className="panelNote">
@@ -158,7 +203,7 @@ export default function ReportPage() {
             ))}
           </div>
 
-          {!report.release.overallPass && (
+          {!report.release.overallPass && report.release.nextChanges.length > 0 && (
             <div className="readyFixes">
               <div className="sectionHead">What to change next</div>
               <ul className="readyFixList">
@@ -181,6 +226,45 @@ export default function ReportPage() {
             <div className="reportFigure">
               <img src={report.dataUrl} alt="Cover report" />
             </div>
+
+            <div className="reportTable" style={{ marginTop: 16 }}>
+              <div className="row">
+                <div className="k">Created</div>
+                <div className="v">{formatDate(report.createdAt)}</div>
+              </div>
+              <div className="row">
+                <div className="k">Mode</div>
+                <div className="v">{report.viewMode}</div>
+              </div>
+              <div className="row">
+                <div className="k">Image size</div>
+                <div className="v">
+                  {report.imageSize.w}×{report.imageSize.h}
+                </div>
+              </div>
+              <div className="row">
+                <div className="k">Region avg color</div>
+                <div className="v">{report.palette.regionAvg}</div>
+              </div>
+              <div className="row">
+                <div className="k">Best text color</div>
+                <div className="v">
+                  {report.palette.text.primary} • {report.palette.text.primaryRatio.toFixed(2)}×
+                </div>
+              </div>
+              <div className="row">
+                <div className="k">Alt text color</div>
+                <div className="v">
+                  {report.palette.text.secondary} • {report.palette.text.secondaryRatio.toFixed(2)}×
+                </div>
+              </div>
+              <div className="row">
+                <div className="k">Accent color</div>
+                <div className="v">
+                  {report.palette.text.accent} • {report.palette.text.accentRatio.toFixed(2)}×
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -201,13 +285,23 @@ export default function ReportPage() {
               </div>
               <div className="row">
                 <div className="k">Safe area</div>
-                <div className="v">{Math.round(report.safeMargin.score)}/100</div>
+                <div className="v">
+                  {Math.round(report.safeMargin.score)}/100 • {report.safeMargin.pass ? "PASS" : "FAIL"}
+                </div>
+              </div>
+              <div className="row">
+                <div className="k">Outside safe area</div>
+                <div className="v">{Math.round(report.safeMargin.outsidePct)}%</div>
               </div>
               <div className="row">
                 <div className="k">64px check</div>
                 <div className="v">
                   {report.thumb64
-                    ? `${report.thumb64.pass ? "PASS" : "FAIL"} • C ${report.thumb64.contrastRatio.toFixed(2)} • K ${Math.round(report.thumb64.clutterScore)}`
+                    ? `${report.thumb64.pass ? "PASS" : "FAIL"} • C ${report.thumb64.contrastRatio.toFixed(
+                        2
+                      )} • K ${Math.round(report.thumb64.clutterScore)} • ${Math.round(
+                        report.thumb64.regionMinPx
+                      )}px`
                     : "Not available"}
                 </div>
               </div>
@@ -216,35 +310,58 @@ export default function ReportPage() {
                 <div className="v">{report.composition.lightDark.label}</div>
               </div>
               <div className="row">
+                <div className="k">Colour balance</div>
+                <div className="v">{report.composition.colorBalance.label}</div>
+              </div>
+              <div className="row">
                 <div className="k">Symmetry</div>
-                <div className="v">{report.composition.symmetry.label} • {report.composition.symmetry.score}/100</div>
+                <div className="v">
+                  {report.composition.symmetry.label} • {report.composition.symmetry.score}/100
+                </div>
               </div>
               <div className="row">
                 <div className="k">Texture</div>
-                <div className="v">{report.composition.texture.label} • {report.composition.texture.energy}/100</div>
+                <div className="v">
+                  {report.composition.texture.label} • {report.composition.texture.energy}/100
+                </div>
               </div>
               <div className="row">
                 <div className="k">Organic / technical</div>
-                <div className="v">{report.composition.organicTechnical.label} • {report.composition.organicTechnical.score}/100</div>
+                <div className="v">
+                  {report.composition.organicTechnical.label} • {report.composition.organicTechnical.score}/100
+                </div>
               </div>
             </div>
+
+            {report.composition.lightDark.warning && (
+              <div className="detailLine" style={{ marginTop: 12 }}>
+                {report.composition.lightDark.warning}
+              </div>
+            )}
 
             <div className="reportSuggestions">
               <div className="sectionHead">Suggestions</div>
               <div className="suggestList">
                 {report.suggestions.map((s, i) => (
-                  <div key={i} className="suggestItem">
+                  <div key={`${s.title}-${i}`} className="suggestItem">
                     <div className="suggestTitle">{s.title}</div>
                     <div className="suggestDetail">
-                      <div className="sLine"><b>Why:</b> {s.why}</div>
-                      <div className="sLine"><b>Try:</b> {s.try}</div>
-                      {s.target && <div className="sLine"><b>Target:</b> {s.target}</div>}
+                      <div className="sLine">
+                        <b>Why:</b> {s.why}
+                      </div>
+                      <div className="sLine">
+                        <b>Try:</b> {s.try}
+                      </div>
+                      {s.target && (
+                        <div className="sLine">
+                          <b>Target:</b> {s.target}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-
           </div>
         </div>
       </div>

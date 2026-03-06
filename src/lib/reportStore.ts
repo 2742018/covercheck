@@ -1,19 +1,42 @@
-export const REPORT_SESSION_KEY = "covercheck.report.current.v2";
+let _hasReport = false;
+let _report: unknown = null;
+let _meta: unknown = null;
 
-export function saveReportToSession<T>(report: T) {
-  sessionStorage.setItem(REPORT_SESSION_KEY, JSON.stringify(report));
+/**
+ * Fast in-memory store.
+ * No persistence by design.
+ */
+export function saveReportToSession(report: unknown, meta?: unknown) {
+  _hasReport = true;
+  _report = report;
+  _meta = meta ?? null;
+
+  console.log("[reportStore] saved", {
+    hasReport: _hasReport,
+    meta: _meta,
+    reportType: typeof _report,
+  });
 }
 
-export function loadReportFromSession<T>() {
-  const raw = sessionStorage.getItem(REPORT_SESSION_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
+export function loadReportFromSession<TReport = unknown, TMeta = unknown>() {
+  console.log("[reportStore] loaded", {
+    hasReport: _hasReport,
+    meta: _meta,
+    reportType: typeof _report,
+  });
+
+  if (!_hasReport) return null;
+
+  return {
+    report: _report as TReport,
+    meta: _meta as TMeta,
+  };
 }
 
 export function clearReportFromSession() {
-  sessionStorage.removeItem(REPORT_SESSION_KEY);
+  _hasReport = false;
+  _report = null;
+  _meta = null;
+
+  console.log("[reportStore] cleared");
 }

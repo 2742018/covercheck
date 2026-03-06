@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { fileToDataUrl } from "../lib/storage";
+import { fileToObjectUrl } from "../lib/storage";
 
 type Tile =
   | { id: string; kind: "static"; src: string; label: string }
@@ -78,7 +78,7 @@ export default function PlayPage() {
   }
 
   async function handleUpload(file: File) {
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await fileToObjectUrl(file);
     setTiles((prev) => prev.map((t) => (t.kind === "upload" ? { ...t, dataUrl } : t)));
     navigate("/analyze", { state: { dataUrl } });
   }

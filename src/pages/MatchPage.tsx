@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { fileToDataUrl } from "../lib/storage";
+import { fileToObjectUrl } from "../lib/storage";
 import { computePalette, type NormalizedRect } from "../analysis/metrics";
 import { decodeAudioFile, analyzeAudioBuffer, type AudioFeatures } from "../analysis/audioFeatures";
 import { imageDataFromDataUrl, computeCoverMood, type CoverMood } from "../analysis/covermood";
@@ -115,7 +115,7 @@ export default function MatchPage() {
     setErr(null);
     setBusy(true);
     try {
-      const url = await fileToDataUrl(file);
+      const url = await fileToObjectUrl(file);
       setCoverUrl(url);
 
       const imgData = await imageDataFromDataUrl(url, 512);

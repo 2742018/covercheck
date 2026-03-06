@@ -24,11 +24,10 @@ export function removeLocal(key: string): void {
   }
 }
 
-export async function fileToDataUrl(file: File): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.onload = () => resolve(String(reader.result));
-    reader.readAsDataURL(file);
-  });
+export function fileToObjectUrl(file: File) {
+  return URL.createObjectURL(file);
+}
+
+export function revokeObjectUrl(url: string | null) {
+  if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
 }

@@ -1,10 +1,6 @@
-// =========================================================
-// FILE: src/pages/MockupsPage.tsx  (REPLACE ENTIRE FILE)
-// =========================================================
-
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { fileToDataUrl } from "../lib/storage";
+import { fileToObjectUrl } from "../lib/storage";
 import { computePalette, type NormalizedRect, type PaletteResult } from "../analysis/metrics";
 import { computeCompositionMetrics, type CompositionMetrics } from "../analysis/composition";
 
@@ -16,13 +12,13 @@ type ThumbSize = 48 | 64 | 96 | 128;
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
+
 function clamp01(v: number) {
   return clamp(v, 0, 1);
 }
 
-// ---------- helpers ----------
 async function loadImage(src: string): Promise<HTMLImageElement> {
-  return await new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("Failed to load image"));
@@ -35,10 +31,10 @@ function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
   const srcAR = srcW / srcH;
   const dstAR = dstW / dstH;
 
-  let sw = srcW,
-    sh = srcH,
-    sx = 0,
-    sy = 0;
+  let sw = srcW;
+  let sh = srcH;
+  let sx = 0;
+  let sy = 0;
 
   if (srcAR > dstAR) {
     sw = Math.round(srcH * dstAR);
@@ -47,6 +43,7 @@ function coverCrop(srcW: number, srcH: number, dstW: number, dstH: number) {
     sh = Math.round(srcW / dstAR);
     sy = Math.round((srcH - sh) / 2);
   }
+
   return { sx, sy, sw, sh };
 }
 
@@ -70,7 +67,12 @@ function coverCropWithPosZoom(
   const sx = Math.round(maxX * clamp01(posX01));
   const sy = Math.round(maxY * clamp01(posY01));
 
-  return { sx, sy, sw: Math.round(sw), sh: Math.round(sh) };
+  return {
+    sx,
+    sy,
+    sw: Math.max(1, Math.round(sw)),
+    sh: Math.max(1, Math.round(sh)),
+  };
 }
 
 /** Builds many square thumbs that match current cropPos/zoom */
@@ -99,6 +101,7 @@ async function makeSquareThumbs(
       cropPos.y,
       zoom
     );
+
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, s, s);
     thumbs[String(s)] = canvas.toDataURL("image/png");
   }
@@ -123,15 +126,21 @@ async function buildAnalysisImageData(dataUrl: string, maxDim = 1024) {
   if (!ctx) throw new Error("Canvas not available");
 
   ctx.drawImage(img, 0, 0, w, h);
-  return { imageData: ctx.getImageData(0, 0, w, h), natural: { w: w0, h: h0 } };
+
+  return {
+    imageData: ctx.getImageData(0, 0, w, h),
+    natural: { w: w0, h: h0 },
+  };
 }
 
 function hexToRgb(hex: string) {
   const h = hex.replace("#", "").trim();
   if (h.length !== 6) return null;
+
   const r = parseInt(h.slice(0, 2), 16);
   const g = parseInt(h.slice(2, 4), 16);
   const b = parseInt(h.slice(4, 6), 16);
+
   return { r, g, b };
 }
 
@@ -139,15 +148,18 @@ function rgbToHsl(r: number, g: number, b: number) {
   r /= 255;
   g /= 255;
   b /= 255;
-  const max = Math.max(r, g, b),
-    min = Math.min(r, g, b);
-  let h = 0,
-    s = 0;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+
+  let h = 0;
+  let s = 0;
   const l = (max + min) / 2;
   const d = max - min;
 
   if (d !== 0) {
     s = d / (1 - Math.abs(2 * l - 1));
+
     switch (max) {
       case r:
         h = ((g - b) / d) % 6;
@@ -159,9 +171,11 @@ function rgbToHsl(r: number, g: number, b: number) {
         h = (r - g) / d + 4;
         break;
     }
+
     h *= 60;
     if (h < 0) h += 360;
   }
+
   return { h, s, l };
 }
 
@@ -170,9 +184,10 @@ function hslToHex(h: number, s: number, l: number) {
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
 
-  let rp = 0,
-    gp = 0,
-    bp = 0;
+  let rp = 0;
+  let gp = 0;
+  let bp = 0;
+
   if (h < 60) {
     rp = c;
     gp = x;
@@ -210,8 +225,13 @@ function hslToHex(h: number, s: number, l: number) {
 function deriveCompatible(baseHex: string) {
   const rgb = hexToRgb(baseHex);
   if (!rgb) {
-    return { complement: "#000000", analogous: ["#000000", "#000000"], triadic: ["#000000", "#000000"] };
+    return {
+      complement: "#000000",
+      analogous: ["#000000", "#000000"],
+      triadic: ["#000000", "#000000"],
+    };
   }
+
   const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
   const complement = hslToHex((h + 180) % 360, Math.min(1, s * 0.95), l);
@@ -223,6 +243,7 @@ function deriveCompatible(baseHex: string) {
     hslToHex((h + 120) % 360, Math.min(1, s * 0.95), l),
     hslToHex((h + 240) % 360, Math.min(1, s * 0.95), l),
   ];
+
   return { complement, analogous, triadic };
 }
 
@@ -247,10 +268,14 @@ function statsFromPalette(pal: PaletteResult): ColorStats {
       temperatureLabel: "neutral",
     };
   }
+
   const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
 
-  const brightnessLabel: ColorStats["brightnessLabel"] = l < 0.35 ? "dark" : l > 0.68 ? "light" : "mid";
-  const saturationLabel: ColorStats["saturationLabel"] = s < 0.25 ? "muted" : s > 0.58 ? "vivid" : "balanced";
+  const brightnessLabel: ColorStats["brightnessLabel"] =
+    l < 0.35 ? "dark" : l > 0.68 ? "light" : "mid";
+
+  const saturationLabel: ColorStats["saturationLabel"] =
+    s < 0.25 ? "muted" : s > 0.58 ? "vivid" : "balanced";
 
   const temperatureLabel: ColorStats["temperatureLabel"] =
     (h >= 20 && h <= 75) || (h >= 300 && h <= 360)
@@ -262,12 +287,11 @@ function statsFromPalette(pal: PaletteResult): ColorStats {
   return { hue: h, sat: s, light: l, brightnessLabel, saturationLabel, temperatureLabel };
 }
 
-// ---------- Composition UI normalization ----------
 type CompositionUiMetrics = {
   luminanceLabel: string;
-  textureEnergy: number; // 0..100
-  symmetryScore: number; // 0..100
-  structureScore: number; // 0..100
+  textureEnergy: number;
+  symmetryScore: number;
+  structureScore: number;
 };
 
 function asNumber(v: unknown): number | null {
@@ -300,7 +324,8 @@ function normalizeCompositionForUi(raw: CompositionMetrics | null): CompositionU
     asNumber(r.meanLuminance) ??
     null;
 
-  const luminanceLabel = label ?? (lum != null ? luminanceToLabel(lum <= 1 ? lum : lum / 255) : "—");
+  const luminanceLabel =
+    label ?? (lum != null ? luminanceToLabel(lum <= 1 ? lum : lum / 255) : "—");
 
   const tex =
     asNumber(r.textureEnergy) ??
@@ -331,7 +356,6 @@ function normalizeCompositionForUi(raw: CompositionMetrics | null): CompositionU
   };
 }
 
-// ---------- Genre Mood Lens ----------
 type GenreKey =
   | "Pop"
   | "Hip-Hop"
@@ -452,20 +476,17 @@ function safeInsetRectCss(inset = 0.08) {
   return { left: `${pad}%`, top: `${pad}%`, right: `${pad}%`, bottom: `${pad}%` } as const;
 }
 
-// ---------- component ----------
 export default function MockupsPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const state = (location.state || {}) as MockupsState;
+  const state = (location.state ?? {}) as MockupsState;
 
-  // no persistence
-  const [dataUrl, setDataUrl] = React.useState<string | null>(() => state.dataUrl ?? null);
+  const [dataUrl, setDataUrl] = React.useState<string | null>(state.dataUrl ?? null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const fileRef = React.useRef<HTMLInputElement | null>(null);
 
-  // UI simulation controls
   const [uiTheme, setUiTheme] = React.useState<UiTheme>("dark");
   const [rounded, setRounded] = React.useState(true);
   const [showOverlay, setShowOverlay] = React.useState(true);
@@ -473,16 +494,13 @@ export default function MockupsPage() {
   const [showSafe, setShowSafe] = React.useState(false);
   const [safeInset, setSafeInset] = React.useState(0.08);
 
-  // Thumb / glance controls
   const [thumbSize, setThumbSize] = React.useState<ThumbSize>(64);
-  const [distance, setDistance] = React.useState(22); // 0..80
+  const [distance, setDistance] = React.useState(22);
 
-  // Crop controls (square thumbnail crop)
   const [cropPos, setCropPos] = React.useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
   const [zoom, setZoom] = React.useState(1);
   const [panCrop, setPanCrop] = React.useState(false);
 
-  // processed outputs
   const [thumbs, setThumbs] = React.useState<Record<string, string>>({});
   const [imgSize, setImgSize] = React.useState<{ w: number; h: number } | null>(null);
 
@@ -493,18 +511,20 @@ export default function MockupsPage() {
   const [composition, setComposition] = React.useState<CompositionMetrics | null>(null);
   const compositionUi = React.useMemo(() => normalizeCompositionForUi(composition), [composition]);
 
-  // export sheet mode (print preview)
   const [sheetMode, setSheetMode] = React.useState(false);
 
   const stageRef = React.useRef<HTMLDivElement | null>(null);
-  const panRef = React.useRef<{ active: boolean; startX: number; startY: number; basePos: { x: number; y: number } }>(
-    {
-      active: false,
-      startX: 0,
-      startY: 0,
-      basePos: { x: 0.5, y: 0.5 },
-    }
-  );
+  const panRef = React.useRef<{
+    active: boolean;
+    startX: number;
+    startY: number;
+    basePos: { x: number; y: number };
+  }>({
+    active: false,
+    startX: 0,
+    startY: 0,
+    basePos: { x: 0.5, y: 0.5 },
+  });
 
   const distScale = React.useMemo(() => Math.max(0.72, 1 - distance * 0.0035), [distance]);
   const distBlur = React.useMemo(() => Math.min(3, distance * 0.035), [distance]);
@@ -532,7 +552,11 @@ export default function MockupsPage() {
       return `data:image/svg+xml;charset=utf-8,${svg}`;
     };
 
-    const pool = Array.from({ length: 11 }, (_, i) => `${BASE}play/${String(i + 1).padStart(2, "0")}.jpg`);
+    const pool = Array.from(
+      { length: 11 },
+      (_, i) => `${BASE}play/${String(i + 1).padStart(2, "0")}.jpg`
+    );
+
     const out: string[] = [];
     for (let i = 0; i < 11; i++) out.push(pool[i] ?? fallbackSvg(100 + i * 19));
     return out;
@@ -554,7 +578,6 @@ export default function MockupsPage() {
 
   const userThumb = thumbs[String(thumbSize)] || thumbs["64"] || dataUrl || "";
 
-  // load/build data
   React.useEffect(() => {
     if (!dataUrl) {
       setThumbs({});
@@ -566,7 +589,8 @@ export default function MockupsPage() {
     }
 
     let alive = true;
-    (async () => {
+
+    void (async () => {
       setBusy(true);
       setError(null);
 
@@ -579,7 +603,6 @@ export default function MockupsPage() {
         setPalette(pal);
         setStats(statsFromPalette(pal));
 
-        // composition: compute on the CURRENT thumbnail crop window
         const cropRect = coverCropWithPosZoom(
           imgData.imageData.width,
           imgData.imageData.height,
@@ -589,14 +612,16 @@ export default function MockupsPage() {
           cropPos.y,
           zoom
         );
+
         setComposition(computeCompositionMetrics(imgData.imageData, cropRect));
 
-        // thumbs match crop
         const res = await makeSquareThumbs(dataUrl, [512, 256, 128, 96, 64, 48], cropPos, zoom);
         if (!alive) return;
+
         setThumbs(res.thumbs);
         setImgSize({ w: res.w, h: res.h });
       } catch (e) {
+        if (!alive) return;
         setError(e instanceof Error ? e.message : "Failed to process image");
       } finally {
         if (alive) setBusy(false);
@@ -608,9 +633,9 @@ export default function MockupsPage() {
     };
   }, [dataUrl, cropPos.x, cropPos.y, zoom]);
 
-  // print behavior
   React.useEffect(() => {
     if (!sheetMode) return;
+
     const handler = () => setSheetMode(false);
     window.addEventListener("afterprint", handler);
     return () => window.removeEventListener("afterprint", handler);
@@ -619,12 +644,18 @@ export default function MockupsPage() {
   async function handleUpload(file: File) {
     setError(null);
     setBusy(true);
+
     try {
-      const url = await fileToDataUrl(file);
+      const url = await fileToObjectUrl(file);
       setDataUrl(url);
       setCropPos({ x: 0.5, y: 0.5 });
       setZoom(1);
       setPanCrop(false);
+      setThumbs({});
+      setImgSize(null);
+      setPalette(null);
+      setStats(null);
+      setComposition(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -638,7 +669,12 @@ export default function MockupsPage() {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
 
-    panRef.current = { active: true, startX: e.clientX, startY: e.clientY, basePos: { ...cropPos } };
+    panRef.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      basePos: { ...cropPos },
+    };
   }
 
   function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -681,7 +717,6 @@ export default function MockupsPage() {
 
   return (
     <div className={`analyzeWrap mockupsWrap ${sheetMode ? "mxSheetMode" : ""}`}>
-      {/* Hero intro (explains what + why) */}
       <div className="mockHero mxNoPrint">
         <div className="mockHeroTop">
           <button className="ghostBtn" onClick={() => navigate("/play")}>
@@ -692,7 +727,11 @@ export default function MockupsPage() {
             <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
               UPLOAD COVER
             </button>
-            <button className="primaryBtn" disabled={!dataUrl} onClick={() => navigate("/analyze", { state: { dataUrl } })}>
+            <button
+              className="primaryBtn"
+              disabled={!dataUrl}
+              onClick={() => navigate("/analyze", { state: { dataUrl } })}
+            >
               OPEN IN ANALYZE
             </button>
           </div>
@@ -713,9 +752,10 @@ export default function MockupsPage() {
         <div className="mockKicker">COVERCHECK</div>
         <h1 className="mockTitle">Mockups / Context Preview</h1>
         <p className="mockLead">
-          This page simulates how your cover is actually encountered on streaming platforms: small grid tiles, playlist rows,
-          and UI overlays. It’s the “real world check” after Analyze.
+          This page simulates how your cover is actually encountered on streaming platforms:
+          small grid tiles, playlist rows, and UI overlays. It’s the real-world check after Analyze.
         </p>
+
         <div className="mockBullets">
           <div className="mockBullet">
             <div className="mockBulletHead">Why it matters</div>
@@ -727,16 +767,19 @@ export default function MockupsPage() {
           </div>
           <div className="mockBullet">
             <div className="mockBulletHead">Evidence for write-ups</div>
-            <div className="mockBulletText">Export a sheet (PDF) showing mockups + checklist for evaluation.</div>
+            <div className="mockBulletText">Export a sheet showing mockups + checklist for evaluation.</div>
           </div>
         </div>
+
         <hr className="mockRule" />
       </div>
 
       {!dataUrl && (
         <div className="emptyState mxNoPrint">
           <div className="emptyTitle">No cover selected.</div>
-          <div className="emptySub">Upload a cover or click a tile on PLAY, then return here to preview streaming contexts.</div>
+          <div className="emptySub">
+            Upload a cover or click a tile on PLAY, then return here to preview streaming contexts.
+          </div>
           <button className="primaryBtn" onClick={() => fileRef.current?.click()}>
             UPLOAD
           </button>
@@ -745,7 +788,6 @@ export default function MockupsPage() {
 
       {dataUrl && (
         <>
-          {/* Controls + Source */}
           <div className="panelDark mxNoPrint">
             <div className="panelTop">
               <div className="panelTitle">Controls + Thumbnail Crop</div>
@@ -756,7 +798,6 @@ export default function MockupsPage() {
 
             <div className="panelBody">
               <div className="mockControlsGrid">
-                {/* Crop stage */}
                 <div className="mockCropCol">
                   <div
                     ref={stageRef}
@@ -767,17 +808,19 @@ export default function MockupsPage() {
                     onPointerCancel={onPointerUp}
                     title={panCrop ? "Drag to reposition crop" : "Turn PAN CROP on to reposition"}
                   >
-                    <img className="mockCropImg" src={dataUrl} alt="Cover source" draggable={false} style={imgStyle} />
+                    <img
+                      className="mockCropImg"
+                      src={dataUrl}
+                      alt="Cover source"
+                      draggable={false}
+                      style={imgStyle}
+                    />
                     {showSafe && <div className="mockSafe" style={safeInsetRectCss(safeInset)} />}
                   </div>
 
                   <div className="mockCropMeta">
                     <div className="metaRow">
-                      {imgSize && (
-                        <span className="tag">
-                          {imgSize.w}×{imgSize.h}
-                        </span>
-                      )}
+                      {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
                       <span className="tag">zoom {Math.round(zoom * 100)}%</span>
                       <span className="tag">{panCrop ? "mode: PAN" : "mode: VIEW"}</span>
                       <span className="tag">thumb {thumbSize}px</span>
@@ -794,7 +837,6 @@ export default function MockupsPage() {
                   </div>
                 </div>
 
-                {/* Settings */}
                 <div className="mockSettingsCol">
                   <div className="mockToolbar">
                     <div className="mockControl">
@@ -927,11 +969,7 @@ export default function MockupsPage() {
                   </div>
 
                   {error && <div className="errorLine">{error}</div>}
-                  {busy && (
-                    <div className="miniHint" style={{ marginTop: 10 }}>
-                      Processing…
-                    </div>
-                  )}
+                  {busy && <div className="miniHint" style={{ marginTop: 10 }}>Processing…</div>}
                 </div>
               </div>
             </div>
@@ -948,11 +986,8 @@ export default function MockupsPage() {
             </div>
           </div>
 
-          {/* Main grid: left surfaces, right lens */}
           <div className="mockupsGrid mxNoPrint">
-            {/* LEFT: surfaces */}
             <div className="mockupsLeft">
-              {/* Streaming grid */}
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
                 <div className="panelTop">
                   <div className="panelTitle">Streaming grid</div>
@@ -960,7 +995,10 @@ export default function MockupsPage() {
                 </div>
 
                 <div className="panelBody">
-                  <div className="mockStage" style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}>
+                  <div
+                    className="mockStage"
+                    style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}
+                  >
                     <div className="mockGrid">
                       {Array.from({ length: 12 }, (_, i) => {
                         const isCenter = i === 4;
@@ -968,7 +1006,10 @@ export default function MockupsPage() {
 
                         return (
                           <div key={i} className="mockCell">
-                            <div className="mockCover" style={{ borderRadius: coverRadius, backgroundImage: `url(${src})` }} />
+                            <div
+                              className="mockCover"
+                              style={{ borderRadius: coverRadius, backgroundImage: `url(${src})` }}
+                            />
                             {showOverlay && <div className="mockOverlay" style={{ opacity: overlayStrength }} />}
                             {isCenter && <div className="mockBadge">YOU</div>}
                           </div>
@@ -978,12 +1019,11 @@ export default function MockupsPage() {
                   </div>
 
                   <div className="miniHint" style={{ marginTop: 12 }}>
-                    If your cover becomes “muddy” here, use Analyze to increase contrast in the title region or reduce texture behind type.
+                    If your cover becomes muddy here, use Analyze to increase contrast in the title region or reduce texture behind type.
                   </div>
                 </div>
               </div>
 
-              {/* Playlist row (requested) */}
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
                 <div className="panelTop">
                   <div className="panelTitle">Playlist row</div>
@@ -991,11 +1031,15 @@ export default function MockupsPage() {
                 </div>
 
                 <div className="panelBody">
-                  <div className="mockStage" style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}>
+                  <div
+                    className="mockStage"
+                    style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}
+                  >
                     <div className="mockList">
                       {Array.from({ length: 6 }, (_, i) => {
                         const isYou = i === 1;
                         const src = isYou ? userThumb : neighborCovers[(i + 3) % neighborCovers.length];
+
                         return (
                           <div key={i} className="mockRow">
                             <div
@@ -1025,7 +1069,6 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              {/* Search/list */}
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
                 <div className="panelTop">
                   <div className="panelTitle">Search results</div>
@@ -1033,11 +1076,15 @@ export default function MockupsPage() {
                 </div>
 
                 <div className="panelBody">
-                  <div className="mockStage" style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}>
+                  <div
+                    className="mockStage"
+                    style={{ ["--mockScale" as any]: distScale, ["--mockBlur" as any]: `${distBlur}px` }}
+                  >
                     <div className="mockSearch">
                       {Array.from({ length: 5 }, (_, i) => {
                         const isYou = i === 2;
                         const src = isYou ? userThumb : neighborCovers[(i + 7) % neighborCovers.length];
+
                         return (
                           <div key={i} className="mockSearchRow">
                             <div
@@ -1062,11 +1109,10 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              {/* Share tile */}
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
                 <div className="panelTop">
                   <div className="panelTitle">Share / promo tile</div>
-                  <div className="panelNote">Editorial framing for socials. Checks whether cover still feels “on-brand”.</div>
+                  <div className="panelNote">Editorial framing for socials. Checks whether cover still feels on-brand.</div>
                 </div>
 
                 <div className="panelBody">
@@ -1077,7 +1123,10 @@ export default function MockupsPage() {
                     </div>
 
                     <div className="mockShareCover">
-                      <div className="mockCover big" style={{ borderRadius: coverRadius, backgroundImage: `url(${thumbs["256"] || userThumb})` }} />
+                      <div
+                        className="mockCover big"
+                        style={{ borderRadius: coverRadius, backgroundImage: `url(${thumbs["256"] || userThumb})` }}
+                      />
                       {showOverlay && <div className="mockOverlay soft" style={{ opacity: overlayStrength * 0.35 }} />}
                     </div>
 
@@ -1092,29 +1141,28 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              {/* Quick checklist */}
               <div className="panelDark">
                 <div className="panelTop">
                   <div className="panelTitle">Quick checklist</div>
-                  <div className="panelNote">Use as short evaluation evidence (screenshots + notes).</div>
+                  <div className="panelNote">Use as short evaluation evidence.</div>
                 </div>
                 <div className="panelBody">
                   <div className="mxChecklist">
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Thumbnail identity</div>
-                      <div className="mxCheckText">At 64px, does it still feel unique (not muddy / generic)?</div>
+                      <div className="mxCheckText">At 64px, does it still feel unique and not muddy?</div>
                     </div>
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Edge risk</div>
-                      <div className="mxCheckText">Any critical content too close to corners (rounding/UI overlays)?</div>
+                      <div className="mxCheckText">Any critical content too close to corners or overlays?</div>
                     </div>
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Crop meaning</div>
-                      <div className="mxCheckText">Does your chosen crop still represent the intended concept/mood?</div>
+                      <div className="mxCheckText">Does your chosen crop still represent the intended concept or mood?</div>
                     </div>
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Readability expectation</div>
-                      <div className="mxCheckText">If the title area is busy here, it will likely fail in Analyze clutter checks.</div>
+                      <div className="mxCheckText">If the title zone feels busy here, it will likely fail clutter checks in Analyze.</div>
                     </div>
                   </div>
 
@@ -1130,13 +1178,12 @@ export default function MockupsPage() {
               </div>
             </div>
 
-            {/* RIGHT: Genre Mood Lens */}
             <div className="mockupsRight">
               <div className="panelDark">
                 <div className="panelTop">
                   <div className="panelTitle">Genre Mood Lens</div>
                   <div className="panelNote">
-                    This is not genre detection. It compares your cover’s color mood to common genre cover conventions (guidance, not rules).
+                    This is not genre detection. It compares your cover’s color mood to common genre conventions.
                   </div>
                 </div>
 
@@ -1152,10 +1199,10 @@ export default function MockupsPage() {
                     </select>
                   </div>
 
-                  {palette && stats && (
+                  {palette && stats ? (
                     <>
                       <div className="sectionBlock" style={{ marginTop: 14 }}>
-                        <div className="sectionHead">Your cover mood (from color)</div>
+                        <div className="sectionHead">Your cover mood</div>
                         <div className="metaRow">
                           <span className="tag">brightness: {stats.brightnessLabel}</span>
                           <span className="tag">saturation: {stats.saturationLabel}</span>
@@ -1231,13 +1278,9 @@ export default function MockupsPage() {
                       <div className="sectionBlock" style={{ marginTop: 14 }}>
                         <div className="sectionHead">How this connects to cover design</div>
                         <ul className="mockListBullets">
-                          <li>
-                            Use this as <b>art direction support</b>: “We aimed for {genre} conventions, so we adjusted palette/contrast accordingly.”
-                          </li>
-                          <li>
-                            Use <b>compatible accents</b> for overlays, label strips, and UI-safe highlights.
-                          </li>
-                          <li>If alignment is low, that can be intentional — but check grid identity + readability carefully.</li>
+                          <li>Use this as art direction support for palette and contrast decisions.</li>
+                          <li>Use compatible accents for overlays, label strips, and UI-safe highlights.</li>
+                          <li>If alignment is low, that can be intentional — but check readability and grid identity carefully.</li>
                         </ul>
 
                         <div className="mockNextActions">
@@ -1251,7 +1294,7 @@ export default function MockupsPage() {
                       </div>
 
                       <div className="miniHint" style={{ marginTop: 12 }}>
-                        Want stronger {genre} alignment? Try:
+                        Want stronger {genre} alignment?
                         <ul className="mockListBullets">
                           {genreProfile.guidance.map((g) => (
                             <li key={g}>{g}</li>
@@ -1259,15 +1302,14 @@ export default function MockupsPage() {
                         </ul>
                       </div>
                     </>
+                  ) : (
+                    <div className="miniHint">Upload/select a cover to compute palette and mood.</div>
                   )}
-
-                  {!palette && <div className="miniHint">Upload/select a cover to compute palette and mood.</div>}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* PRINT / EXPORT SHEET (visible only when printing OR sheetMode) */}
           <div className={`mxPrintSheet mxPrintOnly ${sheetMode ? "show" : ""}`}>
             <div className="mxPrintHeader">
               <div>
@@ -1312,7 +1354,7 @@ export default function MockupsPage() {
                 <div className="mxPrintBlockHead">Search / icon</div>
                 <div className="mxPrintSurface">
                   <img src={thumbs["48"] || userThumb} alt="search thumb" />
-                  <div className="mxPrintText">If it’s muddy at 48px, improve crop/contrast or simplify title zone.</div>
+                  <div className="mxPrintText">If it’s muddy at 48px, improve crop, contrast, or simplify the title zone.</div>
                 </div>
                 <div className="mxPrintNotes">
                   Notes:
@@ -1347,7 +1389,7 @@ export default function MockupsPage() {
                 <li>Thumbnail identity holds at 64px</li>
                 <li>Crop still represents concept/mood</li>
                 <li>No critical elements risk corners/overlays</li>
-                <li>Genre mood direction is intentional (match or deliberate contrast)</li>
+                <li>Genre mood direction is intentional</li>
               </ul>
             </div>
 
