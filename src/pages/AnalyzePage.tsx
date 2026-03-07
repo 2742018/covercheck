@@ -18,6 +18,7 @@ import {
 } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
 
+
 type AnalyzeState = { dataUrl?: string };
 type ViewMode = "crop" | "full";
 type Handle = "nw" | "ne" | "sw" | "se";

@@ -38,6 +38,9 @@ export default function Shell() {
             <NavLink to="/compare" className={({ isActive }) => cx("topLink", isActive && "active")}>
               COMPARE
             </NavLink>
+            <NavLink to="/accessibility" className={({ isActive }) => cx("topLink", isActive && "active")}>
+              ACCESSIBILITY
+            </NavLink>
             <NavLink to="/methods and references" className={({ isActive }) => cx("topLink", isActive && "active")}>
               METHODS & REFERENCES
             </NavLink>           
@@ -83,6 +86,10 @@ export default function Shell() {
             <span className="sep">|</span>
             <NavLink to="/compare" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
               COMPARE
+            </NavLink>
+            <span className="sep">|</span>
+            <NavLink to="/accessibility" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
+              ACCESSIBILITY
             </NavLink>
             <span className="sep">|</span>
             <NavLink to="/methods and references" className={({ isActive }) => cx("bottomLink", isActive && "active")}>
