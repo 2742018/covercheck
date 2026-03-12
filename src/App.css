@@ -1142,82 +1142,100 @@ body.lightMode .ghostBtn:hover{
    MATCH (Cover ↔ Track Match)
    ========================================================= */
 
-.matchGrid{
-  display:grid;
-  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+.matchPageWrap {
+  padding-bottom: 32px;
+}
+
+.matchGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1.05fr;
   gap: 16px;
-  align-items:start;
-}
-@media (max-width: 980px){
-  .matchGrid{ grid-template-columns: 1fr; }
+  align-items: start;
 }
 
-.matchUploadRow{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-@media (max-width: 560px){
-  .matchUploadRow{ grid-template-columns: 1fr; }
+.matchUploadRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.matchUpload{
-  border: 1px solid rgba(242,242,242,.10);
-  background: rgba(0,0,0,.18);
-  border-radius: 16px;
-  padding: 12px;
-  display:grid;
-  gap: 8px;
+.matchUploadCard {
+  display: block;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
 }
-.matchUploadLabel{
-  font-size: 12px;
-  letter-spacing:.10em;
-  text-transform: uppercase;
-  color: rgba(242,242,242,.72);
-}
-.matchUpload input{
+
+.matchUploadCard input[type="file"] {
+  margin-top: 12px;
   width: 100%;
 }
 
-.matchPreview{
-  margin-top: 12px;
-  border: 1px solid rgba(242,242,242,.10);
-  background: rgba(0,0,0,.20);
-  border-radius: 16px;
-  overflow:hidden;
-  aspect-ratio: 1 / 1;
-  display:grid;
-  place-items:center;
+.matchUploadHead {
+  font-weight: 700;
+  margin-bottom: 6px;
 }
-.matchPreview img{
-  width:100%;
-  height:100%;
+
+.matchUploadText {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  opacity: 0.8;
+}
+
+.matchPreviewPanel {
+  margin-top: 16px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+  display: grid;
+  place-items: center;
+}
+
+.matchPreviewImg {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
-.matchEmpty{
-  color: rgba(242,242,242,.55);
-  font-size: 12px;
-  letter-spacing:.04em;
+
+.matchEmpty {
+  opacity: 0.72;
+  text-align: center;
+  padding: 24px;
 }
 
-.matchPalette{
-  margin-top: 12px;
-  display:grid;
-  gap: 8px;
+.matchPaletteBlock {
+  margin-top: 14px;
 }
 
-.matchScoreRow{
-  display:flex;
-  gap: 14px;
-  align-items:center;
+.matchScoreHero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.025);
+  border-radius: 18px;
+  padding: 14px;
 }
-.matchScoreBig{
-  font-size: 44px;
-  letter-spacing: -.02em;
-  color: rgba(255,196,0,.95);
+
+.matchScoreBig {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1;
 }
-.matchScoreMeta{
-  min-width: 0;
+
+@media (max-width: 980px) {
+  .matchGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchUploadRow {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* =========================================================
@@ -2514,76 +2532,6 @@ body.lightMode .policyPage{
   padding-bottom: 32px;
 }
 
-.compareGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.compareStage {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: #111;
-  display: grid;
-  place-items: center;
-}
-
-.compareStage.showGrid::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 20% 20%;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.compareImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform-origin: center;
-}
-
-.compareBadge {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 3;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  background: rgba(255,196,0,0.9);
-  color: #111;
-}
-
-@media (max-width: 900px) {
-  .stressControls {
-    grid-template-columns: 1fr;
-  }
-
-  .stressPreviewGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .compareGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.compareWrap {
-  padding-bottom: 32px;
-}
-
 .compareHeroBullets {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2593,7 +2541,7 @@ body.lightMode .policyPage{
 
 .compareControlsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
@@ -2611,11 +2559,11 @@ body.lightMode .policyPage{
 }
 
 .compareMode-left {
-  grid-template-columns: minmax(0, 1fr) 0.55fr;
+  grid-template-columns: minmax(0, 1fr) 0.54fr;
 }
 
 .compareMode-right {
-  grid-template-columns: 0.55fr minmax(0, 1fr);
+  grid-template-columns: 0.54fr minmax(0, 1fr);
 }
 
 .comparePanel {
@@ -2702,6 +2650,16 @@ body.lightMode .policyPage{
   background: rgba(255,255,255,0.025);
   border-radius: 16px;
   padding: 14px;
+}
+
+.compareBulletList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  line-height: 1.55;
+}
+
+.compareBulletList li + li {
+  margin-top: 6px;
 }
 
 .ghostBtn.small {

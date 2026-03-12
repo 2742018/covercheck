@@ -2,95 +2,54 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { fileToObjectUrl } from "../lib/storage";
 import { computePalette, type NormalizedRect } from "../analysis/metrics";
-import { decodeAudioFile, analyzeAudioBuffer, type AudioFeatures } from "../analysis/audioFeatures";
-import { imageDataFromDataUrl, computeCoverMood, type CoverMood } from "../analysis/covermood";
+import {
+  decodeAudioFile,
+  analyzeAudioBuffer,
+  type AudioFeatures,
+} from "../analysis/audioFeatures";
+import {
+  imageDataFromDataUrl,
+  computeCoverMood,
+  type CoverMood,
+} from "../analysis/covermood";
+import { computeMatch, type MatchResult } from "../lib/matchscoring";
+import GenreReferenceMap from "../components/genrereferencemap";
 
-type MatchResult = {
-  score: number; // 0..100
-  label: "Aligned" | "Mixed" | "Mismatch";
-  notes: string[];
-};
-
-function clamp01(x: number) {
-  return Math.max(0, Math.min(1, x));
+function moodBucket01(v: number): "low" | "medium" | "high" {
+  if (v < 0.34) return "low";
+  if (v < 0.67) return "medium";
+  return "high";
 }
 
-function scoreLabel(score: number): MatchResult["label"] {
-  if (score >= 75) return "Aligned";
-  if (score >= 55) return "Mixed";
-  return "Mismatch";
+function brightnessBucket(v: number): "dark" | "mid" | "light" {
+  if (v < 0.34) return "dark";
+  if (v < 0.67) return "mid";
+  return "light";
 }
 
-function computeMatch(audio: AudioFeatures, cover: CoverMood): MatchResult {
-  // Intuition mapping:
-  // - energy wants saturation + some complexity + mid/high brightness
-  // - brightness wants brighter cover and/or cooler colors
-  // - bass wants warmer cover (reds/oranges) and darker mood can fit bass-heavy
-  // - dynamics wants more contrast/complexity (cover shouldn’t be too flat)
+function saturationBucket(v: number): "muted" | "balanced" | "vivid" {
+  if (v < 0.34) return "muted";
+  if (v < 0.67) return "balanced";
+  return "vivid";
+}
 
-  const aEnergy = audio.energy;         // 0..1
-  const aBright = audio.brightness;     // 0..1
-  const aBass = audio.bass;             // 0..1
-  const aDyn = audio.dynamics;          // 0..1
+function temperatureBucket(v: number): "cool" | "neutral" | "warm" {
+  if (v < 0.34) return "cool";
+  if (v < 0.67) return "neutral";
+  return "warm";
+}
 
-  const cBright = cover.brightness;     // 0..1
-  const cSat = cover.saturation;        // 0..1
-  const cWarm = cover.warmth;           // 0..1
-  const cComp = cover.complexity;       // 0..1
+function deriveSuggestedGenre(audio: AudioFeatures): string {
+  const e = audio.energy;
+  const b = audio.brightness;
+  const bass = audio.bass;
 
-  // Targets derived from audio
-  const tBright = clamp01(0.25 + 0.6 * aBright + 0.2 * aEnergy);
-  const tSat = clamp01(0.15 + 0.7 * aEnergy);
-  const tWarm = clamp01(0.25 + 0.6 * aBass - 0.25 * aBright);
-  const tComp = clamp01(0.15 + 0.55 * aEnergy + 0.35 * aDyn);
-
-  const dBright = Math.abs(cBright - tBright);
-  const dSat = Math.abs(cSat - tSat);
-  const dWarm = Math.abs(cWarm - tWarm);
-  const dComp = Math.abs(cComp - tComp);
-
-  const weighted = 0.32 * dBright + 0.26 * dSat + 0.22 * dWarm + 0.20 * dComp;
-  const score = Math.round(100 - weighted * 100);
-
-  const notes: string[] = [];
-
-  if (dBright > 0.22) {
-    notes.push(
-      cBright < tBright
-        ? "Your track reads brighter than the cover. Consider lifting exposure, adding a lighter background, or using a high-contrast title color."
-        : "Your cover is brighter than the track’s tone. Consider deeper shadows, a darker vignette, or a more muted title treatment."
-    );
-  }
-
-  if (dSat > 0.22) {
-    notes.push(
-      cSat < tSat
-        ? "The track feels more energetic than the cover palette. Try a stronger accent color, higher saturation, or bolder typography."
-        : "The cover is very saturated compared to the track’s energy. Try fewer accents, softer saturation, or calmer type weight."
-    );
-  }
-
-  if (dWarm > 0.22) {
-    notes.push(
-      cWarm < tWarm
-        ? "The audio feels bass/warm, but the cover reads cool. Try warmer accents (orange/red), warmer grading, or cream/amber type."
-        : "The cover reads very warm compared to the track. Try cooler accents (cyan/blue) or a more neutral/gray base."
-    );
-  }
-
-  if (dComp > 0.22) {
-    notes.push(
-      cComp < tComp
-        ? "The track has more movement than the cover. Consider adding texture, motion cues (diagonal layout), or more layered elements."
-        : "The cover is visually busy relative to the track. Consider simplifying the background behind title text, reducing texture, or adding clean panels."
-    );
-  }
-
-  if (notes.length === 0) {
-    notes.push("Overall alignment looks strong. Next: use Analyze to confirm contrast/clutter/safe-area for your title region.");
-  }
-
-  return { score: clamp01(score / 100) ? score : 0, label: scoreLabel(score), notes };
+  if (e > 0.75 && b > 0.6) return "EDM";
+  if (e > 0.7 && bass > 0.65) return "Hip-Hop";
+  if (e > 0.6 && bass > 0.55 && b < 0.55) return "Rock";
+  if (e < 0.4 && b < 0.55) return "Ambient";
+  if (e < 0.5 && bass < 0.5 && b > 0.5) return "Indie";
+  return "Indie";
 }
 
 export default function MatchPage() {
@@ -102,18 +61,38 @@ export default function MatchPage() {
   const [audioName, setAudioName] = React.useState<string | null>(null);
   const [audioFeatures, setAudioFeatures] = React.useState<AudioFeatures | null>(null);
 
-  const [palette, setPalette] = React.useState<ReturnType<typeof computePalette> | null>(null);
+  const [palette, setPalette] =
+    React.useState<ReturnType<typeof computePalette> | null>(null);
+
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
 
-  const result = React.useMemo(() => {
+  const result: MatchResult | null = React.useMemo(() => {
     if (!audioFeatures || !coverMood) return null;
     return computeMatch(audioFeatures, coverMood);
   }, [audioFeatures, coverMood]);
 
+  const suggestedGenre = React.useMemo(() => {
+    if (!audioFeatures) return "Indie";
+    return deriveSuggestedGenre(audioFeatures);
+  }, [audioFeatures]);
+
+  const coverMoodForGenreMap = React.useMemo(() => {
+    if (!coverMood) return null;
+
+    return {
+      brightness: brightnessBucket(coverMood.brightness),
+      saturation: saturationBucket(coverMood.saturation),
+      temperature: temperatureBucket(coverMood.warmth),
+      texture: moodBucket01(coverMood.complexity),
+      symmetry: "medium" as const,
+    };
+  }, [coverMood]);
+
   async function handleCover(file: File) {
     setErr(null);
     setBusy(true);
+
     try {
       const url = await fileToObjectUrl(file);
       setCoverUrl(url);
@@ -134,6 +113,7 @@ export default function MatchPage() {
   async function handleAudio(file: File) {
     setErr(null);
     setBusy(true);
+
     try {
       setAudioName(file.name);
       const buf = await decodeAudioFile(file);
@@ -147,23 +127,70 @@ export default function MatchPage() {
   }
 
   return (
-    <div className="analyzeWrap">
-      <div className="analyzeHeader2">
-        <button className="ghostBtn" onClick={() => navigate("/play")}>← BACK</button>
+    <div className="analyzeWrap matchPageWrap">
+      <div className="mockHero analyzeHero">
+        <div className="mockHeroTop">
+          <button className="ghostBtn" onClick={() => navigate("/play")}>
+            ← BACK
+          </button>
 
-        <div className="analyzeTitle">
-          <div className="h1">COVER ↔ TRACK MATCH</div>
-          <div className="h2">Upload a cover and an audio file. We’ll score how well the visual “mood” fits the sound.</div>
+          <div className="mockHeroActions">
+            <button className="ghostBtn" onClick={() => navigate("/analyze")}>
+              GO TO ANALYZE
+            </button>
+            <button
+              className="primaryBtn"
+              onClick={() => navigate("/compare", { state: { leftDataUrl: coverUrl } })}
+              disabled={!coverUrl}
+            >
+              OPEN IN COMPARE
+            </button>
+          </div>
         </div>
 
-        <div className="analyzeActions2">
-          {result && (
-            <span className={`statusTag ${result.score >= 75 ? "pass" : "fail"}`}>
+        <div className="mockKicker">COVERCHECK</div>
+        <div className="mockTitle">Cover ↔ Track Match</div>
+        <div className="mockLead">
+          Upload a cover and an audio file to compare the visual mood of the artwork
+          with the sonic character of the track. This page is designed as art-direction
+          guidance, not objective genre classification.
+        </div>
+
+        <div className="compareHeroBullets">
+          <div className="mockBullet">
+            <div className="mockBulletHead">What it does</div>
+            <div className="mockBulletText">
+              Compares brightness, saturation, warmth, and visual complexity against
+              energy, brightness, bass, and dynamics in the audio.
+            </div>
+          </div>
+          <div className="mockBullet">
+            <div className="mockBulletHead">How to use it</div>
+            <div className="mockBulletText">
+              Use it to reflect on whether the cover feels too calm, too bright, too
+              busy, or too disconnected from the track’s mood.
+            </div>
+          </div>
+          <div className="mockBullet">
+            <div className="mockBulletHead">Best next step</div>
+            <div className="mockBulletText">
+              Once the direction feels right, move into Analyze to confirm readability
+              and placement for the title/artist region.
+            </div>
+          </div>
+        </div>
+
+        {result && (
+          <div className="metaRow" style={{ marginTop: 16 }}>
+            <span className={`statusTag ${result.score >= 75 ? "pass" : result.score >= 55 ? "" : "fail"}`}>
               {result.label.toUpperCase()} • {result.score}/100
             </span>
-          )}
-          <button className="ghostBtn" onClick={() => navigate("/analyze")}>GO TO ANALYZE</button>
-        </div>
+            {audioFeatures && <span className="tag">suggested genre lens: {suggestedGenre}</span>}
+            {audioName && <span className="tag">{audioName}</span>}
+          </div>
+        )}
+
+        <hr className="mockRule" />
       </div>
 
       {err && (
@@ -175,17 +202,21 @@ export default function MatchPage() {
       )}
 
       <div className="matchGrid">
-        {/* LEFT: inputs + preview */}
         <div className="panelDark">
           <div className="panelTop">
-            <div className="panelTitle">Upload</div>
-            <div className="panelNote">Nothing is uploaded to a server — everything runs locally.</div>
+            <div className="panelTitle">Inputs + preview</div>
+            <div className="panelNote">
+              Nothing is uploaded to a server. All processing happens locally in your browser.
+            </div>
           </div>
 
           <div className="panelBody">
             <div className="matchUploadRow">
-              <label className="matchUpload">
-                <div className="matchUploadLabel">Cover image</div>
+              <label className="matchUploadCard">
+                <div className="matchUploadHead">Cover image</div>
+                <div className="matchUploadText">
+                  Upload artwork to extract brightness, saturation, warmth, complexity, and palette.
+                </div>
                 <input
                   type="file"
                   accept="image/*"
@@ -198,8 +229,11 @@ export default function MatchPage() {
                 />
               </label>
 
-              <label className="matchUpload">
-                <div className="matchUploadLabel">Audio file</div>
+              <label className="matchUploadCard">
+                <div className="matchUploadHead">Audio file</div>
+                <div className="matchUploadText">
+                  Upload a track to estimate tempo, energy, brightness, bass, and dynamics.
+                </div>
                 <input
                   type="file"
                   accept="audio/*"
@@ -213,12 +247,16 @@ export default function MatchPage() {
               </label>
             </div>
 
-            <div className="matchPreview">
-              {coverUrl ? <img src={coverUrl} alt="cover preview" /> : <div className="matchEmpty">Upload a cover to preview</div>}
+            <div className="matchPreviewPanel">
+              {coverUrl ? (
+                <img src={coverUrl} alt="cover preview" className="matchPreviewImg" />
+              ) : (
+                <div className="matchEmpty">Upload a cover to preview it here</div>
+              )}
             </div>
 
             {palette && (
-              <div className="matchPalette">
+              <div className="matchPaletteBlock">
                 <div className="miniLabel">Cover palette</div>
                 <div className="paletteStrip" style={{ justifyContent: "flex-start" }}>
                   {palette.image.slice(0, 8).map((c) => (
@@ -230,17 +268,20 @@ export default function MatchPage() {
           </div>
         </div>
 
-        {/* RIGHT: metrics + match */}
         <div className="sideStack">
           <div className="panelDark">
             <div className="panelTop">
               <div className="panelTitle">Audio features</div>
-              <div className="panelNote">{audioName ? audioName : "Upload audio to see tempo + energy + tone."}</div>
+              <div className="panelNote">
+                {audioName ? audioName : "Upload audio to see estimated track features."}
+              </div>
             </div>
 
             <div className="panelBody">
               {!audioFeatures ? (
-                <div className="miniHint">Tip: mp3 or wav works best. We analyze the first ~60 seconds for speed.</div>
+                <div className="miniHint">
+                  Tip: mp3 or wav tends to work best. For speed, the tool focuses on a short analysis window rather than the full track.
+                </div>
               ) : (
                 <div className="metricsGrid">
                   <div className="metricCard">
@@ -248,20 +289,23 @@ export default function MatchPage() {
                     <div className="metricValue">{audioFeatures.bpm ?? "—"}</div>
                     <div className="metricSub">Estimated tempo</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Energy</div>
                     <div className="metricValue">{Math.round(audioFeatures.energy * 100)}</div>
-                    <div className="metricSub">0–100</div>
+                    <div className="metricSub">overall intensity</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Brightness</div>
                     <div className="metricValue">{Math.round(audioFeatures.brightness * 100)}</div>
-                    <div className="metricSub">High-frequency presence</div>
+                    <div className="metricSub">high-frequency presence</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Bass</div>
                     <div className="metricValue">{Math.round(audioFeatures.bass * 100)}</div>
-                    <div className="metricSub">Low-frequency presence</div>
+                    <div className="metricSub">low-frequency presence</div>
                   </div>
                 </div>
               )}
@@ -271,33 +315,40 @@ export default function MatchPage() {
           <div className="panelDark">
             <div className="panelTop">
               <div className="panelTitle">Cover features</div>
-              <div className="panelNote">Computed from overall color + edge density (visual “busyness”).</div>
+              <div className="panelNote">
+                Computed from overall colour, luminance, and visual complexity in the image.
+              </div>
             </div>
 
             <div className="panelBody">
               {!coverMood ? (
-                <div className="miniHint">Upload a cover image to compute brightness/saturation/warmth/complexity.</div>
+                <div className="miniHint">
+                  Upload a cover image to compute brightness, saturation, warmth, and complexity.
+                </div>
               ) : (
                 <div className="metricsGrid">
                   <div className="metricCard">
                     <div className="metricLabel">Brightness</div>
                     <div className="metricValue">{Math.round(coverMood.brightness * 100)}</div>
-                    <div className="metricSub">0–100</div>
+                    <div className="metricSub">light / dark balance</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Saturation</div>
                     <div className="metricValue">{Math.round(coverMood.saturation * 100)}</div>
-                    <div className="metricSub">0–100</div>
+                    <div className="metricSub">colour intensity</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Warmth</div>
                     <div className="metricValue">{Math.round(coverMood.warmth * 100)}</div>
-                    <div className="metricSub">reds/oranges</div>
+                    <div className="metricSub">reds / oranges</div>
                   </div>
+
                   <div className="metricCard">
                     <div className="metricLabel">Complexity</div>
                     <div className="metricValue">{Math.round(coverMood.complexity * 100)}</div>
-                    <div className="metricSub">edge density</div>
+                    <div className="metricSub">visual busyness</div>
                   </div>
                 </div>
               )}
@@ -306,37 +357,54 @@ export default function MatchPage() {
 
           <div className="panelDark">
             <div className="panelTop">
-              <div className="panelTitle">Match</div>
-              <div className="panelNote">How well the cover’s visual mood aligns with the track’s sonic mood.</div>
+              <div className="panelTitle">Match result</div>
+              <div className="panelNote">
+                How well the cover’s visual mood aligns with the track’s sonic character.
+              </div>
             </div>
 
             <div className="panelBody">
               {!result ? (
-                <div className="miniHint">Upload both a cover and audio to get a match score + suggestions.</div>
+                <div className="miniHint">
+                  Upload both a cover and an audio file to generate a match score and direction notes.
+                </div>
               ) : (
                 <>
-                  <div className="matchScoreRow">
+                  <div className="matchScoreHero">
                     <div className="matchScoreBig">{result.score}/100</div>
                     <div className="matchScoreMeta">
-                      <div className="sectionHead" style={{ marginBottom: 6 }}>{result.label}</div>
-                      <div className="miniSub">Use this as art direction guidance, then confirm readability on Analyze.</div>
+                      <div className="sectionHead" style={{ marginBottom: 6 }}>
+                        {result.label}
+                      </div>
+                      <div className="miniSub">
+                        Treat this as art-direction support, then confirm actual title readability in Analyze.
+                      </div>
                     </div>
                   </div>
 
-                  <div className="suggestList" style={{ marginTop: 12 }}>
+                  <div className="suggestList" style={{ marginTop: 14 }}>
                     {result.notes.map((n, i) => (
                       <div key={i} className="suggestItem">
-                        <div className="suggestTitle">Suggestion</div>
+                        <div className="suggestTitle">Direction note</div>
                         <div className="suggestDetail">{n}</div>
                       </div>
                     ))}
                   </div>
 
-                  <div className="testIntroActions" style={{ marginTop: 14 }}>
-                    <button className="primaryBtn" onClick={() => navigate("/analyze", { state: { dataUrl: coverUrl } })} disabled={!coverUrl}>
+                  <div className="readyActions" style={{ marginTop: 16 }}>
+                    <button
+                      className="primaryBtn"
+                      onClick={() =>
+                        navigate("/analyze", { state: { dataUrl: coverUrl } })
+                      }
+                      disabled={!coverUrl}
+                    >
                       ANALYZE THIS COVER
                     </button>
-                    <button className="ghostBtn" onClick={() => navigate("/test")}>
+                    <button
+                      className="ghostBtn"
+                      onClick={() => navigate("/test")}
+                    >
                       TAKE DESIGN TEST
                     </button>
                   </div>
@@ -346,6 +414,11 @@ export default function MatchPage() {
           </div>
         </div>
       </div>
+
+      <GenreReferenceMap
+        initialGenre={suggestedGenre as any}
+        coverMood={coverMoodForGenreMap}
+      />
     </div>
   );
 }

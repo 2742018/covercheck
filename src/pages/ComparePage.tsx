@@ -10,6 +10,10 @@ import {
   computeCompositionMetrics,
   type CompositionMetrics,
 } from "../analysis/composition";
+import {
+  evaluatePrintToDigital,
+  type PrintDigitalInput,
+} from "../lib/printtodigital";
 
 type CompareState = {
   leftDataUrl?: string;
@@ -180,6 +184,45 @@ function buildRecommendationText(
   return suggestions;
 }
 
+function derivePrintDigitalInput(summary: AutoCompareSummary | null): PrintDigitalInput {
+  if (!summary) {
+    return {
+      textDensity: "medium",
+      edgeRisk: "medium",
+      focalClarity: "medium",
+      detailDensity: "medium",
+      posterStyle: "balanced",
+    };
+  }
+
+  const texture = summary.composition.texture.energy;
+  const symmetry = summary.composition.symmetry.score;
+  const luminance = summary.composition.lightDark.averageLuminance;
+
+  const detailDensity: PrintDigitalInput["detailDensity"] =
+    texture >= 67 ? "high" : texture >= 40 ? "medium" : "low";
+
+  const focalClarity: PrintDigitalInput["focalClarity"] =
+    symmetry >= 70 ? "high" : symmetry >= 45 ? "medium" : "low";
+
+  const textDensity: PrintDigitalInput["textDensity"] =
+    texture >= 70 ? "high" : texture >= 42 ? "medium" : "low";
+
+  const edgeRisk: PrintDigitalInput["edgeRisk"] =
+    symmetry < 38 ? "high" : symmetry < 55 ? "medium" : "low";
+
+  const posterStyle: PrintDigitalInput["posterStyle"] =
+    texture >= 72 ? "dense" : luminance > 68 || luminance < 32 ? "minimal" : "balanced";
+
+  return {
+    textDensity,
+    edgeRisk,
+    focalClarity,
+    detailDensity,
+    posterStyle,
+  };
+}
+
 export default function ComparePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -310,6 +353,23 @@ export default function ComparePage() {
   const recommendationLines =
     leftSummary && rightSummary ? buildRecommendationText(leftSummary, rightSummary) : [];
 
+  const leftPrintDigital = React.useMemo(
+    () => evaluatePrintToDigital(derivePrintDigitalInput(leftSummary)),
+    [leftSummary]
+  );
+
+  const rightPrintDigital = React.useMemo(
+    () => evaluatePrintToDigital(derivePrintDigitalInput(rightSummary)),
+    [rightSummary]
+  );
+
+  const printDigitalWinner =
+    leftPrintDigital.score === rightPrintDigital.score
+      ? "tie"
+      : leftPrintDigital.score > rightPrintDigital.score
+        ? "A"
+        : "B";
+
   return (
     <div className="analyzeWrap compareWrap">
       <div className="mockHero analyzeHero compareHero">
@@ -339,8 +399,8 @@ export default function ComparePage() {
         <div className="mockTitle">Comparison Mode</div>
         <div className="mockLead">
           Compare two covers, two revisions, or two design directions side-by-side.
-          Use this page for structured evaluation, iteration evidence, and final
-          selection support.
+          Use this page for structured evaluation, iteration evidence, final selection,
+          and print-to-digital decision support.
         </div>
 
         <div className="compareHeroBullets">
@@ -355,14 +415,14 @@ export default function ComparePage() {
             <div className="mockBulletHead">What to do here</div>
             <div className="mockBulletText">
               Compare versions visually, use the automatic overview, and add your own
-              observations only if you want to.
+              notes only if you want to.
             </div>
           </div>
           <div className="mockBullet">
-            <div className="mockBulletHead">Good for evidence</div>
+            <div className="mockBulletHead">Added digital check</div>
             <div className="mockBulletText">
-              This creates a clear comparison artifact for dissertation screenshots,
-              reflective analysis, and iteration rationale.
+              This page now also estimates whether each version feels more print-first
+              or better suited to streaming-scale digital presentation.
             </div>
           </div>
         </div>
@@ -664,8 +724,7 @@ export default function ComparePage() {
                           Texture: {leftSummary.composition.texture.label}
                         </div>
                         <div className="miniSub">
-                          Organic / technical:{" "}
-                          {leftSummary.composition.organicTechnical.label}
+                          Organic / technical: {leftSummary.composition.organicTechnical.label}
                         </div>
                       </>
                     ) : (
@@ -690,8 +749,7 @@ export default function ComparePage() {
                           Texture: {rightSummary.composition.texture.label}
                         </div>
                         <div className="miniSub">
-                          Organic / technical:{" "}
-                          {rightSummary.composition.organicTechnical.label}
+                          Organic / technical: {rightSummary.composition.organicTechnical.label}
                         </div>
                       </>
                     ) : (
@@ -739,6 +797,83 @@ export default function ComparePage() {
         </div>
       )}
 
+      <div className="panelDark" style={{ marginTop: 16 }}>
+        <div className="panelTop">
+          <div className="panelTitle">Print-to-digital check</div>
+          <div className="panelNote">
+            Estimates how likely each version is to survive the shift from richer print-style layouts
+            to smaller, faster, streaming-scale digital contexts.
+          </div>
+        </div>
+
+        <div className="panelBody">
+          <div className="reportGrid">
+            <div className="miniCard">
+              <div className="miniLabel">Version A digital translation</div>
+              <div className="readyTop" style={{ marginBottom: 10 }}>
+                <span className={`statusTag ${leftPrintDigital.label === "Strong" ? "pass" : leftPrintDigital.label === "Fragile" ? "fail" : ""}`}>
+                  {leftPrintDigital.label.toUpperCase()} • {leftPrintDigital.score}/100
+                </span>
+              </div>
+              <div className="detailLine">{leftPrintDigital.summary}</div>
+
+              <div className="sectionHead" style={{ marginTop: 12 }}>Risks</div>
+              <ul className="compareBulletList">
+                {leftPrintDigital.risks.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="miniCard">
+              <div className="miniLabel">Version B digital translation</div>
+              <div className="readyTop" style={{ marginBottom: 10 }}>
+                <span className={`statusTag ${rightPrintDigital.label === "Strong" ? "pass" : rightPrintDigital.label === "Fragile" ? "fail" : ""}`}>
+                  {rightPrintDigital.label.toUpperCase()} • {rightPrintDigital.score}/100
+                </span>
+              </div>
+              <div className="detailLine">{rightPrintDigital.summary}</div>
+
+              <div className="sectionHead" style={{ marginTop: 12 }}>Risks</div>
+              <ul className="compareBulletList">
+                {rightPrintDigital.risks.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="compareDecisionBlock" style={{ marginTop: 16 }}>
+            <div className="miniLabel">Automatic reading</div>
+            <div className="detailLine">
+              {printDigitalWinner === "tie"
+                ? "Both versions appear similarly positioned for print-to-digital translation, so the final choice may depend more on mood, readability, and identity."
+                : `Version ${printDigitalWinner} appears more likely to translate cleanly into digital streaming contexts based on this structural estimate.`}
+            </div>
+
+            <div className="reportGrid" style={{ marginTop: 14 }}>
+              <div className="miniCard">
+                <div className="miniLabel">What to preserve</div>
+                <ul className="compareBulletList">
+                  {(printDigitalWinner === "A" ? leftPrintDigital.strengths : rightPrintDigital.strengths).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="miniCard">
+                <div className="miniLabel">What to improve next</div>
+                <ul className="compareBulletList">
+                  {(printDigitalWinner === "A" ? leftPrintDigital.recommendations : rightPrintDigital.recommendations).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="reportGrid" style={{ marginTop: 16 }}>
         <div className="panelDark">
           <div className="panelTop">
@@ -779,9 +914,9 @@ export default function ComparePage() {
               </div>
 
               <div className="mxCheckItem">
-                <div className="mxCheckHead">Release readiness</div>
+                <div className="mxCheckHead">Digital translation</div>
                 <div className="mxCheckText">
-                  Which one feels more complete and upload-ready overall?
+                  Which version is less dependent on print-like viewing and more likely to survive as a streaming thumbnail?
                 </div>
               </div>
             </div>
@@ -826,8 +961,8 @@ export default function ComparePage() {
 
               <div className="detailLine" style={{ marginTop: 14 }}>
                 Recommended use: capture this page as evidence, then explain the final
-                selection in terms of readability, distinctiveness, mood fit, and overall
-                release readiness.
+                selection in terms of readability, distinctiveness, mood fit,
+                print-to-digital translation, and overall release readiness.
               </div>
             </div>
 
@@ -837,8 +972,7 @@ export default function ComparePage() {
                 onClick={() =>
                   navigate("/analyze", {
                     state: {
-                      dataUrl:
-                        finalChoice === "B" ? rightDataUrl : leftDataUrl,
+                      dataUrl: finalChoice === "B" ? rightDataUrl : leftDataUrl,
                     },
                   })
                 }
@@ -888,10 +1022,10 @@ export default function ComparePage() {
             </div>
 
             <div className="suggestItem">
-              <div className="suggestTitle">3. Align and inspect</div>
+              <div className="suggestTitle">3. Check print-to-digital translation</div>
               <div className="suggestDetail">
                 <div className="sLine">
-                  Use sync zoom and grid overlay to compare crop, balance, structure, and overall emphasis.
+                  Look at which version feels less dependent on edge detail, fine text, or dense poster-like viewing conditions.
                 </div>
               </div>
             </div>
