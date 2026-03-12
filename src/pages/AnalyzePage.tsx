@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fileToObjectUrl } from "../lib/storage";
 import {
@@ -10,14 +17,17 @@ import {
   type RegionMetrics,
   type SafeMarginResult,
 } from "../analysis/metrics";
-import { computeCompositionMetrics, type CompositionMetrics } from "../analysis/composition";
+import {
+  computeCompositionMetrics,
+  type CompositionMetrics,
+} from "../analysis/composition";
 import {
   computeReleaseReadiness,
   type ReleaseReadiness,
   type Thumb64Snapshot,
 } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
-
+import TypographyStressTest from "../components/typographystresstest.tsx";
 
 type AnalyzeState = { dataUrl?: string };
 type ViewMode = "crop" | "full";
@@ -205,7 +215,13 @@ function mapCropRegionToImageRectWithCrop(
 ): NormalizedRect {
   const srcW = imageData.width;
   const srcH = imageData.height;
-  const { sx, sy, sw, sh } = coverCropWithPosZoom(srcW, srcH, cropPos.x, cropPos.y, zoom);
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(
+    srcW,
+    srcH,
+    cropPos.x,
+    cropPos.y,
+    zoom
+  );
 
   const x = (sx + regionInCrop01.x * sw) / srcW;
   const y = (sy + regionInCrop01.y * sh) / srcH;
@@ -278,7 +294,8 @@ function buildSuggestions(args: {
   thumb64: Thumb64Snapshot | null;
   viewMode: ViewMode;
 }): Suggestion[] {
-  const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } = args;
+  const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } =
+    args;
   const out: Suggestion[] = [];
   const area = region.w * region.h;
 
@@ -497,7 +514,9 @@ export default function AnalyzePage() {
       const fail = safeMargin ? !safeMargin.pass : false;
 
       ctx.save();
-      ctx.strokeStyle = fail ? "rgba(255,120,120,0.55)" : "rgba(245,245,245,0.14)";
+      ctx.strokeStyle = fail
+        ? "rgba(255,120,120,0.55)"
+        : "rgba(245,245,245,0.14)";
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 1;
       ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
@@ -545,7 +564,13 @@ export default function AnalyzePage() {
 
     const cropRect =
       viewMode === "crop"
-        ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
+        ? coverCropWithPosZoom(
+            imageData.width,
+            imageData.height,
+            cropPos.x,
+            cropPos.y,
+            zoom
+          )
         : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
 
     setComposition(computeCompositionMetrics(imageData, cropRect));
@@ -574,12 +599,20 @@ export default function AnalyzePage() {
 
       const cropRect =
         viewMode === "crop"
-          ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
+          ? coverCropWithPosZoom(
+              imageData.width,
+              imageData.height,
+              cropPos.x,
+              cropPos.y,
+              zoom
+            )
           : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
 
       const comp = computeCompositionMetrics(imageData, cropRect);
       const t64 =
-        viewMode === "crop" ? buildThumb64Snapshot(srcCanvas, cropPos, zoom, nextRegion) : null;
+        viewMode === "crop"
+          ? buildThumb64Snapshot(srcCanvas, cropPos, zoom, nextRegion)
+          : null;
 
       const rel = computeReleaseReadiness({
         region: nextRegion,
@@ -662,22 +695,17 @@ export default function AnalyzePage() {
     zoom,
   ]);
 
-const goToReport = useCallback(
-  (finalAction: "report" | "ready") => {
-    const report = buildReport();
+  const goToReport = useCallback(
+    (finalAction: "report" | "ready") => {
+      const report = buildReport();
 
-    console.log("[AnalyzePage] buildReport result", report);
+      if (!report) return;
 
-    if (!report) {
-      console.warn("[AnalyzePage] report was null");
-      return;
-    }
-
-    saveReportToSession(report, finalAction);
-    navigate("/report");
-  },
-  [buildReport, navigate]
-);
+      saveReportToSession(report, finalAction);
+      navigate("/report");
+    },
+    [buildReport, navigate]
+  );
 
   const endDragAndScore = useCallback(() => {
     dragRef.current = {
@@ -978,7 +1006,11 @@ const goToReport = useCallback(
           </button>
 
           <div className="mockHeroActions">
-            <button className="ghostBtn" onClick={() => fileRef.current?.click()} disabled={busy}>
+            <button
+              className="ghostBtn"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+            >
               UPLOAD NEW
             </button>
 
@@ -1234,6 +1266,16 @@ const goToReport = useCallback(
                 )}
               </div>
             </div>
+
+            <TypographyStressTest
+              dataUrl={dataUrl}
+              viewMode={viewMode}
+              cropPos={cropPos}
+              zoom={zoom}
+              region={region}
+              palette={palette}
+              regionMetrics={regionMetrics}
+            />
           </div>
 
           <div className="analyzeRight">
