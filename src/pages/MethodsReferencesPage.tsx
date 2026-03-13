@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type RefItem = {
@@ -28,11 +28,11 @@ const METHODS: MethodBlock[] = [
     id: "readability",
     title: "Readability / Contrast",
     intro:
-      "Supports why CoverCheck evaluates contrast, clutter, and thumbnail survival using accessibility guidance, UX practice, and legibility research.",
+      "Supports why CoverCheck evaluates contrast, image-background legibility, and low-contrast text risk in streaming-style viewing conditions.",
     reportUse:
-      "Use this to justify contrast thresholds, low-contrast warnings, and the importance of title size in small thumbnails.",
+      "Use this section to justify contrast thresholds, text-over-image warnings, and why readability is treated as a core design requirement rather than a cosmetic preference.",
     tooltipUse:
-      "Useful for tooltips attached to contrast ratio, text-over-image warnings, and 64px checks.",
+      "Useful for contrast ratio tooltips, low-contrast warnings, and text-over-image help text.",
     refs: [
       {
         id: "wcag-contrast",
@@ -44,14 +44,14 @@ const METHODS: MethodBlock[] = [
           "Defines the most common digital text contrast thresholds: 4.5:1 for normal text and 3:1 for large text.",
         supports: [
           "Why contrast is measured",
-          "Why 4.5:1 is a sensible target for small text",
-          "Why 3:1 can be acceptable for large display text",
+          "Why 4.5:1 is a sensible target for smaller text",
+          "Why 3:1 can be acceptable for larger display text",
         ],
         useInTooltips: [
           "WCAG baseline: 4.5:1 for normal text and 3:1 for large text.",
         ],
         useInReports: [
-          "Contrast scoring references WCAG minimum guidance for text legibility in digital interfaces.",
+          "Contrast scoring references WCAG minimum guidance for digital text legibility.",
         ],
         href: "https://www.w3.org/TR/WCAG22/",
       },
@@ -62,13 +62,13 @@ const METHODS: MethodBlock[] = [
         year: "Supporting guidance",
         kind: "standard",
         summary:
-          "Explains why text contrast matters for people with reduced visual acuity and contrast sensitivity.",
+          "Explains why text contrast matters for users with reduced visual acuity and contrast sensitivity.",
         supports: [
-          "Why these thresholds exist",
-          "Why low-contrast text is risky beyond aesthetics",
+          "Why contrast thresholds exist",
+          "Why low-contrast text is an accessibility risk",
         ],
         useInReports: [
-          "The selected contrast thresholds follow accessibility guidance designed to account for reduced visual acuity and contrast sensitivity.",
+          "The chosen contrast targets follow accessibility guidance intended to account for reduced visual acuity and contrast sensitivity.",
         ],
         href: "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html",
       },
@@ -79,10 +79,10 @@ const METHODS: MethodBlock[] = [
         year: "2015",
         kind: "industry",
         summary:
-          "Practical UX guidance showing how low-contrast text reduces legibility, discoverability, and accessibility.",
+          "Practical UX guidance showing how low-contrast text reduces legibility, discoverability, and usability.",
         supports: [
-          "Why low-contrast typography harms usability",
-          "Why a refined look can still fail in practice",
+          "Why low-contrast type harms readability",
+          "Why refined-looking typography can still fail in practice",
         ],
         useInTooltips: [
           "Low-contrast text may look refined but becomes illegible quickly at small sizes.",
@@ -99,19 +99,31 @@ const METHODS: MethodBlock[] = [
         year: "2015",
         kind: "industry",
         summary:
-          "Applies the contrast problem directly to text over imagery, which is highly relevant to album title and artist overlays.",
+          "Applies the contrast problem directly to text over imagery, which is especially relevant to title and artist overlays on album covers.",
         supports: [
-          "Why text-over-image treatments need overlays or calmer background zones",
-          "Why title placement matters as much as color choice",
+          "Why text-over-image treatments often need overlays",
+          "Why placement matters as much as color",
         ],
         useInTooltips: [
-          "Text over images often needs an overlay or calmer placement to stay readable.",
+          "Text over images often needs an overlay or calmer placement to remain readable.",
         ],
         useInReports: [
           "Text placed over imagery was evaluated because image backgrounds often reduce effective readability even when the palette appears acceptable.",
         ],
         href: "https://www.nngroup.com/articles/text-over-images/",
       },
+    ],
+  },
+  {
+    id: "typography",
+    title: "Typography / Size / Glance Legibility",
+    intro:
+      "Supports why CoverCheck treats title size, survival at small scales, and glance-based readability as meaningful design variables.",
+    reportUse:
+      "Use this section to justify small-size stress checks, title-region size concerns, and the use of 64px / thumbnail-style evaluation.",
+    tooltipUse:
+      "Useful for 64px checks, typography stress test notes, and warnings about very small title regions.",
+    refs: [
       {
         id: "legge-print-size",
         title: "Does Print Size Matter for Reading? A Review of Findings from Vision Science and Typography",
@@ -122,7 +134,7 @@ const METHODS: MethodBlock[] = [
           "Reviews evidence showing that print size strongly affects reading performance and fluent reading speed.",
         supports: [
           "Why title size matters in thumbnails",
-          "Why very small title regions fail quickly at 64–128px",
+          "Why small title zones fail quickly at 64–128px",
         ],
         useInTooltips: [
           "Legibility depends heavily on size, so very small title zones are risky in thumbnails.",
@@ -139,27 +151,44 @@ const METHODS: MethodBlock[] = [
         year: "2016",
         kind: "peer-reviewed",
         summary:
-          "Shows that glance legibility depends on factors including size, typeface design, and polarity.",
+          "Shows that glance legibility depends on factors including size, typeface design, and display conditions.",
         supports: [
           "Why glance legibility matters in browsing contexts",
-          "Why small-size checks are valid",
+          "Why thumbnail-style checks are valid",
         ],
         useInReports: [
-          "Thumbnail checks are included because users often encounter covers in fast, glance-based browsing environments rather than full-size inspection.",
+          "Thumbnail checks are included because covers are often encountered in fast, glance-based browsing rather than full-size inspection.",
         ],
         href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC5213401/",
+      },
+      {
+        id: "larson-picard-aesthetics-reading",
+        title: "The Aesthetics of Reading",
+        source: "CHI / ACM",
+        year: "2005",
+        kind: "peer-reviewed",
+        summary:
+          "Explores how typography and visual presentation shape reading experience, supporting the idea that appearance and legibility interact rather than operate separately.",
+        supports: [
+          "Why typography choices affect user experience",
+          "Why readability cannot be separated from visual design",
+        ],
+        useInReports: [
+          "Typography choices are treated as both experiential and functional because reading quality is shaped by visual presentation as well as raw text content.",
+        ],
+        href: "https://dl.acm.org/doi/10.1145/1054972.1055011",
       },
     ],
   },
   {
     id: "symmetry",
-    title: "Symmetry / Aesthetics",
+    title: "Symmetry / Balance / Complexity",
     intro:
-      "Supports the use of symmetry and balance as real composition axes rather than decorative observations.",
+      "Supports the use of symmetry, balance, and complexity as meaningful composition variables rather than decorative observations.",
     reportUse:
-      "Use this section to justify symmetry or asymmetry language in composition summaries.",
+      "Use this section to justify symmetry, balance, and visual complexity language in composition summaries.",
     tooltipUse:
-      "Useful for tooltips attached to symmetry score, balance labels, or aesthetic-structure commentary.",
+      "Useful for symmetry score, structure commentary, and composition notes.",
     refs: [
       {
         id: "huang-symmetry",
@@ -171,7 +200,7 @@ const METHODS: MethodBlock[] = [
           "Describes symmetry as a visual property with broad effects on aesthetic experience across cultures and periods.",
         supports: [
           "Why symmetry is a legitimate aesthetic variable",
-          "Why symmetry can be discussed separately from attention or salience",
+          "Why symmetry can be discussed separately from salience",
         ],
         useInTooltips: [
           "Symmetry is a robust aesthetic variable, not just a style preference.",
@@ -208,24 +237,104 @@ const METHODS: MethodBlock[] = [
           "Shows that symmetry and complexity interact in aesthetic evaluation, supporting the use of multiple composition variables together.",
         supports: [
           "Why symmetry should not be interpreted alone",
-          "Why texture / complexity and symmetry are valid paired variables",
+          "Why complexity and symmetry are valid paired variables",
         ],
         useInReports: [
           "Composition is evaluated across multiple axes because symmetry and complexity can interact rather than operate independently.",
         ],
         href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10700581/",
       },
+      {
+        id: "reber-fluency",
+        title: "Processing Fluency and Aesthetic Pleasure: Is Beauty in the Perceiver’s Processing Experience?",
+        source: "Personality and Social Psychology Review",
+        year: "2004",
+        kind: "peer-reviewed",
+        summary:
+          "A foundational account of how ease of perceptual processing can influence aesthetic judgments, relevant to clarity, balance, and composition.",
+        supports: [
+          "Why cleaner, more structured designs may feel easier to process",
+          "Why design clarity can affect preference",
+        ],
+        useInReports: [
+          "Structure and clarity were treated as meaningful because aesthetic response is partly shaped by how fluently visual information is processed.",
+        ],
+        href: "https://journals.sagepub.com/doi/10.1207/s15327957pspr0804_3",
+      },
+    ],
+  },
+  {
+    id: "accessibility",
+    title: "Accessibility / Inclusive Visual Design",
+    intro:
+      "Supports why CoverCheck includes accessibility-aware checks rather than treating them as separate from mainstream design quality.",
+    reportUse:
+      "Use this section when explaining why accessibility-aware design strengthens rather than weakens communication quality.",
+    tooltipUse:
+      "Useful for accessibility notes, low-contrast warnings, and justification for color-accessibility simulation.",
+    refs: [
+      {
+        id: "wcag-perceivable",
+        title: "WCAG 2.2 — Perceivable Principle",
+        source: "W3C",
+        year: "2024",
+        kind: "standard",
+        summary:
+          "Frames perceivability as a core accessibility principle, relevant to text, contrast, and distinguishability.",
+        supports: [
+          "Why visibility is a baseline requirement",
+          "Why accessible perception is central, not optional",
+        ],
+        useInReports: [
+          "Accessibility-aware checks are included because perceivability is a foundational requirement for digital communication.",
+        ],
+        href: "https://www.w3.org/TR/WCAG22/#perceivable",
+      },
+      {
+        id: "w3c-color-contrast",
+        title: "WAI Tutorials — Color and Contrast",
+        source: "W3C WAI",
+        year: "Guidance",
+        kind: "standard",
+        summary:
+          "Explains practical color and contrast considerations for accessible visual communication.",
+        supports: [
+          "Why color alone should not carry meaning",
+          "Why contrast and distinguishability should be checked together",
+        ],
+        useInTooltips: [
+          "Color choice should support meaning, but contrast and separation still need to hold independently.",
+        ],
+        href: "https://www.w3.org/WAI/tips/designing/#provide-sufficient-contrast-between-foreground-and-background",
+      },
+      {
+        id: "nng-accessible-design",
+        title: "Accessibility and UX: Design for All Users",
+        source: "Nielsen Norman Group",
+        year: "Industry guidance",
+        kind: "industry",
+        summary:
+          "Positions accessibility as part of core user experience rather than as a separate specialist requirement.",
+        supports: [
+          "Why accessibility belongs inside design evaluation",
+          "Why inclusive clarity benefits general usability",
+        ],
+        useInReports: [
+          "Accessibility considerations were treated as part of overall UX quality rather than as a separate specialist concern.",
+        ],
+        href: "https://www.nngroup.com/articles/accessibility-usability/",
+      },
     ],
   },
   {
     id: "music-context",
-    title: "Why Album Covers Matter in Music Context",
+    title: "Album Covers, Genre Signalling & Music Context",
     intro:
       "Supports the idea that album covers communicate genre, mood, and artist context rather than acting as decoration alone.",
     reportUse:
-      "Use this section when explaining why cover art can signal genre, identity, or release positioning.",
+      "Use this section when explaining why cover art can signal genre, identity, mood, or release positioning.",
     tooltipUse:
-      "Useful for mood/genre notes, visual identity guidance, and justification for mockup/context views.",
+      "Useful for mood/genre notes, visual-identity guidance, and justification for mockup/context views.",
     refs: [
       {
         id: "oramas-2018",
@@ -325,7 +434,7 @@ const METHODS: MethodBlock[] = [
         year: "2021",
         kind: "thesis",
         summary:
-          "Argues that album covers occupy a unique space as both art objects and market features and play a critical role in multisensory appreciation of music.",
+          "Argues that album covers occupy a unique space as both art objects and market-facing communication and play an important role in multisensory appreciation of music.",
         supports: [
           "Why covers are not purely decorative",
           "Why they can be treated as both cultural and commercial signals",
@@ -346,6 +455,10 @@ function kindLabel(kind: RefItem["kind"]) {
   return "Thesis";
 }
 
+function copyText(text: string) {
+  void navigator.clipboard?.writeText(text);
+}
+
 function MethodsReferenceCard({ item }: { item: RefItem }) {
   const [open, setOpen] = React.useState(false);
 
@@ -362,7 +475,6 @@ function MethodsReferenceCard({ item }: { item: RefItem }) {
           <div className="methodRefSub">
             {item.source} • {item.year}
           </div>
-
           <div className="methodRefMeta">
             <span className={`methodBadge ${item.kind}`}>{kindLabel(item.kind)}</span>
           </div>
@@ -394,6 +506,15 @@ function MethodsReferenceCard({ item }: { item: RefItem }) {
                   </div>
                 ))}
               </div>
+              <div className="methodRefActions">
+                <button
+                  className="ghostBtn small"
+                  type="button"
+                  onClick={() => copyText(item.useInTooltips!.join("\n"))}
+                >
+                  COPY TOOLTIP TEXT
+                </button>
+              </div>
             </div>
           ) : null}
 
@@ -406,6 +527,15 @@ function MethodsReferenceCard({ item }: { item: RefItem }) {
                     {t}
                   </div>
                 ))}
+              </div>
+              <div className="methodRefActions">
+                <button
+                  className="ghostBtn small"
+                  type="button"
+                  onClick={() => copyText(item.useInReports!.join("\n"))}
+                >
+                  COPY REPORT TEXT
+                </button>
               </div>
             </div>
           ) : null}
@@ -430,7 +560,35 @@ function MethodsReferenceCard({ item }: { item: RefItem }) {
 
 export default function MethodsReferencesPage() {
   const navigate = useNavigate();
-  const [active, setActive] = React.useState<string>(METHODS[0].id);
+  const [active, setActive] = useState<string>(METHODS[0].id);
+  const [search, setSearch] = useState("");
+  const [kindFilter, setKindFilter] = useState<
+    "all" | "standard" | "industry" | "peer-reviewed" | "thesis"
+  >("all");
+
+  const totalRefs = METHODS.reduce((sum, block) => sum + block.refs.length, 0);
+
+  const filteredMethods = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return METHODS.map((block) => {
+      const refs = block.refs.filter((item) => {
+        const kindOk = kindFilter === "all" ? true : item.kind === kindFilter;
+        const textOk =
+          !q ||
+          item.title.toLowerCase().includes(q) ||
+          item.source.toLowerCase().includes(q) ||
+          item.summary.toLowerCase().includes(q) ||
+          item.supports.some((s) => s.toLowerCase().includes(q));
+
+        return kindOk && textOk;
+      });
+
+      return { ...block, refs };
+    }).filter((block) => block.refs.length > 0 || !search);
+  }, [search, kindFilter]);
+
+  const visibleCount = filteredMethods.reduce((sum, block) => sum + block.refs.length, 0);
 
   const scrollToSection = (id: string) => {
     setActive(id);
@@ -442,25 +600,65 @@ export default function MethodsReferencesPage() {
 
   return (
     <div className="methodsWrap">
-      <div className="methodsHero">
-        <div className="methodsHeroTop">
+      <div className="mockHero methodsHero">
+        <div className="mockHeroTop">
           <button className="ghostBtn" onClick={() => navigate(-1)}>
             ← BACK
           </button>
 
-          <div className="methodsHeroActions">
+          <div className="mockHeroActions">
             <button className="ghostBtn" onClick={() => window.print()}>
               PRINT / SAVE PDF
             </button>
           </div>
         </div>
 
-        <div className="methodsKicker">COVERCHECK</div>
-        <div className="methodsTitle">Methods & References</div>
-        <div className="methodsLead">
-          The evidence behind CoverCheck: why readability matters, why symmetry and
-          balance are valid composition axes, and why album covers communicate genre,
-          mood, and context.
+        <div className="mockKicker">COVERCHECK</div>
+        <div className="mockTitle">Methods & References</div>
+        <div className="mockLead">
+          The academic and practitioner support behind CoverCheck: why readability matters,
+          why balance and complexity are valid composition axes, and why album covers communicate
+          genre, mood, and release context.
+        </div>
+
+        <div className="methodsHeroStats">
+          <div className="miniCard">
+            <div className="miniLabel">Sections</div>
+            <div className="miniValue">{METHODS.length}</div>
+            <div className="miniSub">Evidence areas</div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">References</div>
+            <div className="miniValue">{totalRefs}</div>
+            <div className="miniSub">Total sources</div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">Visible</div>
+            <div className="miniValue">{visibleCount}</div>
+            <div className="miniSub">After filtering</div>
+          </div>
+        </div>
+
+        <div className="methodsControls">
+          <input
+            className="methodsSearch"
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.currentTarget.value)}
+            placeholder="Search by title, summary, support area..."
+          />
+
+          <div className="pillRow">
+            {(["all", "standard", "industry", "peer-reviewed", "thesis"] as const).map((kind) => (
+              <button
+                key={kind}
+                className={`pillBtn ${kindFilter === kind ? "on" : ""}`}
+                onClick={() => setKindFilter(kind)}
+              >
+                {kind === "all" ? "ALL" : kind.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="methodsTabs">
@@ -474,19 +672,21 @@ export default function MethodsReferencesPage() {
             </button>
           ))}
         </div>
+
+        <hr className="mockRule" />
       </div>
 
       <div className="methodsLayout">
         <main className="methodsMain">
-          {METHODS.map((block) => (
+          {filteredMethods.map((block) => (
             <section id={block.id} key={block.id} className="methodSection">
-              <div className="methodSectionCard">
-                <div className="methodSectionHead">
-                  <div className="methodSectionTitle">{block.title}</div>
-                  <div className="methodSectionIntro">{block.intro}</div>
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">{block.title}</div>
+                  <div className="panelNote">{block.intro}</div>
                 </div>
 
-                <div className="methodSectionBody">
+                <div className="panelBody">
                   <div className="methodUseGrid">
                     <div className="methodUseCard">
                       <div className="methodUseLabel">For reports</div>
@@ -501,45 +701,57 @@ export default function MethodsReferencesPage() {
                 </div>
               </div>
 
-              {block.refs.map((item) => (
-                <MethodsReferenceCard key={item.id} item={item} />
-              ))}
+              <div className="methodRefsStack">
+                {block.refs.length ? (
+                  block.refs.map((item) => <MethodsReferenceCard key={item.id} item={item} />)
+                ) : (
+                  <div className="panelDark">
+                    <div className="panelBody">
+                      <div className="miniHint">No references match the current filter here.</div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </section>
           ))}
         </main>
 
         <aside className="methodsAside">
-          <div className="methodsAsideCard">
-            <div className="methodsAsideTitle">Quick navigation</div>
-            <div className="methodsAsideNote">
-              Jump to the evidence area you need for reports, tooltips, or academic support.
+          <div className="panelDark methodsAsideCard">
+            <div className="panelTop">
+              <div className="panelTitle">Quick navigation</div>
+              <div className="panelNote">
+                Jump by evidence area and use this page as a source bank for reports, tooltips, and evaluation writing.
+              </div>
             </div>
 
-            <div className="methodsNavList">
-              {METHODS.map((m) => (
-                <button
-                  key={m.id}
-                  className={`methodsNavBtn ${active === m.id ? "on" : ""}`}
-                  onClick={() => scrollToSection(m.id)}
-                >
-                  <div className="methodsNavBtnTitle">{m.title}</div>
-                  <div className="methodsNavBtnText">{m.intro}</div>
-                </button>
-              ))}
-            </div>
+            <div className="panelBody">
+              <div className="methodsNavList">
+                {METHODS.map((m) => (
+                  <button
+                    key={m.id}
+                    className={`methodsNavBtn ${active === m.id ? "on" : ""}`}
+                    onClick={() => scrollToSection(m.id)}
+                  >
+                    <div className="methodsNavBtnTitle">{m.title}</div>
+                    <div className="methodsNavBtnText">{m.intro}</div>
+                  </button>
+                ))}
+              </div>
 
-            <div className="methodsEvidenceNote">
-              <div className="methodsEvidenceLine">
-                <b>Standards</b> support threshold choices like contrast ratios.
-              </div>
-              <div className="methodsEvidenceLine">
-                <b>Peer-reviewed research</b> supports perception and composition claims.
-              </div>
-              <div className="methodsEvidenceLine">
-                <b>Industry guidance</b> helps translate rules into practical readability advice.
-              </div>
-              <div className="methodsEvidenceLine">
-                <b>Theses</b> help with music-industry framing where practitioner literature is thinner.
+              <div className="methodsEvidenceNote">
+                <div className="methodsEvidenceLine">
+                  <b>Standards</b> support threshold choices such as contrast ratios.
+                </div>
+                <div className="methodsEvidenceLine">
+                  <b>Peer-reviewed research</b> supports perceptual, compositional, and music-context claims.
+                </div>
+                <div className="methodsEvidenceLine">
+                  <b>Industry guidance</b> helps translate principles into practical UI/readability advice.
+                </div>
+                <div className="methodsEvidenceLine">
+                  <b>Theses</b> help frame cover art as both aesthetic and market-facing communication.
+                </div>
               </div>
             </div>
           </div>

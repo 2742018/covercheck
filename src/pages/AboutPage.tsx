@@ -93,6 +93,8 @@ export default function AboutPage() {
             <br />
             <b>• Compare</b> — compares two covers or revisions side-by-side for iteration, reflection, and final selection.
             <br />
+            <b>• Accessibility</b> — evaluates how well your cover performs for users with disabilities.
+            <br />
             <b>• Methods & References</b> — collects the academic and research support behind the project without overloading the About page.
           </p>
         </main>

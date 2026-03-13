@@ -14,6 +14,7 @@ type Option = {
 
 type Question = {
   id: string;
+  category: string;
   title: string;
   prompt: string;
   options: Option[];
@@ -24,6 +25,7 @@ const Z: Scores = { minimal: 0, bold: 0, photo: 0, experimental: 0 };
 const QUESTIONS: Question[] = [
   {
     id: "type-weight",
+    category: "Typography",
     title: "Typography weight",
     prompt: "When the cover is tiny (64–128px), how should the title feel?",
     options: [
@@ -45,7 +47,7 @@ const QUESTIONS: Question[] = [
         label: "Integrated into image",
         detail: "Type feels embedded into the photo/artwork.",
         scores: { minimal: 0, bold: 1, photo: 3, experimental: 1 },
-        readability: 0.60,
+        readability: 0.6,
         cropRisk: 0.35,
       },
       {
@@ -59,6 +61,7 @@ const QUESTIONS: Question[] = [
   },
   {
     id: "type-size",
+    category: "Typography",
     title: "Type scale",
     prompt: "Your natural preference for title size on a cover:",
     options: [
@@ -93,7 +96,44 @@ const QUESTIONS: Question[] = [
     ],
   },
   {
+    id: "tracking",
+    category: "Typography",
+    title: "Letter spacing",
+    prompt: "How do you prefer letter spacing in title treatments?",
+    options: [
+      {
+        label: "Tight + compact",
+        detail: "Dense, compact word shapes.",
+        scores: { minimal: 1, bold: 2, photo: 1, experimental: 1 },
+        readability: 0.72,
+        cropRisk: 0.28,
+      },
+      {
+        label: "Balanced",
+        detail: "Controlled spacing without feeling stiff.",
+        scores: { minimal: 3, bold: 2, photo: 2, experimental: 0 },
+        readability: 0.82,
+        cropRisk: 0.2,
+      },
+      {
+        label: "Wide + airy",
+        detail: "Spaced out, premium, elegant.",
+        scores: { minimal: 3, bold: 0, photo: 1, experimental: 1 },
+        readability: 0.7,
+        cropRisk: 0.26,
+      },
+      {
+        label: "Unusual / variable",
+        detail: "Spacing becomes part of the concept.",
+        scores: { minimal: 0, bold: 0, photo: 1, experimental: 3 },
+        readability: 0.5,
+        cropRisk: 0.38,
+      },
+    ],
+  },
+  {
     id: "bg-busyness",
+    category: "Readability",
     title: "Background detail",
     prompt: "Behind the title area, what background do you prefer?",
     options: [
@@ -115,20 +155,21 @@ const QUESTIONS: Question[] = [
         label: "Photographic detail",
         detail: "Real scenes/lighting/subjects.",
         scores: { minimal: 0, bold: 1, photo: 3, experimental: 1 },
-        readability: 0.60,
+        readability: 0.6,
         cropRisk: 0.32,
       },
       {
         label: "Busy / graphic",
         detail: "Patterns, collage, heavy texture.",
         scores: { minimal: 0, bold: 1, photo: 0, experimental: 3 },
-        readability: 0.40,
+        readability: 0.4,
         cropRisk: 0.55,
       },
     ],
   },
   {
     id: "contrast",
+    category: "Readability",
     title: "Contrast preference",
     prompt: "How should the title separate from its background?",
     options: [
@@ -150,7 +191,7 @@ const QUESTIONS: Question[] = [
         label: "Moody / subtle",
         detail: "Lower contrast; vibe > clarity.",
         scores: { minimal: 1, bold: 0, photo: 3, experimental: 1 },
-        readability: 0.50,
+        readability: 0.5,
         cropRisk: 0.35,
       },
       {
@@ -158,12 +199,13 @@ const QUESTIONS: Question[] = [
         detail: "Legibility is secondary to concept.",
         scores: { minimal: 0, bold: 0, photo: 0, experimental: 3 },
         readability: 0.32,
-        cropRisk: 0.50,
+        cropRisk: 0.5,
       },
     ],
   },
   {
     id: "placement",
+    category: "Placement",
     title: "Title placement",
     prompt: "Where do you naturally place the title/artist?",
     options: [
@@ -171,7 +213,7 @@ const QUESTIONS: Question[] = [
         label: "Centered safe zone",
         detail: "Away from edges; survives crop + UI overlays.",
         scores: { minimal: 3, bold: 2, photo: 1, experimental: 0 },
-        readability: 0.90,
+        readability: 0.9,
         cropRisk: 0.12,
       },
       {
@@ -193,12 +235,13 @@ const QUESTIONS: Question[] = [
         detail: "Responds to image; could be anywhere.",
         scores: { minimal: 0, bold: 1, photo: 2, experimental: 3 },
         readability: 0.52,
-        cropRisk: 0.50,
+        cropRisk: 0.5,
       },
     ],
   },
   {
     id: "overlay",
+    category: "Readability",
     title: "Overlay strategy",
     prompt: "Would you use an overlay behind text for readability?",
     options: [
@@ -227,13 +270,14 @@ const QUESTIONS: Question[] = [
         label: "No overlays",
         detail: "Type must live directly on the image.",
         scores: { minimal: 0, bold: 1, photo: 2, experimental: 2 },
-        readability: 0.50,
+        readability: 0.5,
         cropRisk: 0.42,
       },
     ],
   },
   {
     id: "color-approach",
+    category: "Colour",
     title: "Color approach",
     prompt: "How do you like choosing type/accent colors?",
     options: [
@@ -241,8 +285,8 @@ const QUESTIONS: Question[] = [
         label: "Neutral palette",
         detail: "Grays/black/white; quiet luxury.",
         scores: { minimal: 3, bold: 1, photo: 1, experimental: 0 },
-        readability: 0.80,
-        cropRisk: 0.20,
+        readability: 0.8,
+        cropRisk: 0.2,
       },
       {
         label: "One strong accent",
@@ -256,7 +300,7 @@ const QUESTIONS: Question[] = [
         detail: "Let artwork decide; harmonize.",
         scores: { minimal: 1, bold: 1, photo: 3, experimental: 1 },
         readability: 0.66,
-        cropRisk: 0.30,
+        cropRisk: 0.3,
       },
       {
         label: "Unexpected combos",
@@ -268,9 +312,46 @@ const QUESTIONS: Question[] = [
     ],
   },
   {
+    id: "dominance",
+    category: "Composition",
+    title: "Image vs type dominance",
+    prompt: "What should visually dominate first?",
+    options: [
+      {
+        label: "Type first",
+        detail: "The name/title should hit first.",
+        scores: { minimal: 1, bold: 3, photo: 0, experimental: 0 },
+        readability: 0.93,
+        cropRisk: 0.2,
+      },
+      {
+        label: "Balanced hierarchy",
+        detail: "Image and title work together.",
+        scores: { minimal: 3, bold: 2, photo: 2, experimental: 0 },
+        readability: 0.82,
+        cropRisk: 0.22,
+      },
+      {
+        label: "Image first",
+        detail: "Artwork leads; text supports.",
+        scores: { minimal: 0, bold: 0, photo: 3, experimental: 1 },
+        readability: 0.62,
+        cropRisk: 0.31,
+      },
+      {
+        label: "Unpredictable",
+        detail: "The dominant element changes by concept.",
+        scores: { minimal: 0, bold: 1, photo: 1, experimental: 3 },
+        readability: 0.56,
+        cropRisk: 0.36,
+      },
+    ],
+  },
+  {
     id: "logo-density",
+    category: "Information",
     title: "Info density",
-    prompt: "How much “extra info” do you want on the cover?",
+    prompt: "How much extra information do you want on the cover?",
     options: [
       {
         label: "Just essentials",
@@ -304,6 +385,7 @@ const QUESTIONS: Question[] = [
   },
   {
     id: "negative-space",
+    category: "Composition",
     title: "Negative space",
     prompt: "How do you feel about empty space around type?",
     options: [
@@ -338,7 +420,44 @@ const QUESTIONS: Question[] = [
     ],
   },
   {
+    id: "symmetry",
+    category: "Composition",
+    title: "Balance preference",
+    prompt: "How should the composition feel structurally?",
+    options: [
+      {
+        label: "Orderly + symmetrical",
+        detail: "Stability and balance matter.",
+        scores: { minimal: 3, bold: 1, photo: 1, experimental: 0 },
+        readability: 0.8,
+        cropRisk: 0.2,
+      },
+      {
+        label: "Mostly balanced",
+        detail: "A bit of movement, but still controlled.",
+        scores: { minimal: 2, bold: 2, photo: 2, experimental: 0 },
+        readability: 0.78,
+        cropRisk: 0.24,
+      },
+      {
+        label: "Purposefully off-balance",
+        detail: "Asymmetry adds tension.",
+        scores: { minimal: 0, bold: 2, photo: 1, experimental: 2 },
+        readability: 0.6,
+        cropRisk: 0.36,
+      },
+      {
+        label: "Unstable / disruptive",
+        detail: "Imbalance is part of the expression.",
+        scores: { minimal: 0, bold: 0, photo: 0, experimental: 3 },
+        readability: 0.46,
+        cropRisk: 0.4,
+      },
+    ],
+  },
+  {
     id: "platform",
+    category: "Context",
     title: "Platform priority",
     prompt: "Which matters more for this project?",
     options: [
@@ -347,13 +466,13 @@ const QUESTIONS: Question[] = [
         detail: "64–128px performance is critical.",
         scores: { minimal: 2, bold: 3, photo: 0, experimental: 0 },
         readability: 0.92,
-        cropRisk: 0.20,
+        cropRisk: 0.2,
       },
       {
         label: "Balanced",
         detail: "Works for streaming + social + posters.",
         scores: { minimal: 3, bold: 2, photo: 2, experimental: 0 },
-        readability: 0.80,
+        readability: 0.8,
         cropRisk: 0.26,
       },
       {
@@ -367,13 +486,14 @@ const QUESTIONS: Question[] = [
         label: "Concept-first",
         detail: "Experimental outcomes > universal readability.",
         scores: { minimal: 0, bold: 0, photo: 0, experimental: 3 },
-        readability: 0.50,
+        readability: 0.5,
         cropRisk: 0.42,
       },
     ],
   },
   {
     id: "goal",
+    category: "Goal",
     title: "Primary goal",
     prompt: "What matters most for the title/artist area?",
     options: [
@@ -407,6 +527,42 @@ const QUESTIONS: Question[] = [
       },
     ],
   },
+  {
+    id: "iteration-style",
+    category: "Process",
+    title: "Iteration style",
+    prompt: "When refining a cover, how do you usually work?",
+    options: [
+      {
+        label: "Tight system",
+        detail: "Small controlled refinements.",
+        scores: { minimal: 3, bold: 1, photo: 1, experimental: 0 },
+        readability: 0.82,
+        cropRisk: 0.2,
+      },
+      {
+        label: "Performance-focused",
+        detail: "Push what reads best in context.",
+        scores: { minimal: 1, bold: 3, photo: 0, experimental: 0 },
+        readability: 0.9,
+        cropRisk: 0.18,
+      },
+      {
+        label: "Image-led",
+        detail: "Let the artwork dictate the adjustment.",
+        scores: { minimal: 0, bold: 0, photo: 3, experimental: 1 },
+        readability: 0.64,
+        cropRisk: 0.3,
+      },
+      {
+        label: "Try wild alternatives",
+        detail: "Explore surprising directions before deciding.",
+        scores: { minimal: 0, bold: 0, photo: 1, experimental: 3 },
+        readability: 0.52,
+        cropRisk: 0.36,
+      },
+    ],
+  },
 ];
 
 const PROFILE_COPY: Record<
@@ -423,65 +579,93 @@ const PROFILE_COPY: Record<
   minimal: {
     name: "Minimal / Typographic",
     subtitle: "Calm hierarchy, controlled spacing, predictable readability.",
-    strengths: ["Clear structure and spacing", "Usually passes safe-area checks", "Often reads well at small sizes"],
-    watchouts: ["Can look too quiet in crowded feeds", "Low-contrast choices can still fail"],
+    strengths: [
+      "Clear structure and spacing",
+      "Usually passes safe-area checks",
+      "Often reads well at small sizes",
+    ],
+    watchouts: [
+      "Can look too quiet in crowded feeds",
+      "Low-contrast choices can still fail",
+    ],
     tips: [
       "Target contrast ≥ 4.5 in your title region",
       "Use the safe-area guide as a boundary for all critical text",
-      "Use a single controlled accent from the palette (labels, badges, UI)",
+      "Use a single controlled accent from the palette",
     ],
     nextInTool: [
       "On Analyze: draw a title/artist box and aim for Safe score ≥ 95",
-      "Toggle THUMBS and check 128px + 64px readability",
-      "If contrast is borderline, try “Best text” + add a subtle overlay behind type",
+      "Use the typography stress test for 64px and 128px checks",
+      "If contrast is borderline, try Best text + a subtle overlay behind type",
     ],
   },
   bold: {
     name: "Bold / Contrast-led",
     subtitle: "Legibility-first decisions for strong thumbnail performance.",
-    strengths: ["High survivability at 64–128px", "Clear contrast decisions", "Robust across crops/platforms"],
-    watchouts: ["Can overpower artwork", "Too many accents can look noisy"],
+    strengths: [
+      "High survivability at 64–128px",
+      "Clear contrast decisions",
+      "Robust across crops/platforms",
+    ],
+    watchouts: [
+      "Can overpower artwork",
+      "Too many accents can look noisy",
+    ],
     tips: [
       "If the background is busy, add a soft overlay behind the title",
       "Use the suggested Best text chip to maximize contrast",
       "Re-check clutter: move type away from high-detail textures",
     ],
     nextInTool: [
-      "On Analyze: keep clutter ≥ 60/100 in the text region (move box if needed)",
-      "Use SAFE AREA toggle and avoid corners for small type/logos",
-      "Generate Report for documentation once you’ve passed Contrast + Safe",
+      "On Analyze: keep clutter ≥ 60/100 in the text region",
+      "Use SAFE AREA and avoid corners for small type/logos",
+      "Generate Report once Contrast + Safe Area are stable",
     ],
   },
   photo: {
     name: "Photographic / Mood-led",
     subtitle: "Image-first decisions with type harmonized to artwork.",
-    strengths: ["Strong mood and storytelling", "Premium when placed carefully", "Natural color harmony"],
-    watchouts: ["Type can fight background clutter", "Edge placements often fail crops/safe-area"],
+    strengths: [
+      "Strong mood and storytelling",
+      "Premium when placed carefully",
+      "Natural color harmony",
+    ],
+    watchouts: [
+      "Type can fight background clutter",
+      "Edge placements often fail crops/safe-area",
+    ],
     tips: [
-      "Pick the calmest region (lower clutter) for type placement",
+      "Pick the calmest region for type placement",
       "Use subtle gradients instead of solid blocks",
       "Avoid small type near corners/edges",
     ],
     nextInTool: [
       "On Analyze: move the region until clutter improves, then re-check contrast",
       "Try FULL VIEW for composition, then return to CROP VIEW for realism",
-      "Use compatible palette suggestions (analogous/triadic) for accents without breaking mood",
+      "Use Mockups to see whether mood still survives at small sizes",
     ],
   },
   experimental: {
     name: "Experimental / Texture-led",
     subtitle: "Distinctive concepts, trading some clarity for character.",
-    strengths: ["Memorable and unique", "Conceptually strong", "Great for print-like covers"],
-    watchouts: ["High risk at tiny thumbnails", "Safe-area and clutter failures are common"],
+    strengths: [
+      "Memorable and unique",
+      "Conceptually strong",
+      "Great for print-like covers",
+    ],
+    watchouts: [
+      "High risk at tiny thumbnails",
+      "Safe-area and clutter failures are common",
+    ],
     tips: [
       "Use safe-area lines aggressively for critical text",
       "If contrast is low, add a 20–40% overlay behind key type",
       "Test at 64px; if unreadable, simplify behind text or increase weight",
     ],
     nextInTool: [
-      "On Analyze: treat 64px as the pass/fail gate and iterate until readable",
+      "On Analyze: treat 64px as the pass/fail gate",
       "Keep critical text inside SAFE AREA even if the design breaks rules elsewhere",
-      "Use Generate Report to document tradeoffs (concept vs readability) for your dissertation",
+      "Use Compare to document concept vs readability tradeoffs",
     ],
   },
 };
@@ -505,11 +689,35 @@ function pct(n: number) {
   return `${Math.round(n)}%`;
 }
 
+function riskLabel(n: number) {
+  if (n >= 75) return "High";
+  if (n >= 55) return "Moderate";
+  return "Low";
+}
+
+function readabilityLabel(n: number) {
+  if (n >= 85) return "Strong";
+  if (n >= 65) return "Usable";
+  if (n >= 45) return "Fragile";
+  return "Weak";
+}
+
 export default function TestPage() {
   const navigate = useNavigate();
 
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(QUESTIONS.map((q) => q.category)))],
+    []
+  );
+
+  const filteredQuestions = useMemo(() => {
+    if (activeCategory === "All") return QUESTIONS;
+    return QUESTIONS.filter((q) => q.category === activeCategory);
+  }, [activeCategory]);
 
   const answeredCount = Object.keys(answers).length;
   const totalCount = QUESTIONS.length;
@@ -542,10 +750,13 @@ export default function TestPage() {
     const runnerUp: ProfileKey = entries[1]?.[0] ?? "bold";
 
     const max = Math.max(1, ...PROFILE_ORDER.map((k) => totals[k]));
+    const totalScore = PROFILE_ORDER.reduce((sum, k) => sum + totals[k], 0) || 1;
+
     const breakdown = PROFILE_ORDER.map((k) => ({
       key: k,
       value: totals[k],
       pct: (totals[k] / max) * 100,
+      share: Math.round((totals[k] / totalScore) * 100),
     }));
 
     return { totals, top, runnerUp, readability, cropRisk, breakdown };
@@ -553,10 +764,17 @@ export default function TestPage() {
 
   const profile = PROFILE_COPY[computed.top];
   const runnerUpName = PROFILE_COPY[computed.runnerUp].name;
+  const blendText = `${PROFILE_COPY[computed.top].name} + ${runnerUpName}`;
 
   function resetAll() {
     setAnswers({});
     setShowResults(false);
+    setActiveCategory("All");
+  }
+
+  function unansweredInCategory(category: string) {
+    const qs = category === "All" ? QUESTIONS : QUESTIONS.filter((q) => q.category === category);
+    return qs.filter((q) => answers[q.id] === undefined).length;
   }
 
   return (
@@ -568,7 +786,7 @@ export default function TestPage() {
           </button>
 
           <div className="testHeroTools">
-            <span className={`statusTag ${allAnswered ? "pass" : "fail"}`}>
+            <span className={`statusTag ${allAnswered ? "pass" : ""}`}>
               {answeredCount}/{totalCount} • {progress}%
             </span>
             <button className="ghostBtn" onClick={resetAll}>
@@ -580,78 +798,140 @@ export default function TestPage() {
         <div className="testKicker">COVERCHECK</div>
         <h1 className="testTitle">Test</h1>
         <p className="testLead">
-          This is a short design-tendency quiz that helps you interpret CoverCheck’s metrics (contrast, clutter, safe-area
-          risk). Your result doesn’t “judge” design — it highlights likely strengths, tradeoffs, and what to focus on in
-          the Analyze tool.
+          This design-tendency quiz helps interpret your likely strengths and tradeoffs
+          before using Analyze. It does not judge good or bad design — it helps explain
+          whether your instincts lean toward clarity, mood, structure, or experimentation.
         </p>
+
+        <div className="testHeroStats">
+          <div className="miniCard">
+            <div className="miniLabel">Questions</div>
+            <div className="miniValue">{totalCount}</div>
+            <div className="miniSub">Expanded for more varied outcomes</div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">Progress</div>
+            <div className="miniValue">{progress}%</div>
+            <div className="miniSub">{answeredCount} answered</div>
+          </div>
+          <div className="miniCard">
+            <div className="miniLabel">Results</div>
+            <div className="miniValue">{allAnswered ? "Ready" : "Locked"}</div>
+            <div className="miniSub">Unlock after all answers</div>
+          </div>
+        </div>
+
         <div className="testRule" />
       </div>
 
       <div className="testStack">
-        {/* 1) Explanation */}
         <div className="panelDark">
           <div className="panelTop">
-            <div className="panelTitle">How it works & why it helps</div>
-            <div className="panelNote">Answer all questions. Results unlock only when the quiz is complete.</div>
+            <div className="panelTitle">How it works</div>
+            <div className="panelNote">
+              Answer all questions to reveal a richer design profile and practical next steps.
+            </div>
           </div>
 
           <div className="panelBody">
             <div className="twoCol">
               <div className="sectionBlock">
-                <div className="sectionHead">How it works</div>
+                <div className="sectionHead">What this estimates</div>
                 <ul className="testList">
-                  <li>You answer {totalCount} questions about type, contrast, placement, and color strategy.</li>
-                  <li>We estimate a profile: Minimal / Bold / Photographic / Experimental.</li>
-                  <li>We also estimate two tendencies: thumbnail readability and crop/safe-area risk.</li>
+                  <li>Your strongest visual tendency: Minimal, Bold, Photographic, or Experimental.</li>
+                  <li>Your likely thumbnail readability tendency.</li>
+                  <li>Your likely crop / safe-area risk tendency.</li>
+                  <li>Your blended direction, not just a single label.</li>
                 </ul>
               </div>
 
               <div className="sectionBlock">
-                <div className="sectionHead">How to use it on Analyze</div>
+                <div className="sectionHead">Why it matters</div>
                 <ul className="testList">
-                  <li>Draw a region around the title/artist area and check Contrast + Clutter targets.</li>
-                  <li>Turn on SAFE AREA to avoid edge clipping (rounded corners + overlays).</li>
-                  <li>Use THUMBS (256/128/64) as the reality check.</li>
+                  <li>Some cover instincts naturally support thumbnail performance.</li>
+                  <li>Others are stronger for mood, texture, or concept, but need more correction later.</li>
+                  <li>This helps you interpret Analyze results as design tradeoffs, not just “fail/pass” numbers.</li>
                 </ul>
+              </div>
+            </div>
+
+            <div className="testProgressWrap">
+              <div className="testProgressBar" aria-label="Quiz progress">
+                <div className="testProgressFill" style={{ width: `${progress}%` }} />
+              </div>
+              <div className="miniHint" style={{ marginTop: 10 }}>
+                {answeredCount}/{totalCount} answered
               </div>
             </div>
           </div>
         </div>
 
-        {/* 2) Quiz */}
+        <div className="panelDark">
+          <div className="panelTop">
+            <div className="panelTitle">Question categories</div>
+            <div className="panelNote">
+              Filter the view for easier navigation. Results still use all answers across the whole quiz.
+            </div>
+          </div>
+
+          <div className="panelBody">
+            <div className="pillRow">
+              {categories.map((category) => {
+                const remaining = unansweredInCategory(category);
+                return (
+                  <button
+                    key={category}
+                    className={`pillBtn ${activeCategory === category ? "on" : ""}`}
+                    onClick={() => setActiveCategory(category)}
+                  >
+                    {category}
+                    {category !== "All" ? ` • ${remaining} left` : ""}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         <div className="panelDark">
           <div className="panelTop">
             <div className="panelTitle">Questions</div>
-            <div className="panelNote">Pick one option per question. You must answer all to unlock results.</div>
+            <div className="panelNote">
+              Pick one option per question. Hover or read the selected detail for nuance.
+            </div>
           </div>
 
           <div className="panelBody">
             <div className="testQuestionsGrid">
-              {QUESTIONS.map((q, qi) => {
+              {filteredQuestions.map((q) => {
                 const selected = answers[q.id];
+                const absoluteIndex = QUESTIONS.findIndex((item) => item.id === q.id);
                 return (
                   <div key={q.id} className="testQuestion sectionBlock">
-                    <div className="sectionHead">
-                      Q{qi + 1} — {q.title}
+                    <div className="testQuestionTop">
+                      <div className="sectionHead">
+                        Q{absoluteIndex + 1} — {q.title}
+                      </div>
+                      <span className="tag">{q.category}</span>
                     </div>
 
                     <div className="detailLine testPrompt">{q.prompt}</div>
 
-                    <div className="testOptionRow">
+                    <div className="testOptionGrid">
                       {q.options.map((opt, oi) => {
                         const on = selected === oi;
                         return (
                           <button
                             key={opt.label}
                             type="button"
-                            className={`pillBtn ${on ? "on" : ""}`}
+                            className={`testOptionCard ${on ? "on" : ""}`}
                             onClick={() => {
                               setAnswers((a) => ({ ...a, [q.id]: oi }));
                               setShowResults(false);
                             }}
-                            title={opt.detail}
                           >
-                            {opt.label}
+                            <div className="testOptionLabel">{opt.label}</div>
+                            <div className="testOptionDetail">{opt.detail}</div>
                           </button>
                         );
                       })}
@@ -670,7 +950,7 @@ export default function TestPage() {
             <div className="testFinishBar">
               <div className="metaRow">
                 <span className="tag">answered: {answeredCount}/{totalCount}</span>
-                <span className="tag">{allAnswered ? "ready" : "complete to unlock"}</span>
+                <span className="tag">{allAnswered ? "ready to unlock" : "complete all questions"}</span>
               </div>
 
               <button
@@ -691,11 +971,14 @@ export default function TestPage() {
           </div>
         </div>
 
-        {/* 3) Results */}
         <div className="panelDark">
           <div className="panelTop">
             <div className="panelTitle">Results</div>
-            <div className="panelNote">{showResults && allAnswered ? "Based on your answers." : "Locked until complete."}</div>
+            <div className="panelNote">
+              {showResults && allAnswered
+                ? "Your profile, blended tendency, and suggested next steps."
+                : "Locked until complete."}
+            </div>
           </div>
 
           <div className="panelBody">
@@ -725,37 +1008,45 @@ export default function TestPage() {
               </div>
             ) : (
               <>
-                <div className="sectionBlock">
-                  <div className="sectionHead">Your profile</div>
-                  <div className="testResultTitle">{profile.name}</div>
-                  <div className="miniSub" style={{ marginTop: 8 }}>
-                    {profile.subtitle}
+                <div className="testResultHero">
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Primary profile</div>
+                    <div className="testResultTitle">{profile.name}</div>
+                    <div className="miniSub" style={{ marginTop: 8 }}>
+                      {profile.subtitle}
+                    </div>
+                    <div className="miniHint" style={{ marginTop: 12 }}>
+                      Secondary tendency: <b>{runnerUpName}</b>
+                    </div>
+                    <div className="miniHint">
+                      Blend reading: <b>{blendText}</b>
+                    </div>
                   </div>
-                  <div className="miniHint" style={{ marginTop: 10 }}>
-                    Secondary tendency: <b>{runnerUpName}</b>
+
+                  <div className="testResultMetrics">
+                    <div className="miniCard">
+                      <div className="miniLabel">Thumbnail readability</div>
+                      <div className="miniValue">{computed.readability}/100</div>
+                      <div className="miniSub">{readabilityLabel(computed.readability)}</div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Crop / safe-area risk</div>
+                      <div className="miniValue">{computed.cropRisk}/100</div>
+                      <div className="miniSub">{riskLabel(computed.cropRisk)} risk</div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="twoCol">
-                  <div className="miniCard">
-                    <div className="miniLabel">Thumbnail readability</div>
-                    <div className="miniValue">{computed.readability}/100</div>
-                    <div className="miniSub">Higher tends to survive 64–128px better.</div>
-                  </div>
-
-                  <div className="miniCard">
-                    <div className="miniLabel">Crop / safe-area risk</div>
-                    <div className="miniValue">{computed.cropRisk}/100</div>
-                    <div className="miniSub">Higher means edge placements often fail crops.</div>
-                  </div>
-                </div>
-
                 <div className="sectionBlock">
-                  <div className="sectionHead">Score breakdown</div>
+                  <div className="sectionHead">Profile mix</div>
                   <div className="testBreakdown">
                     {computed.breakdown.map((b) => (
                       <div key={b.key} className="testBarRow">
-                        <div className="testBarLabel">{PROFILE_COPY[b.key].name}</div>
+                        <div className="testBarLabel">
+                          {PROFILE_COPY[b.key].name}
+                          <span className="testBarShare">{b.share}%</span>
+                        </div>
                         <div className="testBarTrack">
                           <div className="testBarFill" style={{ width: pct(b.pct) }} />
                         </div>
@@ -785,13 +1076,30 @@ export default function TestPage() {
                   </div>
                 </div>
 
-                <div className="sectionBlock">
-                  <div className="sectionHead">Tips (based on your profile)</div>
-                  <ul className="testList">
-                    {profile.tips.map((x) => (
-                      <li key={x}>{x}</li>
-                    ))}
-                  </ul>
+                <div className="twoCol">
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Profile tips</div>
+                    <ul className="testList">
+                      {profile.tips.map((x) => (
+                        <li key={x}>{x}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Interpretation</div>
+                    <ul className="testList">
+                      <li>
+                        A higher readability tendency suggests your instincts already support small-size performance.
+                      </li>
+                      <li>
+                        A higher crop-risk tendency suggests you should check safe area and edge placement earlier.
+                      </li>
+                      <li>
+                        A mixed profile usually means your best work comes from balancing clarity with concept, not choosing one extreme.
+                      </li>
+                    </ul>
+                  </div>
                 </div>
 
                 <div className="sectionBlock">
@@ -805,6 +1113,12 @@ export default function TestPage() {
                   <div className="testActionsRow">
                     <button className="primaryBtn" onClick={() => navigate("/analyze")}>
                       GO TO ANALYZE
+                    </button>
+                    <button className="ghostBtn" onClick={() => navigate("/compare")}>
+                      OPEN COMPARE
+                    </button>
+                    <button className="ghostBtn" onClick={() => navigate("/mockups")}>
+                      OPEN MOCKUPS
                     </button>
                   </div>
                 </div>

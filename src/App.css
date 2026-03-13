@@ -439,7 +439,7 @@ button, input{ font: inherit; }
   padding: 12px;
 }
 .sectionHead{
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing:.12em;
   text-transform:uppercase;
   color: rgba(242,242,242,.86);
@@ -1137,6 +1137,134 @@ body.lightMode .ghostBtn:hover{
   margin: 6px 0;
 }
 
+.testHeroStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.testProgressWrap {
+  margin-top: 10px;
+}
+
+.testQuestionTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.testOptionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.testOptionCard {
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  padding: 14px;
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.testOptionCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,196,0,0.35);
+  background: rgba(255,255,255,0.05);
+}
+
+.testOptionCard.on {
+  border-color: rgba(255,196,0,0.6);
+  background: rgba(255,196,0,0.08);
+  box-shadow: 0 0 0 1px rgba(255,196,0,0.15) inset;
+}
+
+.testOptionLabel {
+  font-weight: 700;
+  font-size: 0.96rem;
+  margin-bottom: 6px;
+}
+
+.testOptionDetail {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.86;
+}
+
+.testResultHero {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.testResultMetrics {
+  display: grid;
+  gap: 14px;
+}
+
+.testBarShare {
+  margin-left: 8px;
+  opacity: 0.75;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.testBarFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(255,196,0,0.9), rgba(255,196,0,0.35));
+}
+
+.testBarTrack {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  flex: 1;
+}
+
+.testBarRow {
+  display: grid;
+  grid-template-columns: 220px 1fr 48px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.testBarLabel {
+  font-size: 0.93rem;
+  font-weight: 600;
+}
+
+.testBarValue {
+  text-align: right;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+@media (max-width: 980px) {
+  .testHeroStats,
+  .testOptionGrid,
+  .testResultHero {
+    grid-template-columns: 1fr;
+  }
+
+  .testBarRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .testBarValue {
+    text-align: left;
+  }
+}
 
 /* =========================================================
    MATCH (Cover ↔ Track Match)
@@ -1665,9 +1793,10 @@ body.lightMode .ghostBtn:hover{
   body{ background:#fff !important; color:#000 !important; }
 }
 
+/* =========================================================
+   POLICY PAGE
+   ========================================================= */
 
-
-/* ===== POLICY PAGE (uses lightMode tokens) ===== */
 body.lightMode .policyPage{
   max-width: 1200px;
   margin: 0 auto;
@@ -2120,6 +2249,10 @@ body.lightMode .policyPage{
 }
 
 
+/* =========================================================
+    METHODS PAGE
+   ========================================================= */
+
 
 .methodsWrap {
   width: min(1280px, calc(100% - 32px));
@@ -2526,6 +2659,328 @@ body.lightMode .policyPage{
   }
 }
 
+.methodsHero {
+  margin-bottom: 18px;
+}
+
+.methodsHeroStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.methodsControls {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.methodsSearch {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: inherit;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font: inherit;
+  outline: none;
+}
+
+.methodsSearch:focus {
+  border-color: rgba(255,196,0,0.45);
+  box-shadow: 0 0 0 3px rgba(255,196,0,0.08);
+}
+
+.methodsTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.methodsTab {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: inherit;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.methodsTab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,196,0,0.35);
+}
+
+.methodsTab.on {
+  border-color: rgba(255,196,0,0.55);
+  background: rgba(255,196,0,0.09);
+}
+
+.methodsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 18px;
+  align-items: start;
+}
+
+.methodsMain {
+  display: grid;
+  gap: 18px;
+}
+
+.methodSection {
+  display: grid;
+  gap: 14px;
+}
+
+.methodUseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.methodUseCard {
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.methodUseLabel {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.74;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.methodUseText {
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.methodRefsStack {
+  display: grid;
+  gap: 12px;
+}
+
+.methodRefCard {
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+
+.methodRefHead {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.methodRefHeadContent {
+  min-width: 0;
+}
+
+.methodRefTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.methodRefSub {
+  margin-top: 6px;
+  font-size: 0.92rem;
+  opacity: 0.75;
+}
+
+.methodRefMeta {
+  margin-top: 10px;
+}
+
+.methodRefChevron {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.methodBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+}
+
+.methodBadge.standard {
+  background: rgba(91, 192, 190, 0.12);
+}
+
+.methodBadge.industry {
+  background: rgba(255, 196, 0, 0.12);
+}
+
+.methodBadge.peer-reviewed {
+  background: rgba(116, 167, 255, 0.12);
+}
+
+.methodBadge.thesis {
+  background: rgba(200, 145, 255, 0.12);
+}
+
+.methodRefBody {
+  padding: 0 16px 16px 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.methodRefSummary {
+  line-height: 1.6;
+  font-size: 0.96rem;
+}
+
+.methodRefBlock {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 12px;
+}
+
+.methodRefBlockHead {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.72;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.methodRefList {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.methodRefQuote {
+  display: grid;
+  gap: 8px;
+}
+
+.methodRefQuoteLine {
+  border-left: 3px solid rgba(255,196,0,0.45);
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.025);
+  border-radius: 10px;
+  line-height: 1.55;
+}
+
+.methodRefActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.methodsAside {
+  position: sticky;
+  top: 18px;
+}
+
+.methodsNavList {
+  display: grid;
+  gap: 10px;
+}
+
+.methodsNavBtn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: inherit;
+  border-radius: 14px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.methodsNavBtn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,196,0,0.3);
+}
+
+.methodsNavBtn.on {
+  border-color: rgba(255,196,0,0.55);
+  background: rgba(255,196,0,0.08);
+}
+
+.methodsNavBtnTitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.methodsNavBtnText {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+
+.methodsEvidenceNote {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.methodsEvidenceLine {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  opacity: 0.86;
+}
+
+@media (max-width: 1080px) {
+  .methodsLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .methodsAside {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .methodsHeroStats,
+  .methodUseGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .methodRefHead {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
+
+
+/* =========================================================
+    COMPARE PAGE
+   ========================================================= */
 
 
 .compareWrap {
@@ -2995,6 +3450,11 @@ body.lightMode .policyPage{
 
 
 
+/* =========================================================
+   ACCESSIBILITY PAGE
+   ========================================================= */
+
+
 .accessibilityWrap {
   padding-bottom: 32px;
 }
@@ -3085,6 +3545,11 @@ body.lightMode .policyPage{
   }
 }
 
+
+/* =========================================================
+   TYPOGRAPHY STRESS TEST PAGE
+     (Reusing some Analyze page styles)
+   ========================================================= */
 
 .typoStressPanel {
   margin-top: 16px;
