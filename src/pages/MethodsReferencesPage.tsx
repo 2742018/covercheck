@@ -613,9 +613,9 @@ export default function MethodsReferencesPage() {
           </div>
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <div className="mockTitle">Methods & References</div>
-        <div className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <div className="testTitle">Methods & References</div>
+        <div className="testLead">
           The academic and practitioner support behind CoverCheck: why readability matters,
           why balance and complexity are valid composition axes, and why album covers communicate
           genre, mood, and release context.

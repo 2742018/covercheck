@@ -3,7 +3,7 @@ import {
   GENRE_REFERENCE_MAP,
   type GenreReferenceKey,
   evaluateGenreAlignment,
-} from "../lib/genrereferencemap.ts";
+} from "../lib/genrereferencemap";
 
 type Props = {
   initialGenre?: GenreReferenceKey;
@@ -21,27 +21,30 @@ export default function GenreReferenceMap({
   coverMood = null,
 }: Props) {
   const [genre, setGenre] = React.useState<GenreReferenceKey>(initialGenre);
+
   const profile = GENRE_REFERENCE_MAP[genre];
   const alignment = coverMood ? evaluateGenreAlignment(genre, coverMood) : null;
 
   return (
-    <div className="panelDark genreMapPanel">
-      <div className="panelTop">
-        <div className="panelTitle">Genre reference map</div>
-        <div className="panelNote">
-          A curated genre-facing visual guide. This is guidance for art direction and
-          reflection, not automatic genre detection.
+    <div className="genreMapRoot">
+      <div className="genreMapHeader">
+        <div className="genreMapTitle">Genre reference map</div>
+        <div className="genreMapNote">
+          A curated genre-facing visual guide for art direction and reflection, not
+          automatic genre detection.
         </div>
       </div>
 
-      <div className="panelBody">
+      <div className="genreMapBody">
         <div className="genreMapTopbar">
           <div className="genreMapChooser">
-            <div className="miniLabel">Genre direction</div>
+            <div className="genreMapLabel">Genre direction</div>
             <select
-              className="mockSelect"
+              className="genreMapSelect"
               value={genre}
-              onChange={(e) => setGenre(e.currentTarget.value as GenreReferenceKey)}
+              onChange={(e) =>
+                setGenre(e.currentTarget.value as GenreReferenceKey)
+              }
             >
               {Object.keys(GENRE_REFERENCE_MAP).map((g) => (
                 <option key={g} value={g}>
@@ -52,14 +55,20 @@ export default function GenreReferenceMap({
           </div>
 
           <div className="genreMapMeta">
-            <span className="tag">{profile.title}</span>
+            <span className="genreMapChip">{profile.title}</span>
+
             {profile.moodTags.map((tag) => (
-              <span key={tag} className="tag">
+              <span key={tag} className="genreMapChip">
                 {tag}
               </span>
             ))}
+
             {alignment && (
-              <span className={`statusTag ${alignment.score >= 55 ? "pass" : "fail"}`}>
+              <span
+                className={`genreMapStatus ${
+                  alignment.score >= 55 ? "pass" : "fail"
+                }`}
+              >
                 Alignment: {alignment.label} • {alignment.score}%
               </span>
             )}
@@ -67,13 +76,13 @@ export default function GenreReferenceMap({
         </div>
 
         <div className="genreMapIntroCard">
-          <div className="sectionHead">Overview</div>
-          <div className="detailLine">{profile.shortDescription}</div>
+          <div className="genreMapSectionHead">Overview</div>
+          <div className="genreMapText">{profile.shortDescription}</div>
         </div>
 
         <div className="genreMapGrid">
-          <div className="miniCard">
-            <div className="miniLabel">Common traits</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Common traits</div>
             <ul className="genreMapList">
               {profile.commonTraits.map((item) => (
                 <li key={item}>{item}</li>
@@ -81,8 +90,8 @@ export default function GenreReferenceMap({
             </ul>
           </div>
 
-          <div className="miniCard">
-            <div className="miniLabel">Colour logic</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Colour logic</div>
             <ul className="genreMapList">
               {profile.colorLogic.map((item) => (
                 <li key={item}>{item}</li>
@@ -90,8 +99,8 @@ export default function GenreReferenceMap({
             </ul>
           </div>
 
-          <div className="miniCard">
-            <div className="miniLabel">Typography logic</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Typography logic</div>
             <ul className="genreMapList">
               {profile.typographyLogic.map((item) => (
                 <li key={item}>{item}</li>
@@ -99,8 +108,8 @@ export default function GenreReferenceMap({
             </ul>
           </div>
 
-          <div className="miniCard">
-            <div className="miniLabel">Composition logic</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Composition logic</div>
             <ul className="genreMapList">
               {profile.compositionLogic.map((item) => (
                 <li key={item}>{item}</li>
@@ -110,22 +119,22 @@ export default function GenreReferenceMap({
         </div>
 
         <div className="genreMapLowerGrid">
-          <div className="miniCard">
-            <div className="miniLabel">Reference palette</div>
-            <div className="paletteStrip">
-              {profile.referencePalette.map((c) => (
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Reference palette</div>
+            <div className="genreMapPalette">
+              {profile.referencePalette.map((color) => (
                 <span
-                  key={c}
-                  className="chip small"
-                  style={{ background: c }}
-                  title={c}
+                  key={color}
+                  className="genreMapSwatch"
+                  style={{ background: color }}
+                  title={color}
                 />
               ))}
             </div>
           </div>
 
-          <div className="miniCard">
-            <div className="miniLabel">Caution notes</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Caution notes</div>
             <ul className="genreMapList">
               {profile.cautionNotes.map((item) => (
                 <li key={item}>{item}</li>
@@ -133,8 +142,8 @@ export default function GenreReferenceMap({
             </ul>
           </div>
 
-          <div className="miniCard">
-            <div className="miniLabel">Practical use</div>
+          <div className="genreMapCard">
+            <div className="genreMapCardLabel">Practical use</div>
             <ul className="genreMapList">
               {profile.practicalUse.map((item) => (
                 <li key={item}>{item}</li>
@@ -145,40 +154,42 @@ export default function GenreReferenceMap({
 
         {alignment && (
           <div className="genreMapAlignmentBlock">
-            <div className="sectionHead">Alignment with current cover mood</div>
+            <div className="genreMapSectionHead">
+              Alignment with current cover mood
+            </div>
 
-            <div className="reportGrid">
-              <div className="miniCard">
-                <div className="miniLabel">What aligns</div>
-                {alignment.strengths.length ? (
+            <div className="genreMapReportGrid">
+              <div className="genreMapCard">
+                <div className="genreMapCardLabel">What aligns</div>
+                {alignment.strengths.length > 0 ? (
                   <ul className="genreMapList">
                     {alignment.strengths.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 ) : (
-                  <div className="miniHint">No strong matches detected.</div>
+                  <div className="genreMapHint">No strong matches detected.</div>
                 )}
               </div>
 
-              <div className="miniCard">
-                <div className="miniLabel">What to watch</div>
-                {alignment.cautions.length ? (
+              <div className="genreMapCard">
+                <div className="genreMapCardLabel">What to watch</div>
+                {alignment.cautions.length > 0 ? (
                   <ul className="genreMapList">
                     {alignment.cautions.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
                 ) : (
-                  <div className="miniHint">No major cautions suggested.</div>
+                  <div className="genreMapHint">No major cautions suggested.</div>
                 )}
               </div>
             </div>
 
-            <div className="detailLine" style={{ marginTop: 12 }}>
-              This is best used as reflective guidance: strong alignment suggests your
-              visual direction fits the chosen genre conventions, while loose alignment
-              may still be intentional if you are deliberately resisting those conventions.
+            <div className="genreMapText" style={{ marginTop: 12 }}>
+              Strong alignment suggests your current direction fits the selected
+              genre conventions. Looser alignment can still be valid if the goal is
+              to deliberately resist or reinterpret those conventions.
             </div>
           </div>
         )}

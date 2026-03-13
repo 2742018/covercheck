@@ -41,9 +41,6 @@ body{
   margin:0;
   color:var(--ink);
   background:
-    radial-gradient(1200px 700px at 50% -10%, rgba(255,196,0,.06), transparent 55%),
-    radial-gradient(1000px 700px at 10% 20%, rgba(255,255,255,.04), transparent 55%),
-    radial-gradient(1000px 700px at 90% 20%, rgba(255,255,255,.03), transparent 55%),
     var(--bg);
   overflow-x:hidden;
 }
@@ -251,7 +248,7 @@ button, input{ font: inherit; }
 .panelTop{ padding: 14px 14px 10px; border-bottom: 1px solid rgba(242,242,242,.08); }
 .panelTitle{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
 .panelNote{ margin-top: 6px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; line-height:1.5; }
-.panelBody{ padding: 14px; }
+.panelBody{ padding: 15px; }
 .panelBottom{ padding: 12px 14px 14px; border-top: 1px solid rgba(242,242,242,.08); }
 
 .metaRow{ display:flex; gap:10px; flex-wrap:wrap; }
@@ -472,13 +469,14 @@ button, input{ font: inherit; }
   border: 1px solid rgba(242,242,242,.10);
   border-radius: 18px;
   background: rgba(0,0,0,.16);
-  padding: 12px;
+  padding: 15px;
 }
 .miniLabel{
   color: rgba(242,242,242,.55);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing:.10em;
   text-transform:uppercase;
+  padding: 12px;
 }
 .miniValue{
   margin-top: 8px;
@@ -622,7 +620,8 @@ button, input{ font: inherit; }
 /* Empty state */
 .emptyState{
   max-width: 1120px;
-  margin: 22px auto 0;
+  margin: 30px auto 0;
+  margin-bottom: 30px;
   padding: 28px 28px 30px;
 
   display: grid;
@@ -827,7 +826,7 @@ body.lightMode .ghostBtn:hover{
 
 .aboutTitle{
   margin:0;
-  font-size: clamp(40px, 7vw, 68px);
+  font-size: clamp(40px, 7vw, 55px);
   letter-spacing: -.02em;
   line-height: 0.95;
 }
@@ -969,7 +968,7 @@ body.lightMode .ghostBtn:hover{
 
 .testTitle{
   margin: 10px 0 0;
-  font-size: clamp(56px, 7vw, 70px);
+  font-size: clamp(40px, 7vw, 55px);
   line-height: .95;
   letter-spacing: .01em;
   color: rgba(242,242,242,.96);
@@ -1272,6 +1271,7 @@ body.lightMode .ghostBtn:hover{
 
 .matchPageWrap {
   padding-bottom: 32px;
+    padding: 25px;
 }
 
 .matchGrid {
@@ -1367,12 +1367,16 @@ body.lightMode .ghostBtn:hover{
 }
 
 /* =========================================================
-   MOCKUPS
+   MOCKUPS / CONTEXT PREVIEW PAGE
    ========================================================= */
-.mockupsWrap{ padding-bottom: 48px; }
+.mockupsWrap{ 
+  padding-bottom: 48px; 
+  padding: 25px;
+}
 
 .mockHero{
   margin: 6px 0 16px;
+    padding: 25px;
 }
 .mockHeroTop{
   display:flex;
@@ -1396,10 +1400,11 @@ body.lightMode .ghostBtn:hover{
 }
 .mockTitle{
   margin: 6px 0 0;
-  font-size: 34px;
+  font-size: clamp(40px, 7vw, 55px);
   letter-spacing: -.02em;
   line-height: 1.05;
 }
+
 .mockLead{
   margin: 10px 0 0;
   max-width: 90ch;
@@ -1818,7 +1823,7 @@ body.lightMode .policyPage{
   margin-bottom: 10px;
 }
 .policyTitle{
-  font-size: 56px;
+  font-size: clamp(40px, 7vw, 55px);
   letter-spacing: -.02em;
   line-height: 0.98;
   margin: 0;
@@ -2261,13 +2266,9 @@ body.lightMode .policyPage{
 }
 
 .methodsHero {
-  border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    radial-gradient(circle at top right, rgba(255, 196, 0, 0.08), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24);
+    linear-gradient(#0b0c0e 0.92, #131417 0.92);
+  padding: 25px;
   backdrop-filter: blur(10px);
 }
 
@@ -2295,7 +2296,7 @@ body.lightMode .policyPage{
 }
 
 .methodsTitle {
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(40px, 7vw, 55px);
   line-height: 0.95;
   font-weight: 800;
   margin-bottom: 12px;
@@ -2985,6 +2986,7 @@ body.lightMode .policyPage{
 
 .compareWrap {
   padding-bottom: 32px;
+    padding: 25px;
 }
 
 .compareHeroBullets {
@@ -3171,7 +3173,7 @@ body.lightMode .policyPage{
 }
 
 .aboutTitleV2 {
-  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  font-size: clamp(40px, 7vw, 50px);
   line-height: 0.95;
   margin: 0;
   font-weight: 800;
@@ -3461,6 +3463,7 @@ body.lightMode .policyPage{
 
 .accessibilityHero {
   margin-bottom: 0;
+    padding: 25px;
 }
 
 .accessibilityHeroTop {
@@ -3500,6 +3503,7 @@ body.lightMode .policyPage{
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .accessibilitySummaryGrid {
@@ -3636,5 +3640,267 @@ body.lightMode .policyPage{
 
   .typoStressControlCard.wide {
     grid-column: auto;
+  }
+}
+
+
+/* =========================================================
+   GENRE MAP PAGE
+   ========================================================= */
+
+.genreMapRoot {
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.genreMapHeader {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.genreMapTitle {
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.genreMapNote {
+  margin-top: 8px;
+  font-size: 0.97rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.genreMapBody {
+  padding: 18px;
+}
+
+.genreMapTopbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.genreMapChooser {
+  min-width: 220px;
+  flex: 0 1 280px;
+}
+
+.genreMapLabel {
+  margin-bottom: 8px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.genreMapSelect {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0b0c0e;
+  color: inherit;
+  padding: 10px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.genreMapSelect:focus {
+  border-color: rgba(255, 221, 0, 0.45);
+  box-shadow: 0 0 0 3px rgba(255, 221, 0, 0.08);
+}
+
+.genreMapMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.genreMapChip,
+.genreMapStatus {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  white-space: normal;
+}
+
+.genreMapStatus.pass {
+  border-color: rgba(110, 220, 150, 0.28);
+  background: rgba(110, 220, 150, 0.12);
+}
+
+.genreMapStatus.fail {
+  border-color: rgba(255, 120, 120, 0.28);
+  background: rgba(255, 120, 120, 0.12);
+}
+
+.genreMapIntroCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.genreMapSectionHead {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.genreMapText {
+  margin-top: 8px;
+  line-height: 1.65;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.genreMapGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.genreMapLowerGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.genreMapCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 16px;
+}
+
+.genreMapCardLabel {
+  margin-bottom: 10px;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.genreMapList {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.genreMapList li {
+  line-height: 1.6;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.genreMapPalette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.genreMapSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  flex: 0 0 auto;
+}
+
+.genreMapAlignmentBlock {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.genreMapAlignmentBlock .genreMapSectionHead {
+  margin-bottom: 12px;
+}
+
+.genreMapReportGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.genreMapHint {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+@media (max-width: 1040px) {
+  .genreMapLowerGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .genreMapGrid,
+  .genreMapReportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .genreMapTopbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .genreMapChooser,
+  .genreMapMeta {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .genreMapMeta {
+    gap: 8px;
+  }
+
+  .genreMapChip,
+  .genreMapStatus {
+    width: 100%;
+  }
+
+  .genreMapCard,
+  .genreMapIntroCard {
+    padding: 14px;
+  }
+
+  .genreMapBody,
+  .genreMapHeader {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }

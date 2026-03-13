@@ -148,9 +148,9 @@ export default function MatchPage() {
           </div>
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <div className="mockTitle">Cover ↔ Track Match</div>
-        <div className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <div className="testTitle">Cover ↔ Track Match</div>
+        <div className="testLead">
           Upload a cover and an audio file to compare the visual mood of the artwork
           with the sonic character of the track. This page is designed as art-direction
           guidance, not objective genre classification.

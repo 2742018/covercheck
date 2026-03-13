@@ -395,9 +395,9 @@ export default function ComparePage() {
           </div>
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <div className="mockTitle">Comparison Mode</div>
-        <div className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <div className="testTitle">Comparison Mode</div>
+        <div className="testLead">
           Compare two covers, two revisions, or two design directions side-by-side.
           Use this page for structured evaluation, iteration evidence, final selection,
           and print-to-digital decision support.

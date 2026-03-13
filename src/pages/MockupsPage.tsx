@@ -749,9 +749,9 @@ export default function MockupsPage() {
           />
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <h1 className="mockTitle">Mockups / Context Preview</h1>
-        <p className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <h1 className="testTitle">Mockups / Context Preview</h1>
+        <p className="testLead">
           This page simulates how your cover is actually encountered on streaming platforms:
           small grid tiles, playlist rows, and UI overlays. It’s the real-world check after Analyze.
         </p>

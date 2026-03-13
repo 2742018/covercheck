@@ -1036,9 +1036,9 @@ export default function AnalyzePage() {
           </div>
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <div className="mockTitle">Analyze</div>
-        <div className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <div className="testTitle">Analyze</div>
+        <div className="testLead">
           Draw a region for title/artist, review readability + composition, then use
           Release Readiness as your final decision.
         </div>

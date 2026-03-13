@@ -140,9 +140,9 @@ export default function AccessibilityPage() {
           </div>
         </div>
 
-        <div className="mockKicker">COVERCHECK</div>
-        <div className="mockTitle">Accessibility</div>
-        <div className="mockLead">
+        <div className="testKicker">COVERCHECK</div>
+        <div className="testTitle">Accessibility</div>
+        <div className="testLead">
           Preview how your cover may appear under common colour-vision deficiency
           simulations. Use this page to check whether important palette distinctions,
           focal emphasis, and visual hierarchy still hold up when colour cues change.
@@ -199,6 +199,57 @@ export default function AccessibilityPage() {
           </button>
         </div>
       )}
+
+
+            <div className="panelDark">
+              <div className="panelTop">
+                <div className="panelTitle">How to use this page</div>
+                <div className="panelNote">
+                  A simple accessibility-aware colour review workflow.
+                </div>
+              </div>
+
+              <div className="panelBody">
+                <div className="suggestList">
+                  <div className="suggestItem">
+                    <div className="suggestTitle">1. Load a cover</div>
+                    <div className="suggestDetail">
+                      <div className="sLine">
+                        Start with your current cover or open this page after working elsewhere in CoverCheck.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="suggestItem">
+                    <div className="suggestTitle">2. Change simulation mode</div>
+                    <div className="suggestDetail">
+                      <div className="sLine">
+                        Switch through different colour-vision deficiency simulations and compare how the image changes.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="suggestItem">
+                    <div className="suggestTitle">3. Read the auto analysis</div>
+                    <div className="suggestDetail">
+                      <div className="sLine">
+                        Use the generated observations to identify whether your cover depends too heavily on colour difference alone.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="suggestItem">
+                    <div className="suggestTitle">4. Refine elsewhere if needed</div>
+                    <div className="suggestDetail">
+                      <div className="sLine">
+                        Move back into Analyze or Compare if the simulation reveals weak hierarchy or palette collapse.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
 
       {dataUrl && (
         <>
@@ -511,55 +562,6 @@ export default function AccessibilityPage() {
                     <div className="mxCheckHead">Identity</div>
                     <div className="mxCheckText">
                       Does the cover still feel recognizable and intentional, even with reduced colour distinction?
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">How to use this page</div>
-                <div className="panelNote">
-                  A simple accessibility-aware colour review workflow.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                <div className="suggestList">
-                  <div className="suggestItem">
-                    <div className="suggestTitle">1. Load a cover</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Start with your current cover or open this page after working elsewhere in CoverCheck.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">2. Change simulation mode</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Switch through different colour-vision deficiency simulations and compare how the image changes.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">3. Read the auto analysis</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Use the generated observations to identify whether your cover depends too heavily on colour difference alone.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">4. Refine elsewhere if needed</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Move back into Analyze or Compare if the simulation reveals weak hierarchy or palette collapse.
-                      </div>
                     </div>
                   </div>
                 </div>
