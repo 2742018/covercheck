@@ -243,11 +243,11 @@ button, input{ font: inherit; }
   background: rgba(0,0,0,.24);
   border-radius: var(--r);
   box-shadow: var(--shadow);
-  overflow:hidden;
-}
+  overflow:hidden;}
+
 .panelTop{ padding: 14px 14px 10px; border-bottom: 1px solid rgba(242,242,242,.08); }
 .panelTitle{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
-.panelNote{ margin-top: 6px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; line-height:1.5; }
+.panelNote{ margin-top: 15px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; line-height:1.5; }
 .panelBody{ padding: 15px; }
 .panelBottom{ padding: 12px 14px 14px; border-top: 1px solid rgba(242,242,242,.08); }
 
@@ -1307,7 +1307,7 @@ body.lightMode .ghostBtn:hover{
 }
 
 .matchUploadText {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   line-height: 1.55;
   opacity: 0.8;
 }
@@ -3670,7 +3670,7 @@ body.lightMode .policyPage{
 
 .genreMapNote {
   margin-top: 8px;
-  font-size: 0.97rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.72);
 }
@@ -3736,7 +3736,7 @@ body.lightMode .policyPage{
   align-items: center;
   border-radius: 999px;
   padding: 8px 12px;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   line-height: 1.35;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -3773,7 +3773,7 @@ body.lightMode .policyPage{
 .genreMapText {
   margin-top: 8px;
   line-height: 1.65;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -3801,7 +3801,7 @@ body.lightMode .policyPage{
 
 .genreMapCardLabel {
   margin-bottom: 10px;
-  font-size: 0.86rem;
+  font-size: 0.85rem;
   line-height: 1.35;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -3818,7 +3818,7 @@ body.lightMode .policyPage{
 
 .genreMapList li {
   line-height: 1.6;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.92);
 }
 

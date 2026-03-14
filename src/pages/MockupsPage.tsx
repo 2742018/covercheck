@@ -938,7 +938,7 @@ export default function MockupsPage() {
                     <div className="mockControl wide">
                       <div className="mockLabel">Thumbnail size</div>
                       <div className="pillRow">
-                        {[48, 64, 96, 128].map((s) => (
+                        {[48, 64, 96, 128, 256].map((s) => (
                           <button
                             key={s}
                             className={`pillBtn ${thumbSize === s ? "on" : ""}`}
@@ -1024,8 +1024,8 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
-                <div className="panelTop">
+              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
+                <div className="panelTop" >
                   <div className="panelTitle">Playlist row</div>
                   <div className="panelNote">Common view: 48–64px covers next to track text.</div>
                 </div>
@@ -1069,7 +1069,7 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
+              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Search results</div>
                   <div className="panelNote">Even smaller thumbnails. Covers must stay distinctive as an icon.</div>
@@ -1109,7 +1109,7 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`}>
+              <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Share / promo tile</div>
                   <div className="panelNote">Editorial framing for socials. Checks whether cover still feels on-brand.</div>
@@ -1141,7 +1141,7 @@ export default function MockupsPage() {
                 </div>
               </div>
 
-              <div className="panelDark">
+              <div className="panelDark" style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Quick checklist</div>
                   <div className="panelNote">Use as short evaluation evidence.</div>

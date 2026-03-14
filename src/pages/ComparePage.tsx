@@ -454,7 +454,56 @@ export default function ComparePage() {
         />
       </div>
 
-      <div className="panelDark">
+      <div className="panelDark" style={{ marginTop: 16 }}>
+        <div className="panelTop">
+          <div className="panelTitle">How to use this page</div>
+          <div className="panelNote">
+            A simple workflow for comparison, reflection, and final selection.
+          </div>
+        </div>
+
+        <div className="panelBody">
+          <div className="suggestList">
+            <div className="suggestItem">
+              <div className="suggestTitle">1. Load two versions</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Compare before/after edits, alternate covers, or different art directions.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">2. Choose your support mode</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Use auto mode for guided insights, manual mode for your own notes, or both for a more complete evaluation.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">3. Check print-to-digital translation</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Look at which version feels less dependent on edge detail, fine text, or dense poster-like viewing conditions.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">4. Choose a direction</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Mark a preferred version, then continue refining it in Analyze.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panelDark" style={{ marginTop: 25 }}>
         <div className="panelTop">
           <div className="panelTitle">Compare controls</div>
           <div className="panelNote">
@@ -988,55 +1037,6 @@ export default function ComparePage() {
               <button className="ghostBtn" onClick={() => window.print()}>
                 PRINT COMPARISON
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="panelDark" style={{ marginTop: 16 }}>
-        <div className="panelTop">
-          <div className="panelTitle">How to use this page</div>
-          <div className="panelNote">
-            A simple workflow for comparison, reflection, and final selection.
-          </div>
-        </div>
-
-        <div className="panelBody">
-          <div className="suggestList">
-            <div className="suggestItem">
-              <div className="suggestTitle">1. Load two versions</div>
-              <div className="suggestDetail">
-                <div className="sLine">
-                  Compare before/after edits, alternate covers, or different art directions.
-                </div>
-              </div>
-            </div>
-
-            <div className="suggestItem">
-              <div className="suggestTitle">2. Choose your support mode</div>
-              <div className="suggestDetail">
-                <div className="sLine">
-                  Use auto mode for guided insights, manual mode for your own notes, or both for a more complete evaluation.
-                </div>
-              </div>
-            </div>
-
-            <div className="suggestItem">
-              <div className="suggestTitle">3. Check print-to-digital translation</div>
-              <div className="suggestDetail">
-                <div className="sLine">
-                  Look at which version feels less dependent on edge detail, fine text, or dense poster-like viewing conditions.
-                </div>
-              </div>
-            </div>
-
-            <div className="suggestItem">
-              <div className="suggestTitle">4. Choose a direction</div>
-              <div className="suggestDetail">
-                <div className="sLine">
-                  Mark a preferred version, then continue refining it in Analyze.
-                </div>
-              </div>
             </div>
           </div>
         </div>
