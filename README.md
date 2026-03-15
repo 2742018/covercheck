@@ -59,6 +59,9 @@ This creates a gap between how artwork looks during the design process and how i
 - **Compare**  
   Compares two covers or revisions side-by-side for iteration, reflection, and final selection.
 
+- **Accessibility**
+  Simulates common colour-vision conditions to help check whether a cover’s hierarchy, palette separation, and key visual distinctions remain clear beyond colour alone.
+
 - **Methods & References**  
   Collects the academic and research support behind the project without overloading the main interface.
 

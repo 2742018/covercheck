@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type PointerEvent,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,35 +28,53 @@ import {
   type Thumb64Snapshot,
 } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
+import type { ReportData, Suggestion, ViewMode } from "../lib/report";
 import TypographyStressTest from "../components/typographystresstest.tsx";
 
 type AnalyzeState = { dataUrl?: string };
-type ViewMode = "crop" | "full";
 type Handle = "nw" | "ne" | "sw" | "se";
 type DragMode = "idle" | "new" | "move" | "resize";
 
-type Suggestion = {
-  title: string;
-  why: string;
-  try: string;
-  target?: string;
-};
+function TopProgress({ active, label }: { active: boolean; label: string }) {
+  if (!active) return null;
 
-type ReportData = {
-  createdAt: string;
-  dataUrl: string;
-  imageSize: { w: number; h: number };
-  viewMode: ViewMode;
-  region: NormalizedRect;
-  mappedRegion: NormalizedRect;
-  regionMetrics: RegionMetrics;
-  safeMargin: SafeMarginResult;
-  palette: PaletteResult;
-  composition: CompositionMetrics;
-  thumb64: Thumb64Snapshot | null;
-  release: ReleaseReadiness;
-  suggestions: Suggestion[];
-};
+  return (
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        pointerEvents: "none",
+      }}
+      role="status"
+      aria-live="polite"
+    >
+      <progress
+        style={{
+          width: "100%",
+          height: 3,
+          display: "block",
+        }}
+      />
+      <div
+        style={{
+          width: "fit-content",
+          margin: "10px auto 0",
+          padding: "6px 10px",
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.55)",
+          border: "1px solid rgba(255,255,255,0.10)",
+          fontSize: 12,
+          letterSpacing: "0.02em",
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -215,13 +234,7 @@ function mapCropRegionToImageRectWithCrop(
 ): NormalizedRect {
   const srcW = imageData.width;
   const srcH = imageData.height;
-  const { sx, sy, sw, sh } = coverCropWithPosZoom(
-    srcW,
-    srcH,
-    cropPos.x,
-    cropPos.y,
-    zoom
-  );
+  const { sx, sy, sw, sh } = coverCropWithPosZoom(srcW, srcH, cropPos.x, cropPos.y, zoom);
 
   const x = (sx + regionInCrop01.x * sw) / srcW;
   const y = (sy + regionInCrop01.y * sh) / srcH;
@@ -229,6 +242,34 @@ function mapCropRegionToImageRectWithCrop(
   const h = (regionInCrop01.h * sh) / srcH;
 
   return clampRect({ x, y, w, h }, 0.0005);
+}
+
+async function imageDataToJpegDataUrl(
+  imageData: ImageData,
+  quality = 0.9
+): Promise<string | null> {
+  const c = document.createElement("canvas");
+  c.width = imageData.width;
+  c.height = imageData.height;
+  const ctx = c.getContext("2d");
+  if (!ctx) return null;
+  ctx.putImageData(imageData, 0, 0);
+
+  return new Promise((resolve) => {
+    c.toBlob(
+      (blob) => {
+        if (!blob) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+        reader.readAsDataURL(blob);
+      },
+      "image/jpeg",
+      quality
+    );
+  });
 }
 
 function buildThumb64Snapshot(
@@ -294,8 +335,7 @@ function buildSuggestions(args: {
   thumb64: Thumb64Snapshot | null;
   viewMode: ViewMode;
 }): Suggestion[] {
-  const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } =
-    args;
+  const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } = args;
   const out: Suggestion[] = [];
   const area = region.w * region.h;
 
@@ -404,6 +444,10 @@ export default function AnalyzePage() {
   const [release, setRelease] = useState<ReleaseReadiness | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
 
+  const [navPending, startNavTransition] = useTransition();
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState(false);
+
   const analysisRef = useRef<ImageData | null>(null);
   const srcCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -443,6 +487,16 @@ export default function AnalyzePage() {
   const hasAnalysis = Boolean(
     region && regionMetrics && safeMargin && palette && composition && release
   );
+
+  const progressLabel = useMemo(() => {
+    if (isGeneratingReport || navPending) return "Generating report…";
+    if (busy) return "Processing image…";
+    if (pendingAnalysis) return "Updating analysis…";
+    if (region && !hasAnalysis) return "Analyzing region…";
+    return "";
+  }, [busy, hasAnalysis, isGeneratingReport, navPending, pendingAnalysis, region]);
+
+  const showProgress = progressLabel.length > 0;
 
   const imgStyle = useMemo(() => {
     if (viewMode !== "crop") return undefined;
@@ -503,7 +557,12 @@ export default function AnalyzePage() {
     ctx.save();
     ctx.strokeStyle = "rgba(245,245,245,0.14)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(drawRect.x + 0.5, drawRect.y + 0.5, drawRect.w - 1, drawRect.h - 1);
+    ctx.strokeRect(
+      drawRect.x + 0.5,
+      drawRect.y + 0.5,
+      drawRect.w - 1,
+      drawRect.h - 1
+    );
     ctx.restore();
 
     if (showSafe) {
@@ -514,9 +573,7 @@ export default function AnalyzePage() {
       const fail = safeMargin ? !safeMargin.pass : false;
 
       ctx.save();
-      ctx.strokeStyle = fail
-        ? "rgba(255,120,120,0.55)"
-        : "rgba(245,245,245,0.14)";
+      ctx.strokeStyle = fail ? "rgba(255,120,120,0.55)" : "rgba(245,245,245,0.14)";
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 1;
       ctx.strokeRect(mx + 0.5, my + 0.5, mw - 1, mh - 1);
@@ -642,7 +699,7 @@ export default function AnalyzePage() {
     [clearAnalysisOnly, computeCompositionNow, cropPos, dataUrl, imgSize, viewMode, zoom]
   );
 
-  const buildReport = useCallback((): ReportData | null => {
+  const buildReportCore = useCallback((): ReportData | null => {
     const currentRegion = regionRef.current;
     const imageData = analysisRef.current;
 
@@ -679,6 +736,7 @@ export default function AnalyzePage() {
       thumb64,
       release,
       suggestions,
+      changes: null,
     };
   }, [
     composition,
@@ -696,18 +754,49 @@ export default function AnalyzePage() {
   ]);
 
   const goToReport = useCallback(
-    (finalAction: "report" | "ready") => {
-      const report = buildReport();
+  (finalAction: "report" | "ready") => {
+    setIsGeneratingReport(true);
 
-      if (!report) return;
+    requestAnimationFrame(() => {
+      void (async () => {
+        try {
+          const core = buildReportCore();
+          if (!core) {
+            setIsGeneratingReport(false);
+            return;
+          }
 
-      saveReportToSession(report, finalAction);
-      navigate("/report");
-    },
-    [buildReport, navigate]
-  );
+          let finalReport = core;
+
+          // Make report image stable so it doesn't go blank later.
+          if (core.dataUrl.startsWith("blob:") && analysisRef.current) {
+            const snap = await imageDataToJpegDataUrl(analysisRef.current, 0.9);
+
+            // sessionStorage quota guard (string length is a proxy)
+            if (snap && snap.length < 4_000_000) {
+              finalReport = { ...core, dataUrl: snap };
+            }
+          }
+
+          saveReportToSession(finalReport, finalAction);
+
+          startNavTransition(() => {
+            navigate("/report");
+          });
+        } catch (err) {
+          console.error("[AnalyzePage] goToReport failed", err);
+          setIsGeneratingReport(false);
+        }
+      })();
+    });
+  },
+  [buildReportCore, navigate, startNavTransition]
+);
+
 
   const endDragAndScore = useCallback(() => {
+    setPendingAnalysis(true);
+
     dragRef.current = {
       mode: "idle",
       handle: null,
@@ -715,8 +804,12 @@ export default function AnalyzePage() {
       startNy: 0,
       baseRect: null,
     };
-    requestAnimationFrame(redraw);
-    computeAllNow(regionRef.current);
+
+    requestAnimationFrame(() => {
+      redraw();
+      computeAllNow(regionRef.current);
+      setPendingAnalysis(false);
+    });
   }, [computeAllNow, redraw]);
 
   useEffect(() => {
@@ -988,20 +1081,32 @@ export default function AnalyzePage() {
   }, [dataUrl, redraw]);
 
   useEffect(() => {
+    setPendingAnalysis(true);
+
     const t = window.setTimeout(() => {
       computeCompositionNow();
       if (regionRef.current) computeAllNow(regionRef.current);
       redraw();
+      setPendingAnalysis(false);
     }, 250);
 
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      setPendingAnalysis(false);
+    };
   }, [computeAllNow, computeCompositionNow, cropPos.x, cropPos.y, redraw, viewMode, zoom]);
 
   return (
     <div className="analyzeWrap">
+      <TopProgress active={showProgress} label={progressLabel} />
+
       <div className="mockHero analyzeHero">
         <div className="mockHeroTop">
-          <button className="ghostBtn" onClick={() => navigate("/play")}>
+          <button
+            className="ghostBtn"
+            onClick={() => navigate("/play")}
+            disabled={busy || navPending}
+          >
             ← BACK
           </button>
 
@@ -1009,7 +1114,7 @@ export default function AnalyzePage() {
             <button
               className="ghostBtn"
               onClick={() => fileRef.current?.click()}
-              disabled={busy}
+              disabled={busy || navPending}
             >
               UPLOAD NEW
             </button>
@@ -1021,17 +1126,17 @@ export default function AnalyzePage() {
                 clearAnalysisOnly();
                 requestAnimationFrame(redraw);
               }}
-              disabled={!hasRegion}
+              disabled={!hasRegion || busy || navPending}
             >
               CLEAR REGION
             </button>
 
             <button
               className="primaryBtn"
-              disabled={!hasAnalysis}
+              disabled={!hasAnalysis || isGeneratingReport || navPending}
               onClick={() => goToReport("report")}
             >
-              GENERATE REPORT
+              {isGeneratingReport || navPending ? "GENERATING…" : "GENERATE REPORT"}
             </button>
           </div>
         </div>
@@ -1065,7 +1170,11 @@ export default function AnalyzePage() {
             Upload a cover or start from PLAY, then use Analyze to test readability and
             composition.
           </div>
-          <button className="primaryBtn" onClick={() => fileRef.current?.click()}>
+          <button
+            className="primaryBtn"
+            onClick={() => fileRef.current?.click()}
+            disabled={busy || navPending}
+          >
             UPLOAD COVER
           </button>
         </div>
@@ -1119,6 +1228,7 @@ export default function AnalyzePage() {
                       setRegionBoth(null);
                       clearAnalysisOnly();
                     }}
+                    disabled={busy || navPending}
                   >
                     CROP VIEW
                   </button>
@@ -1131,6 +1241,7 @@ export default function AnalyzePage() {
                       setRegionBoth(null);
                       clearAnalysisOnly();
                     }}
+                    disabled={busy || navPending}
                   >
                     FULL VIEW
                   </button>
@@ -1138,6 +1249,7 @@ export default function AnalyzePage() {
                   <button
                     className={`pillBtn ${showSafe ? "on" : ""}`}
                     onClick={() => setShowSafe((v) => !v)}
+                    disabled={busy || navPending}
                   >
                     SAFE AREA
                   </button>
@@ -1146,6 +1258,7 @@ export default function AnalyzePage() {
                     className={`pillBtn ${panCrop ? "on" : ""}`}
                     onClick={() => setPanCrop((v) => !v)}
                     title="Turn on to drag the crop. Turn off to draw the text region."
+                    disabled={busy || navPending}
                   >
                     PAN CROP
                   </button>
@@ -1162,7 +1275,7 @@ export default function AnalyzePage() {
                       step={0.01}
                       value={zoom}
                       onChange={(e) => setZoom(parseFloat(e.target.value))}
-                      disabled={viewMode !== "crop"}
+                      disabled={viewMode !== "crop" || busy || navPending}
                     />
                     <button
                       className="ghostBtn"
@@ -1170,7 +1283,7 @@ export default function AnalyzePage() {
                         setCropPos({ x: 0.5, y: 0.5 });
                         setZoom(1);
                       }}
-                      disabled={viewMode !== "crop"}
+                      disabled={viewMode !== "crop" || busy || navPending}
                     >
                       RESET CROP
                     </button>
@@ -1186,7 +1299,8 @@ export default function AnalyzePage() {
                   <span className="tag">view: {viewMode.toUpperCase()}</span>
                   {region ? (
                     <span className="tag">
-                      region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%
+                      region: {Math.round(region.w * 100)}% ×{" "}
+                      {Math.round(region.h * 100)}%
                     </span>
                   ) : (
                     <span className="tag">region: none</span>
@@ -1354,21 +1468,13 @@ export default function AnalyzePage() {
                       <div className="chipRow">
                         <div className="chipMeta">
                           <div className="miniLabel">Region avg</div>
-                          <div
-                            className="chip"
-                            style={{ background: palette.regionAvg }}
-                            title={palette.regionAvg}
-                          />
+                          <div className="chip" style={{ background: palette.regionAvg }} />
                           <div className="miniSub">{palette.regionAvg}</div>
                         </div>
 
                         <div className="chipMeta">
                           <div className="miniLabel">Best text</div>
-                          <div
-                            className="chip"
-                            style={{ background: palette.text.primary }}
-                            title={palette.text.primary}
-                          />
+                          <div className="chip" style={{ background: palette.text.primary }} />
                           <div className="miniSub">
                             {palette.text.primary} • {palette.text.primaryRatio.toFixed(2)}×
                           </div>
@@ -1376,23 +1482,16 @@ export default function AnalyzePage() {
 
                         <div className="chipMeta">
                           <div className="miniLabel">Alt text</div>
-                          <div
-                            className="chip"
-                            style={{ background: palette.text.secondary }}
-                            title={palette.text.secondary}
-                          />
+                          <div className="chip" style={{ background: palette.text.secondary }} />
                           <div className="miniSub">
-                            {palette.text.secondary} • {palette.text.secondaryRatio.toFixed(2)}×
+                            {palette.text.secondary} •{" "}
+                            {palette.text.secondaryRatio.toFixed(2)}×
                           </div>
                         </div>
 
                         <div className="chipMeta">
                           <div className="miniLabel">Accent</div>
-                          <div
-                            className="chip"
-                            style={{ background: palette.text.accent }}
-                            title={palette.text.accent}
-                          />
+                          <div className="chip" style={{ background: palette.text.accent }} />
                           <div className="miniSub">
                             {palette.text.accent} • {palette.text.accentRatio.toFixed(2)}×
                           </div>
@@ -1404,12 +1503,7 @@ export default function AnalyzePage() {
                           <span className="miniLabel">Region palette</span>
                           <div className="paletteStrip">
                             {palette.region.map((c) => (
-                              <span
-                                key={c}
-                                className="chip small"
-                                style={{ background: c }}
-                                title={c}
-                              />
+                              <span key={c} className="chip small" style={{ background: c }} />
                             ))}
                           </div>
                         </div>
@@ -1418,12 +1512,7 @@ export default function AnalyzePage() {
                           <span className="miniLabel">Image palette</span>
                           <div className="paletteStrip">
                             {palette.image.map((c) => (
-                              <span
-                                key={c}
-                                className="chip small"
-                                style={{ background: c }}
-                                title={c}
-                              />
+                              <span key={c} className="chip small" style={{ background: c }} />
                             ))}
                           </div>
                         </div>
@@ -1450,9 +1539,7 @@ export default function AnalyzePage() {
 
               <div className="panelBody">
                 {!release ? (
-                  <div className="miniHint">
-                    Draw a region to compute release readiness.
-                  </div>
+                  <div className="miniHint">Draw a region to compute release readiness.</div>
                 ) : (
                   <>
                     <div className="readyTop">
@@ -1491,12 +1578,17 @@ export default function AnalyzePage() {
                     )}
 
                     <div className="readyActions">
-                      <button className="primaryBtn" onClick={() => goToReport("report")}>
-                        GENERATE REPORT
+                      <button
+                        className="primaryBtn"
+                        onClick={() => goToReport("report")}
+                        disabled={!hasAnalysis || isGeneratingReport || navPending}
+                      >
+                        {isGeneratingReport || navPending ? "GENERATING…" : "GENERATE REPORT"}
                       </button>
                       <button
                         className="ghostBtn"
                         onClick={() => navigate("/mockups", { state: { dataUrl } })}
+                        disabled={busy || navPending}
                       >
                         OPEN MOCKUPS
                       </button>
@@ -1516,9 +1608,7 @@ export default function AnalyzePage() {
 
               <div className="panelBody">
                 {!suggestions.length ? (
-                  <div className="miniHint">
-                    Select a region to generate more detailed guidance.
-                  </div>
+                  <div className="miniHint">Select a region to generate more detailed guidance.</div>
                 ) : (
                   <div className="suggestList">
                     {suggestions.map((s, i) => (
