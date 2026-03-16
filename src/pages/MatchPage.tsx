@@ -148,7 +148,7 @@ export default function MatchPage() {
           </div>
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker">Visual/sonic Guidance</div>
         <div className="testTitle">Cover ↔ Track Match</div>
         <div className="testLead">
           Upload a cover and an audio file to compare the visual mood of the artwork

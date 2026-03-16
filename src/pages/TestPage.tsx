@@ -795,7 +795,7 @@ export default function TestPage() {
           </div>
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker"> Design Interpretation</div>
         <h1 className="testTitle">Test</h1>
         <p className="testLead">
           This design-tendency quiz helps interpret your likely strengths and tradeoffs

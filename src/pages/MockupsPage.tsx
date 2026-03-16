@@ -749,7 +749,7 @@ export default function MockupsPage() {
           />
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker">Real-world Simulation</div>
         <h1 className="testTitle">Mockups / Context Preview</h1>
         <p className="testLead">
           This page simulates how your cover is actually encountered on streaming platforms:

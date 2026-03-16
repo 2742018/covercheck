@@ -11,6 +11,7 @@ import {
   buildAutoInsights,
   makeSimulatedImage,
 } from "../lib/accessibility";
+import { Printer } from "lucide-react";
 
 type AccessibilityState = {
   dataUrl?: string;
@@ -135,12 +136,12 @@ export default function AccessibilityPage() {
               onClick={() => window.print()}
               disabled={!dataUrl}
             >
-              PRINT / SAVE PDF
+              <Printer size={16} /> PRINT / SAVE PDF
             </button>
           </div>
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker"> Colour Simulation</div>
         <div className="testTitle">Accessibility</div>
         <div className="testLead">
           Preview how your cover may appear under common colour-vision deficiency

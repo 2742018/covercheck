@@ -1140,7 +1140,7 @@ export default function AnalyzePage() {
           </div>
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker">Cover Analysis</div>
         <div className="testTitle">Analyze</div>
         <div className="testLead">
           Draw a region for title/artist, review readability + composition, then use

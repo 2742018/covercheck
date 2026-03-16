@@ -14,6 +14,7 @@ import {
   evaluatePrintToDigital,
   type PrintDigitalInput,
 } from "../lib/printtodigital";
+import { Printer } from "lucide-react";
 
 type CompareState = {
   leftDataUrl?: string;
@@ -390,12 +391,12 @@ export default function ComparePage() {
               onClick={() => window.print()}
               disabled={!leftDataUrl && !rightDataUrl}
             >
-              PRINT / SAVE PDF
+              <Printer size={16} /> PRINT / SAVE PDF
             </button>
           </div>
         </div>
 
-        <div className="testKicker">COVERCHECK</div>
+        <div className="testKicker">Design Evaluation</div>
         <div className="testTitle">Comparison Mode</div>
         <div className="testLead">
           Compare two covers, two revisions, or two design directions side-by-side.
@@ -1035,7 +1036,7 @@ export default function ComparePage() {
               </button>
 
               <button className="ghostBtn" onClick={() => window.print()}>
-                PRINT COMPARISON
+                <Printer size={16} /> PRINT COMPARISON
               </button>
             </div>
           </div>

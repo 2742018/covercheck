@@ -6,6 +6,7 @@ import {
   useReportFromSession,
 } from "../lib/reportStore";
 import type { ReportData } from "../lib/report";
+import { Printer } from "lucide-react";
 
 function formatDate(value: unknown) {
   if (typeof value !== "string") return "—";
@@ -45,7 +46,7 @@ function ReportSkeleton() {
         <div className="reportTitle">REPORT</div>
         <div className="reportActions">
           <button className="ghostBtn" disabled>
-            PRINT / SAVE PDF
+            <Printer size={16} />PRINT / SAVE PDF
           </button>
         </div>
       </div>
@@ -344,7 +345,7 @@ function ReportInner() {
 
         <div className="reportActions">
           <button className="ghostBtn" onClick={() => window.print()}>
-            PRINT / SAVE PDF
+            <Printer size={16} /> PRINT / SAVE PDF
           </button>
         </div>
       </div>

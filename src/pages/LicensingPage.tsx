@@ -1,3 +1,4 @@
+// src/pages/LicensingPage.jsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -11,124 +12,266 @@ export default function LicensingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const hadLightMode = document.body.classList.contains("lightMode");
     document.body.classList.add("lightMode");
-    return () => document.body.classList.remove("lightMode");
+    document.title = "Copyright & Licensing — CoverCheck";
+
+    return () => {
+      if (!hadLightMode) document.body.classList.remove("lightMode");
+    };
   }, []);
 
   return (
-    <div className="policyPage">
-      <header className="policyHero">
-        <div>
-          <div className="policyKicker">COVERCHECK</div>
-          <h1 className="policyTitle">Copyright &amp; Licensing</h1>
-        </div>
+    <main className="aboutEditorial">
+      <section className="aboutEditorialHero">
+        <div className="aboutEditorialTop">
+          <div className="aboutEditorialKicker">Policy of CoverCheck</div>
 
-        <div className="policyHeroRight">
-          <button className="ghostBtn" onClick={() => navigate("/play")}>
-            BACK TO ANALYZE
+          <button
+            className="aboutEditorialBack"
+            type="button"
+            onClick={() => navigate("/play")}
+            aria-label="Back to Analyze"
+          >
+            Back to Analyze
           </button>
         </div>
-      </header>
 
-      <p className="policyLead">
-        CoverCheck is designed to be <b>privacy-first</b> and <b>copyright-safe</b>. We do not provide a built-in album-cover
-        library and we do not ask you to upload copyrighted covers that you don’t have permission to use.
-      </p>
+        <div className="aboutEditorialHeading">
+          <div>
+            <h1 className="aboutEditorialTitle">Copyright &amp; Licensing</h1>
+            <p className="aboutEditorialSubtitle">
+              CoverCheck is built to be privacy-first and rights-aware. It does
+              not include a hosted album-cover library and it does not ask users
+              to upload copyrighted artwork they do not have permission to use.
+            </p>
 
-      <div className="policyRule" />
+            <aside className="aboutEditorialIntroNote" aria-label="Quick summary">
+            <div className="aboutEditorialNoteLabel">Quick summary</div>
+            <p>
+              Uploads stay in the browser. Users remain responsible for the
+              rights and licensing status of any artwork they choose to test.
+            </p>
+          </aside>
 
-      <div className="policyGrid">
-        {/* LEFT */}
-        <aside className="policyAside">
-          <div className="policyLabel">LINKS</div>
-          <a className="policyLink" href={LINKS.github} target="_blank" rel="noreferrer">
-            GitHub repository
-          </a>
-          <a className="policyLink" href={LINKS.cc} target="_blank" rel="noreferrer">
-            Creative Commons licenses
-          </a>
+          </div>
+        </div>
 
-          <div className="policyLabel policySpacer">QUICK SUMMARY</div>
-          <ul className="policyBullets">
-            <li>Uploads stay in your browser (not stored on a server).</li>
-            <li>Use only artwork/images you own or have rights to use.</li>
-            <li>When using CC-licensed artwork/images, follow the specific license terms.</li>
-          </ul>
+        <div className="aboutEditorialLeadRow">
+          <p className="aboutEditorialLead">
+            The tool is intended for responsible evaluation, portfolio review,
+            and coursework-style use. You should only analyse artwork you own,
+            created yourself, or have permission or licensing to use.
+          </p>
+        </div>
+
+        <div className="aboutEditorialRule" />
+      </section>
+
+      <div className="aboutEditorialGrid">
+        <aside className="aboutEditorialRail" aria-label="Licensing page navigation">
+          <div className="aboutEditorialRailBlock">
+            <div className="aboutEditorialLabel">Quick principles</div>
+            <ul className="aboutEditorialList">
+              <li>Local processing. No server storage. Rights-aware use.</li>
+              <li>Use your own artwork whenever possible.</li>
+              <li>Do not upload copyrighted covers without permission.</li>
+              <li>Prefer public-domain or clearly licensed demo material.</li>
+              <li>Keep attribution when a licence requires it.</li>
+            </ul>
+          </div>
         </aside>
 
-        {/* MAIN */}
-        <main className="policyMain">
-          <div className="policyLabel">YOUR UPLOADS</div>
-          <p className="policyPara">
-            You should upload only content you have the right to use (for example: your own cover artwork, CC0 assets, work
-            you created, or content you have explicit permission/licensing to analyze). CoverCheck does not host or
-            redistribute your images; it processes them locally in your browser.
-          </p>
+        <div className="aboutEditorialMain">
+          <section id="uploads" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Uploads</div>
+            <h2 className="aboutEditorialSectionTitle">What users should upload</h2>
 
-          <div className="policyLabel policySpacer">ALBUM COVER ART ONLINE</div>
-          <p className="policyPara">
-            If you use images that you do not own for testing or demonstration, note that different albums can have
-            different licenses (often <b>Creative Commons</b>). You must follow the license shown on each album's page.
-          </p>
+            <div className="aboutEditorialSplit">
+              <div className="aboutEditorialSplitMain">
+                <div className="aboutEditorialTextBlock">
+                  <p>
+                    You should upload only content you have the right to use.
+                    That includes your own cover artwork, work you created, CC0
+                    assets, or material you have explicit permission or a valid
+                    licence to analyse.
+                  </p>
+                  <p>
+                    CoverCheck does not host or redistribute your images. It
+                    processes them locally in your browser as part of the
+                    evaluation flow.
+                  </p>
+                </div>
+              </div>
 
-          <div className="policyCallouts">
-            <div className="policyCallout">
-              <div className="policyCalloutHead">Check the track license</div>
-              <div className="policySmall">
-                Before using a album cover art, open its artist's page and confirm the license (e.g., CC BY, CC BY-NC, CC BY-ND, CC BY-SA).
+              <div className="aboutEditorialSplitSide2">
+                <div className="aboutEditorialNoteCard">
+                  <div className="aboutEditorialNoteLabel">Recommended</div>
+                  <ul className="aboutEditorialList">
+                    <li>Use your own artwork whenever possible.</li>
+                    <li>Prefer clearly licensed or public-domain materials.</li>
+                    <li>Keep source and attribution notes for your records.</li>
+                  </ul>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="policyCallout">
-              <div className="policyCalloutHead">Attribution (when required)</div>
-              <div className="policySmall">
-                Many CC licenses require crediting the both the performing artist and the cover artist. Keep a short attribution note in your report/README when you
-                include example visuals in a demo or submission.
+          <section id="licensed-artwork" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Licensing guidance</div>
+            <h2 className="aboutEditorialSectionTitle">If you use licensed artwork</h2>
+
+            <div className="aboutEditorialSteps">
+              <div className="aboutEditorialStep">
+                <div className="aboutEditorialStepNo">01</div>
+                <div>
+                  <div className="aboutEditorialStepTitle">Check the licence first</div>
+                  <p>
+                    Before using any album artwork or music-related visual,
+                    confirm the licence shown on the source page.
+                  </p>
+                </div>
+              </div>
+
+              <div className="aboutEditorialStep">
+                <div className="aboutEditorialStepNo">02</div>
+                <div>
+                  <div className="aboutEditorialStepTitle">
+                    Give attribution when required
+                  </div>
+                  <p>
+                    Some licences require credit to the performer,
+                    photographer, illustrator, or cover artist. Keep a short
+                    attribution note in your report, README, or project
+                    documentation.
+                  </p>
+                </div>
+              </div>
+
+              <div className="aboutEditorialStep">
+                <div className="aboutEditorialStepNo">03</div>
+                <div>
+                  <div className="aboutEditorialStepTitle">Respect restrictions</div>
+                  <p>
+                    NC may restrict commercial use, ND may restrict modification,
+                    and SA may require you to share derivatives under the same
+                    terms.
+                  </p>
+                </div>
+              </div>
+
+              <div className="aboutEditorialStep">
+                <div className="aboutEditorialStepNo">04</div>
+                <div>
+                  <div className="aboutEditorialStepTitle">
+                    Use safer demo material
+                  </div>
+                  <p>
+                    For coursework, presentations, and public demos, your own
+                    assets or clearly licensed material are usually the safest
+                    choice.
+                  </p>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="policyCallout">
-              <div className="policyCalloutHead">Restrictions (NC / ND / SA)</div>
-              <div className="policySmall">
-                Some licenses restrict commercial use (NC), modifications (ND), or require sharing derivatives under the same
-                license (SA). Follow the exact terms for the album cpver art you choose.
+          <section id="responsible-use" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Why this matters</div>
+            <h2 className="aboutEditorialSectionTitle">Responsible use of the tool</h2>
+
+            <div className="aboutEditorialQualities">
+              <div className="aboutEditorialQuality">
+                <h3>Course / Project safe</h3>
+                <p>
+                  You can demonstrate the tool without bundling copyrighted
+                  album covers or relying on a hosted image library.
+                </p>
+              </div>
+
+              <div className="aboutEditorialQuality">
+                <h3>Privacy-first</h3>
+                <p>
+                  Files are analysed locally in the browser. That reduces the
+                  need to upload sensitive or copyrighted material to a server.
+                </p>
+              </div>
+
+              <div className="aboutEditorialQuality">
+                <h3>User responsibility</h3>
+                <p>
+                  The tool supports evaluation and learning, but users remain
+                  responsible for what they upload and how they use it.
+                </p>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="policyLabel policySpacer">DISCLAIMER</div>
-          <p className="policySmall">
-            This page is informational and not legal advice. If you are unsure about rights or licensing, use your own assets
-            or CC0 materials, and verify the license terms on the source page.
-          </p>
-        </main>
+          <section id="disclaimer" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Disclaimer</div>
+            <h2 className="aboutEditorialSectionTitle">Important note</h2>
 
-        {/* RIGHT */}
-        <aside className="policyAside">
-          <div className="policyLabel">WHY THIS MATTERS</div>
-
-          <div className="policyFact">
-            <div className="policyFactHead">COURSE / DISSERTATION SAFE</div>
-            <div className="policySmall">
-              You can demonstrate the tool without bundling copyrighted album covers or storing user uploads.
+            <div className="aboutEditorialTextBlock">
+              <p>
+                This page is informational only and is not legal advice. If you
+                are unsure about rights, permissions, or licence obligations,
+                use your own assets or clearly public-domain material and verify
+                the licence terms on the source page directly.
+              </p>
             </div>
-          </div>
+          </section>
 
-          <div className="policyFact">
-            <div className="policyFactHead">PRIVACY-FIRST</div>
-            <div className="policySmall">
-              The site analyzes files locally. When you refresh/leave, uploaded content can be cleared (depending on your flow).
-            </div>
-          </div>
+          <section id="references" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Links</div>
+            <h2 className="aboutEditorialSectionTitle">Reference links</h2>
 
-          <div className="policyFact">
-            <div className="policyFactHead">RESPONSIBLE USE</div>
-            <div className="policySmall">
-              The tool supports evaluation and learning. Users remain responsible for what they upload and how they use it.
+            <div className="aboutEditorialSplit">
+              <div className="aboutEditorialSplitMain">
+                <div className="aboutEditorialNoteCard">
+                  <div className="aboutEditorialNoteLabel">Repository</div>
+                  <p>
+                    <a href={LINKS.github} target="https://github.com/2742018/covercheck" rel="noopener noreferrer">
+                      GitHub
+                    </a>{" "}
+                    — project source and implementation context.
+                  </p>
+                </div>
+
+                <div className="aboutEditorialNoteCard">
+                  <div className="aboutEditorialNoteLabel">Licensing</div>
+                  <p>
+                    <a href={LINKS.cc} target="https://creativecommons.org/" rel="noopener noreferrer">
+                      Creative Commons
+                    </a>{" "}
+                    — read the licence families and their conditions directly.
+                  </p>
+                </div>
+
+                <div className="aboutEditorialNoteCard">
+                  <div className="aboutEditorialNoteLabel">Example source</div>
+                  <p>
+                    <a href={LINKS.fma} target="https://unsplash.com/" rel="noopener noreferrer">
+                      Unsplash
+                    </a>{" "}
+                    — a source where images are offered under a CC0 licence, meaning they can be used without permission or attribution.
+                  </p>
+                </div>
+              </div>
+
+              <div className="aboutEditorialSplitSide">
+                <div className="aboutEditorialNoteCard">
+                  <div className="aboutEditorialNoteLabel">Reminder</div>
+                  <p>
+                    Always verify the exact terms attached to the artwork you
+                    use, especially for public sharing, portfolio work, or
+                    commercial contexts.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </aside>
+          </section>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
