@@ -1,7 +1,6 @@
 // src/pages/AboutPage.jsx
-import { Sparkle } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {useNavigate } from "react-router-dom";
 
 const LINKS = {
   github: "https://github.com/2742018/covercheck",
