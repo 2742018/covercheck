@@ -246,7 +246,7 @@ button, input{ font: inherit; }
   overflow:hidden;}
 
 .panelTop{ padding: 14px 14px 10px; border-bottom: 1px solid rgba(242,242,242,.08); }
-.panelTitle{ font-size: 12px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
+.panelTitle{ font-size: 16px; letter-spacing:.12em; text-transform:uppercase; opacity:.9; }
 .panelNote{ margin-top: 15px; color: rgba(242,242,242,.55); font-size: 12px; letter-spacing:.04em; line-height:1.5; }
 .panelBody{ padding: 15px; }
 .panelBottom{ padding: 12px 14px 14px; border-top: 1px solid rgba(242,242,242,.08); }
@@ -1576,7 +1576,7 @@ body.lightMode .ghostBtn:hover{
   padding: 10px 12px;
   border-radius: 14px;
   border: 1px solid rgba(242,242,242,.12);
-  background: rgba(0,0,0,.18);
+  background: rgba(0, 0, 0, 0.772);
   color: rgba(242,242,242,.86);
 }
 
@@ -1773,7 +1773,7 @@ body.lightMode .ghostBtn:hover{
 .mxActions{
   margin-top: 14px;
   display:flex;
-  gap: 10px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
@@ -3609,12 +3609,17 @@ body.lightMode .policyPage{
 
 
 /* =========================================================
-   TYPOGRAPHY STRESS TEST PAGE
-     (Reusing some Analyze page styles)
+   TYPOGRAPHY STRESS TEST
    ========================================================= */
 
 .typoStressPanel {
-  margin-top: 16px;
+  margin-top: 18px;
+  width: 100%;
+}
+
+.typoStressPanel .panelBody {
+  display: grid;
+  gap: 16px;
 }
 
 .typoStressControls {
@@ -3628,6 +3633,7 @@ body.lightMode .policyPage{
   background: rgba(255,255,255,0.025);
   border-radius: 16px;
   padding: 12px;
+  min-width: 0;
 }
 
 .typoStressControlCard.wide {
@@ -3645,6 +3651,7 @@ body.lightMode .policyPage{
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .typoStressInput {
@@ -3666,9 +3673,10 @@ body.lightMode .policyPage{
 
 .typoStressPreviewGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: 14px;
   margin-top: 14px;
+  align-items: start;
 }
 
 .typoStressPreviewBox {
@@ -3689,10 +3697,109 @@ body.lightMode .policyPage{
   image-rendering: auto;
 }
 
+.typoStressPanel .pillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.typoStressPanel .miniCard,
+.typoStressPanel .factCard {
+  min-width: 0;
+}
+
+.typoStressPanel .reportTable {
+  width: 100%;
+}
+
+.typoStressPanel .reportTable .row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.typoStressPanel .reportTable .k {
+  color: rgba(242,242,242,.55);
+  font-size: 12px;
+  letter-spacing: .10em;
+  text-transform: uppercase;
+}
+
+.typoStressPanel .reportTable .v {
+  color: rgba(242,242,242,.82);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.typoStressPanel .thumbPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.typoStressPanel .thumbPreviewGrid .factCard {
+  padding: 10px;
+}
+
+.typoStressPanel .thumbPreviewGrid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+}
+
+.typoStressPanel .mockRangeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.typoStressPanel .mockRange {
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+
+.typoStressPanel .tag {
+  white-space: nowrap;
+}
+
+.typoStressPanel .suggestList {
+  display: grid;
+  gap: 12px;
+}
+
+.typoStressPanel .suggestItem {
+  min-width: 0;
+}
+
+.typoStressPanel .suggestDetail,
+.typoStressPanel .detailLine,
+.typoStressPanel .miniSub {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* two-column control area inside rewritten component */
+.typoStressPanel > .panelBody > div[style*="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)"] {
+  align-items: start;
+}
+
+/* responsive */
+@media (max-width: 1100px) {
+  .typoStressPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 980px) {
   .typoStressControls,
   .typoStressTextInputs,
-  .typoStressPreviewGrid {
+  .typoStressPreviewGrid,
+  .typoStressPanel .thumbPreviewGrid {
     grid-template-columns: 1fr;
   }
 
@@ -3701,6 +3808,25 @@ body.lightMode .policyPage{
   }
 }
 
+@media (max-width: 760px) {
+  .typoStressPanel .reportTable .row {
+    grid-template-columns: 1fr;
+  }
+
+  .typoStressPanel .mockRangeRow {
+    align-items: flex-start;
+  }
+
+  .typoStressPanel .pillRow {
+    gap: 6px;
+  }
+
+  .typoStressPanel .pillBtn,
+  .typoStressPanel .ghostBtn {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+}
 
 /* =========================================================
    GENRE MAP PAGE

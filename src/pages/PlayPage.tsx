@@ -1,12 +1,19 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { fileToObjectUrl } from "../lib/storage";
 
 type Tile =
   | { id: string; kind: "static"; src: string; label: string }
   | { id: string; kind: "upload"; dataUrl: string | null };
 
-const STATIC_COUNT = 11; // number of static images available
+type PlayState = {
+  uploadedDataUrl?: string | null;
+};
+
+const STATIC_COUNT = 21;
+const VISIBLE_STATIC = 11;
+const TOTAL_TILES = 12;
+const UPLOAD_INDEX = 6;
 
 function buildStaticImageUrls(): Array<{ src: string; label: string }> {
   const BASE = import.meta.env.BASE_URL;
@@ -20,28 +27,6 @@ function buildStaticImageUrls(): Array<{ src: string; label: string }> {
   });
 }
 
-function makeInitialTiles(): Tile[] {
-  const BASE = import.meta.env.BASE_URL; // "/covercheck/" on GitHub Pages
-  const images = Array.from(
-    { length: 11 },
-    (_, i) => `${BASE}play/${String(i + 1).padStart(2, "0")}.jpg`
-  );
-
-  const tiles: Tile[] = [];
-  let imgIndex = 0;
-
-  for (let i = 0; i < 12; i++) {
-    if (i === 6) {
-      tiles.push({ id: "upload-slot", kind: "upload", dataUrl: null });
-    } else {
-      const name = String((imgIndex % images.length) + 1).padStart(2, "0");
-      tiles.push({ id: `static-${i}`, kind: "static", src: images[imgIndex % images.length], label: `Sample cover ${name}` });
-      imgIndex++;
-    }
-  }
-  return tiles;
-}
-
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -51,14 +36,44 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
+function makeTiles(uploadDataUrl: string | null = null): Tile[] {
+  const allImages = buildStaticImageUrls();
+  const chosen = shuffleArray(allImages).slice(0, VISIBLE_STATIC);
+
+  const tiles: Tile[] = [];
+  let imgIndex = 0;
+
+  for (let i = 0; i < TOTAL_TILES; i++) {
+    if (i === UPLOAD_INDEX) {
+      tiles.push({
+        id: "upload-slot",
+        kind: "upload",
+        dataUrl: uploadDataUrl,
+      });
+    } else {
+      const image = chosen[imgIndex++];
+      tiles.push({
+        id: `static-${image.src}`,
+        kind: "static",
+        src: image.src,
+        label: image.label,
+      });
+    }
+  }
+
+  return tiles;
+}
+
 export default function PlayPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const fileRef = React.useRef<HTMLInputElement | null>(null);
 
-  // No persistence: reload/exit clears uploads
-  const [tiles, setTiles] = React.useState<Tile[]>(() => makeInitialTiles());
+  const uploadedFromState =
+    ((location.state as PlayState | null)?.uploadedDataUrl ?? null);
 
-  // Optionally pre-load all static images
+  const [tiles, setTiles] = React.useState<Tile[]>(() => makeTiles(uploadedFromState));
+
   React.useEffect(() => {
     const images = buildStaticImageUrls();
     images.forEach(({ src }) => {
@@ -67,31 +82,56 @@ export default function PlayPage() {
     });
   }, []);
 
-  function shuffleStatic() {
-    setTiles((prev) => {
-      const statics = prev.filter((t) => t.kind === "static") as Extract<Tile, { kind: "static" }>[];
-      const shuffled = shuffleArray(statics);
+  React.useEffect(() => {
+    setTiles(makeTiles(uploadedFromState));
+  }, [uploadedFromState]);
 
-      let si = 0;
-      return prev.map((t) => (t.kind === "static" ? shuffled[si++] : t));
-    });
+  function getCurrentUploadDataUrl() {
+    const uploadTile = tiles.find(
+      (t): t is Extract<Tile, { kind: "upload" }> => t.kind === "upload"
+    );
+    return uploadTile?.dataUrl ?? null;
+  }
+
+  function shuffleStatic() {
+    setTiles(makeTiles(getCurrentUploadDataUrl()));
   }
 
   async function handleUpload(file: File) {
     const dataUrl = await fileToObjectUrl(file);
-    setTiles((prev) => prev.map((t) => (t.kind === "upload" ? { ...t, dataUrl } : t)));
-    navigate("/analyze", { state: { dataUrl } });
+    setTiles(makeTiles(dataUrl));
+
+    navigate("/analyze", {
+      state: {
+        dataUrl,
+        uploadedDataUrl: dataUrl,
+      },
+    });
   }
 
   function onTileClick(t: Tile) {
+    const uploadedDataUrl = getCurrentUploadDataUrl();
+
     if (t.kind === "upload") {
-      if (!t.dataUrl) fileRef.current?.click();
-      else navigate("/analyze", { state: { dataUrl: t.dataUrl } });
+      if (!t.dataUrl) {
+        fileRef.current?.click();
+      } else {
+        navigate("/analyze", {
+          state: {
+            dataUrl: t.dataUrl,
+            uploadedDataUrl,
+          },
+        });
+      }
       return;
     }
 
-    // Static image → analyze directly
-    navigate("/analyze", { state: { dataUrl: t.src } });
+    navigate("/analyze", {
+      state: {
+        dataUrl: t.src,
+        uploadedDataUrl,
+      },
+    });
   }
 
   return (
@@ -100,7 +140,8 @@ export default function PlayPage() {
         <div>
           <div className="playTitle">PLAY / ANALYZE</div>
           <div className="playSub">
-            Click a tile to analyze it. Use the empty slot to upload your own cover. Shuffle changes the gallery order.
+            Click a tile to analyze it. Use the empty slot to upload your own cover.
+            Shuffle changes the gallery order.
           </div>
         </div>
 
@@ -127,13 +168,19 @@ export default function PlayPage() {
         {tiles.map((t) => {
           if (t.kind === "static") {
             return (
-              <button key={t.id} className="tile" onClick={() => onTileClick(t)} title="Click to analyze">
+              <button
+                key={t.id}
+                className="tile"
+                onClick={() => onTileClick(t)}
+                title="Click to analyze"
+              >
                 <img
                   src={t.src}
                   alt={t.label}
                   onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.opacity = "0.2";
-                    (e.currentTarget as HTMLImageElement).alt = `Missing: ${t.src}`;
+                    const img = e.currentTarget as HTMLImageElement;
+                    img.style.opacity = "0.2";
+                    img.alt = `Missing: ${t.src}`;
                   }}
                 />
               </button>
@@ -163,7 +210,29 @@ export default function PlayPage() {
         })}
       </div>
 
-      <div className="playFooterHint">Tip: uploads stay local and clear when you reload/exit.</div>
+      <div className="playFooterHint">
+        <div>Tip:</div>
+        <div>1) Uploads stay local and clear when you reload/exit.</div>
+        <div className="creditLine">
+          2) All images used are sourced from{" "}
+          <a
+            href="https://www.pexels.com/collections/album-backgrounds-hqckgjr/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Pexels
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://unsplash.com/s/photos/album-cover?license=free"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Unsplash
+          </a>
+          , used under their respective licenses.
+        </div>
+      </div>
     </div>
   );
 }

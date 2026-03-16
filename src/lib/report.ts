@@ -47,4 +47,6 @@ export type ReportData = {
   suggestions: Suggestion[];
 
   changes: ReleaseChangeSet | null;
+
+  
 };

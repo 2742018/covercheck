@@ -29,11 +29,17 @@ import {
 } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
 import type { ReportData, Suggestion, ViewMode } from "../lib/report";
-import TypographyStressTest from "../components/typographystresstest.tsx";
+import TypographyStressTest from "../components/typographystresstest";
 
-type AnalyzeState = { dataUrl?: string };
+type AnalyzeState = {
+  dataUrl?: string;
+  uploadedDataUrl?: string | null;
+};
+
 type Handle = "nw" | "ne" | "sw" | "se";
 type DragMode = "idle" | "new" | "move" | "resize";
+
+type CropPosition = { x: number; y: number };
 
 function TopProgress({ active, label }: { active: boolean; label: string }) {
   if (!active) return null;
@@ -229,7 +235,7 @@ function ensureSourceCanvas(imageData: ImageData) {
 function mapCropRegionToImageRectWithCrop(
   imageData: ImageData,
   regionInCrop01: NormalizedRect,
-  cropPos: { x: number; y: number },
+  cropPos: CropPosition,
   zoom: number
 ): NormalizedRect {
   const srcW = imageData.width;
@@ -253,6 +259,7 @@ async function imageDataToJpegDataUrl(
   c.height = imageData.height;
   const ctx = c.getContext("2d");
   if (!ctx) return null;
+
   ctx.putImageData(imageData, 0, 0);
 
   return new Promise((resolve) => {
@@ -263,7 +270,8 @@ async function imageDataToJpegDataUrl(
           return;
         }
         const reader = new FileReader();
-        reader.onloadend = () => resolve(typeof reader.result === "string" ? reader.result : null);
+        reader.onloadend = () =>
+          resolve(typeof reader.result === "string" ? reader.result : null);
         reader.readAsDataURL(blob);
       },
       "image/jpeg",
@@ -274,7 +282,7 @@ async function imageDataToJpegDataUrl(
 
 function buildThumb64Snapshot(
   sourceCanvas: HTMLCanvasElement,
-  cropPos: { x: number; y: number },
+  cropPos: CropPosition,
   zoom: number,
   regionInCrop: NormalizedRect
 ): Thumb64Snapshot {
@@ -421,12 +429,15 @@ export default function AnalyzePage() {
   const location = useLocation();
   const state = (location.state ?? {}) as AnalyzeState;
 
+  const initialUploadedDataUrl =
+    state.uploadedDataUrl ?? (state.dataUrl?.startsWith("blob:") ? state.dataUrl : null);
+
   const [dataUrl, setDataUrl] = useState<string | null>(state.dataUrl ?? null);
+  const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(initialUploadedDataUrl);
 
   const [viewMode, setViewMode] = useState<ViewMode>("crop");
   const [region, setRegion] = useState<NormalizedRect | null>(null);
-
-  const [cropPos, setCropPos] = useState({ x: 0.5, y: 0.5 });
+  const [cropPos, setCropPos] = useState<CropPosition>({ x: 0.5, y: 0.5 });
   const [zoom, setZoom] = useState(1);
   const [panCrop, setPanCrop] = useState(false);
 
@@ -482,7 +493,6 @@ export default function AnalyzePage() {
   });
 
   const safeInset = 0.08;
-
   const hasRegion = Boolean(region);
   const hasAnalysis = Boolean(
     region && regionMetrics && safeMargin && palette && composition && release
@@ -528,6 +538,19 @@ export default function AnalyzePage() {
     setSuggestions([]);
   }, []);
 
+  const resetForNewImage = useCallback(() => {
+    setViewMode("crop");
+    setCropPos({ x: 0.5, y: 0.5 });
+    setZoom(1);
+    setPanCrop(false);
+    setRegionBoth(null);
+    clearAnalysisOnly();
+    setComposition(null);
+    setImgSize(null);
+    analysisRef.current = null;
+    srcCanvasRef.current = null;
+  }, [clearAnalysisOnly, setRegionBoth]);
+
   const redraw = useCallback(() => {
     const host = hostRef.current;
     const canvas = canvasRef.current;
@@ -557,12 +580,7 @@ export default function AnalyzePage() {
     ctx.save();
     ctx.strokeStyle = "rgba(245,245,245,0.14)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(
-      drawRect.x + 0.5,
-      drawRect.y + 0.5,
-      drawRect.w - 1,
-      drawRect.h - 1
-    );
+    ctx.strokeRect(drawRect.x + 0.5, drawRect.y + 0.5, drawRect.w - 1, drawRect.h - 1);
     ctx.restore();
 
     if (showSafe) {
@@ -621,13 +639,7 @@ export default function AnalyzePage() {
 
     const cropRect =
       viewMode === "crop"
-        ? coverCropWithPosZoom(
-            imageData.width,
-            imageData.height,
-            cropPos.x,
-            cropPos.y,
-            zoom
-          )
+        ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
         : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
 
     setComposition(computeCompositionMetrics(imageData, cropRect));
@@ -656,13 +668,7 @@ export default function AnalyzePage() {
 
       const cropRect =
         viewMode === "crop"
-          ? coverCropWithPosZoom(
-              imageData.width,
-              imageData.height,
-              cropPos.x,
-              cropPos.y,
-              zoom
-            )
+          ? coverCropWithPosZoom(imageData.width, imageData.height, cropPos.x, cropPos.y, zoom)
           : { sx: 0, sy: 0, sw: imageData.width, sh: imageData.height };
 
       const comp = computeCompositionMetrics(imageData, cropRect);
@@ -754,45 +760,38 @@ export default function AnalyzePage() {
   ]);
 
   const goToReport = useCallback(
-  (finalAction: "report" | "ready") => {
-    setIsGeneratingReport(true);
+    (finalAction: "report" | "ready") => {
+      setIsGeneratingReport(true);
 
-    requestAnimationFrame(() => {
-      void (async () => {
-        try {
-          const core = buildReportCore();
-          if (!core) {
-            setIsGeneratingReport(false);
-            return;
-          }
-
-          let finalReport = core;
-
-          // Make report image stable so it doesn't go blank later.
-          if (core.dataUrl.startsWith("blob:") && analysisRef.current) {
-            const snap = await imageDataToJpegDataUrl(analysisRef.current, 0.9);
-
-            // sessionStorage quota guard (string length is a proxy)
-            if (snap && snap.length < 4_000_000) {
-              finalReport = { ...core, dataUrl: snap };
+      requestAnimationFrame(() => {
+        void (async () => {
+          try {
+            const core = buildReportCore();
+            if (!core) {
+              setIsGeneratingReport(false);
+              return;
             }
+
+            let finalReport = core;
+
+            if (core.dataUrl.startsWith("blob:") && analysisRef.current) {
+              const snap = await imageDataToJpegDataUrl(analysisRef.current, 0.9);
+              if (snap && snap.length < 4_000_000) {
+                finalReport = { ...core, dataUrl: snap };
+              }
+            }
+
+            saveReportToSession(finalReport, finalAction);
+            startNavTransition(() => navigate("/report"));
+          } catch (err) {
+            console.error("[AnalyzePage] goToReport failed", err);
+            setIsGeneratingReport(false);
           }
-
-          saveReportToSession(finalReport, finalAction);
-
-          startNavTransition(() => {
-            navigate("/report");
-          });
-        } catch (err) {
-          console.error("[AnalyzePage] goToReport failed", err);
-          setIsGeneratingReport(false);
-        }
-      })();
-    });
-  },
-  [buildReportCore, navigate, startNavTransition]
-);
-
+        })();
+      });
+    },
+    [buildReportCore, navigate, startNavTransition]
+  );
 
   const endDragAndScore = useCallback(() => {
     setPendingAnalysis(true);
@@ -812,6 +811,12 @@ export default function AnalyzePage() {
     });
   }, [computeAllNow, redraw]);
 
+  const goBackToPlay = useCallback(() => {
+    navigate("/play", {
+      state: { uploadedDataUrl },
+    });
+  }, [navigate, uploadedDataUrl]);
+
   useEffect(() => {
     const ro = new ResizeObserver(() => redraw());
     if (hostRef.current) ro.observe(hostRef.current);
@@ -822,32 +827,87 @@ export default function AnalyzePage() {
     redraw();
   }, [redraw, region, viewMode, showSafe]);
 
-  function pointerToNormalized(clientX: number, clientY: number) {
-    const host = hostRef.current;
-    if (!host) return null;
+  useEffect(() => {
+    if (!dataUrl) return;
 
-    const r = host.getBoundingClientRect();
-    const px = clientX - r.left;
-    const py = clientY - r.top;
+    let alive = true;
 
-    if (viewMode === "crop") {
-      return { nx: clamp01(px / r.width), ny: clamp01(py / r.height), inside: true };
-    }
+    void (async () => {
+      setBusy(true);
+      setError(null);
 
-    if (!imgSize) return null;
+      try {
+        const analysis = await buildAnalysisImageData(dataUrl, 640);
+        if (!alive) return;
 
-    const contain = computeContainRect(imgSize.w, imgSize.h, r.width, r.height);
-    const cx = px - contain.x;
-    const cy = py - contain.y;
+        analysisRef.current = analysis.imageData;
+        srcCanvasRef.current = ensureSourceCanvas(analysis.imageData);
+        setImgSize({ w: analysis.natural.w, h: analysis.natural.h });
 
-    const inside = cx >= 0 && cy >= 0 && cx <= contain.w && cy <= contain.h;
+        setComposition(
+          computeCompositionMetrics(analysis.imageData, {
+            sx: 0,
+            sy: 0,
+            sw: analysis.imageData.width,
+            sh: analysis.imageData.height,
+          })
+        );
+      } catch (e) {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : "Failed to process image");
+      } finally {
+        if (alive) setBusy(false);
+      }
+    })();
 
-    return {
-      nx: clamp01(cx / contain.w),
-      ny: clamp01(cy / contain.h),
-      inside,
+    return () => {
+      alive = false;
     };
-  }
+  }, [dataUrl]);
+
+  useEffect(() => {
+    setPendingAnalysis(true);
+
+    const t = window.setTimeout(() => {
+      computeCompositionNow();
+      if (regionRef.current) computeAllNow(regionRef.current);
+      setPendingAnalysis(false);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(t);
+      setPendingAnalysis(false);
+    };
+  }, [computeAllNow, computeCompositionNow, cropPos.x, cropPos.y, viewMode, zoom]);
+
+  const pointerToNormalized = useCallback(
+    (clientX: number, clientY: number) => {
+      const host = hostRef.current;
+      if (!host) return null;
+
+      const r = host.getBoundingClientRect();
+      const px = clientX - r.left;
+      const py = clientY - r.top;
+
+      if (viewMode === "crop") {
+        return { nx: clamp01(px / r.width), ny: clamp01(py / r.height), inside: true };
+      }
+
+      if (!imgSize) return null;
+
+      const contain = computeContainRect(imgSize.w, imgSize.h, r.width, r.height);
+      const cx = px - contain.x;
+      const cy = py - contain.y;
+      const inside = cx >= 0 && cy >= 0 && cx <= contain.w && cy <= contain.h;
+
+      return {
+        nx: clamp01(cx / contain.w),
+        ny: clamp01(cy / contain.h),
+        inside,
+      };
+    },
+    [imgSize, viewMode]
+  );
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>) {
     const p = pointerToNormalized(e.clientX, e.clientY);
@@ -1022,79 +1082,14 @@ export default function AnalyzePage() {
     try {
       const url = await fileToObjectUrl(file);
       setDataUrl(url);
-
-      setViewMode("crop");
-      setCropPos({ x: 0.5, y: 0.5 });
-      setZoom(1);
-      setPanCrop(false);
-
-      setRegionBoth(null);
-      clearAnalysisOnly();
-      setComposition(null);
-      setImgSize(null);
-      analysisRef.current = null;
-      srcCanvasRef.current = null;
+      setUploadedDataUrl(url);
+      resetForNewImage();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(false);
     }
   }
-
-  useEffect(() => {
-    if (!dataUrl) return;
-
-    let alive = true;
-
-    void (async () => {
-      setBusy(true);
-      setError(null);
-
-      try {
-        const analysis = await buildAnalysisImageData(dataUrl, 640);
-        if (!alive) return;
-
-        analysisRef.current = analysis.imageData;
-        srcCanvasRef.current = ensureSourceCanvas(analysis.imageData);
-        setImgSize({ w: analysis.natural.w, h: analysis.natural.h });
-
-        setComposition(
-          computeCompositionMetrics(analysis.imageData, {
-            sx: 0,
-            sy: 0,
-            sw: analysis.imageData.width,
-            sh: analysis.imageData.height,
-          })
-        );
-      } catch (e) {
-        if (!alive) return;
-        setError(e instanceof Error ? e.message : "Failed to process image");
-      } finally {
-        if (alive) setBusy(false);
-        requestAnimationFrame(redraw);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, [dataUrl, redraw]);
-
-  useEffect(() => {
-    setPendingAnalysis(true);
-
-    const t = window.setTimeout(() => {
-      computeCompositionNow();
-      if (regionRef.current) computeAllNow(regionRef.current);
-      redraw();
-      setPendingAnalysis(false);
-    }, 250);
-
-    return () => {
-      window.clearTimeout(t);
-      setPendingAnalysis(false);
-    };
-  }, [computeAllNow, computeCompositionNow, cropPos.x, cropPos.y, redraw, viewMode, zoom]);
 
   return (
     <div className="analyzeWrap">
@@ -1103,15 +1098,17 @@ export default function AnalyzePage() {
       <div className="mockHero analyzeHero">
         <div className="mockHeroTop">
           <button
+            type="button"
             className="ghostBtn"
-            onClick={() => navigate("/play")}
-            disabled={busy || navPending}
+            onClick={goBackToPlay}
+            disabled={navPending}
           >
             ← BACK
           </button>
 
           <div className="mockHeroActions">
             <button
+              type="button"
               className="ghostBtn"
               onClick={() => fileRef.current?.click()}
               disabled={busy || navPending}
@@ -1120,6 +1117,7 @@ export default function AnalyzePage() {
             </button>
 
             <button
+              type="button"
               className="ghostBtn"
               onClick={() => {
                 setRegionBoth(null);
@@ -1132,6 +1130,7 @@ export default function AnalyzePage() {
             </button>
 
             <button
+              type="button"
               className="primaryBtn"
               disabled={!hasAnalysis || isGeneratingReport || navPending}
               onClick={() => goToReport("report")}
@@ -1171,6 +1170,7 @@ export default function AnalyzePage() {
             composition.
           </div>
           <button
+            type="button"
             className="primaryBtn"
             onClick={() => fileRef.current?.click()}
             disabled={busy || navPending}
@@ -1181,206 +1181,457 @@ export default function AnalyzePage() {
       )}
 
       {dataUrl && (
-        <div className="analyzeWorkspace">
-          <div className="analyzeLeft">
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">Cover + region</div>
-                <div className="panelNote">
-                  {viewMode === "crop"
-                    ? "Crop view simulates square streaming thumbnails. Use PAN CROP to choose the most realistic square framing."
-                    : "Full view shows the entire image using contain."}
-                </div>
-              </div>
-
-              <div
-                ref={hostRef}
-                className={`mediaStage ${viewMode === "crop" ? "crop" : "full"} ${
-                  panCrop ? "isPanning" : ""
-                }`}
-                style={
-                  viewMode === "full" && imgSize
-                    ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` }
-                    : undefined
-                }
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerCancel}
-              >
-                <img
-                  className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`}
-                  src={dataUrl}
-                  alt="Uploaded cover"
-                  draggable={false}
-                  style={imgStyle}
-                />
-                <canvas ref={canvasRef} className="overlayCanvas" />
-              </div>
-
-              <div className="imageToolbar">
-                <div className="toolbarRow">
-                  <button
-                    className={`pillBtn ${viewMode === "crop" ? "on" : ""}`}
-                    onClick={() => {
-                      setViewMode("crop");
-                      setPanCrop(false);
-                      setRegionBoth(null);
-                      clearAnalysisOnly();
-                    }}
-                    disabled={busy || navPending}
-                  >
-                    CROP VIEW
-                  </button>
-
-                  <button
-                    className={`pillBtn ${viewMode === "full" ? "on" : ""}`}
-                    onClick={() => {
-                      setViewMode("full");
-                      setPanCrop(false);
-                      setRegionBoth(null);
-                      clearAnalysisOnly();
-                    }}
-                    disabled={busy || navPending}
-                  >
-                    FULL VIEW
-                  </button>
-
-                  <button
-                    className={`pillBtn ${showSafe ? "on" : ""}`}
-                    onClick={() => setShowSafe((v) => !v)}
-                    disabled={busy || navPending}
-                  >
-                    SAFE AREA
-                  </button>
-
-                  <button
-                    className={`pillBtn ${panCrop ? "on" : ""}`}
-                    onClick={() => setPanCrop((v) => !v)}
-                    title="Turn on to drag the crop. Turn off to draw the text region."
-                    disabled={busy || navPending}
-                  >
-                    PAN CROP
-                  </button>
+        <>
+          <div className="analyzeWorkspace">
+            <div className="analyzeLeft">
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Cover + region</div>
+                  <div className="panelNote">
+                    {viewMode === "crop"
+                      ? "Crop view simulates square streaming thumbnails. Use PAN CROP to choose the most realistic square framing."
+                      : "Full view shows the entire image using contain."}
+                  </div>
                 </div>
 
-                <div className="toolbarRow">
-                  <div className="zoomControl">
-                    <span className="zoomLabel">ZOOM</span>
-                    <input
-                      className="range"
-                      type="range"
-                      min={1}
-                      max={2.5}
-                      step={0.01}
-                      value={zoom}
-                      onChange={(e) => setZoom(parseFloat(e.target.value))}
-                      disabled={viewMode !== "crop" || busy || navPending}
-                    />
+                <div
+                  ref={hostRef}
+                  className={`mediaStage ${viewMode === "crop" ? "crop" : "full"} ${
+                    panCrop ? "isPanning" : ""
+                  }`}
+                  style={
+                    viewMode === "full" && imgSize
+                      ? { aspectRatio: `${imgSize.w} / ${imgSize.h}` }
+                      : undefined
+                  }
+                  onPointerDown={onPointerDown}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  onPointerCancel={onPointerCancel}
+                >
+                  <img
+                    className={`mediaImg ${viewMode === "crop" ? "crop" : "full"}`}
+                    src={dataUrl}
+                    alt="Uploaded cover"
+                    draggable={false}
+                    style={imgStyle}
+                  />
+                  <canvas ref={canvasRef} className="overlayCanvas" />
+                </div>
+
+                <div className="imageToolbar">
+                  <div className="toolbarRow">
                     <button
-                      className="ghostBtn"
+                      type="button"
+                      className={`pillBtn ${viewMode === "crop" ? "on" : ""}`}
                       onClick={() => {
-                        setCropPos({ x: 0.5, y: 0.5 });
-                        setZoom(1);
+                        setViewMode("crop");
+                        setPanCrop(false);
+                        setRegionBoth(null);
+                        clearAnalysisOnly();
                       }}
-                      disabled={viewMode !== "crop" || busy || navPending}
+                      disabled={busy || navPending}
                     >
-                      RESET CROP
+                      CROP VIEW
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`pillBtn ${viewMode === "full" ? "on" : ""}`}
+                      onClick={() => {
+                        setViewMode("full");
+                        setPanCrop(false);
+                        setRegionBoth(null);
+                        clearAnalysisOnly();
+                      }}
+                      disabled={busy || navPending}
+                    >
+                      FULL VIEW
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`pillBtn ${showSafe ? "on" : ""}`}
+                      onClick={() => setShowSafe((v) => !v)}
+                      disabled={busy || navPending}
+                    >
+                      SAFE AREA
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`pillBtn ${panCrop ? "on" : ""}`}
+                      onClick={() => setPanCrop((v) => !v)}
+                      title="Turn on to drag the crop. Turn off to draw the text region."
+                      disabled={busy || navPending}
+                    >
+                      PAN CROP
                     </button>
                   </div>
-                </div>
 
-                <div className="metaRow">
-                  {imgSize && (
-                    <span className="tag">
-                      {imgSize.w}×{imgSize.h}
-                    </span>
-                  )}
-                  <span className="tag">view: {viewMode.toUpperCase()}</span>
-                  {region ? (
-                    <span className="tag">
-                      region: {Math.round(region.w * 100)}% ×{" "}
-                      {Math.round(region.h * 100)}%
-                    </span>
-                  ) : (
-                    <span className="tag">region: none</span>
-                  )}
-                  <span className={`statusTag ${release?.overallPass ? "pass" : "fail"}`}>
-                    {releaseBadgeText}
-                  </span>
-                </div>
-
-                {error && <div className="errorLine">{error}</div>}
-              </div>
-            </div>
-
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">Composition</div>
-                <div className="panelNote">
-                  A composition layer to complement readability. These five metrics
-                  describe overall character: light/dark, colour balance, symmetry,
-                  texture, and organic vs technical shape language.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                {!composition ? (
-                  <div className="miniHint">Composition will appear after the image loads.</div>
-                ) : (
-                  <div className="compGrid compGridBig">
-                    <div className="miniCard">
-                      <div className="miniLabel">Light vs dark</div>
-                      <div className="miniValue">{composition.lightDark.label}</div>
-                      <div className="miniSub">
-                        Average luminance: {composition.lightDark.averageLuminance}/100
-                      </div>
-                      {composition.lightDark.warning && (
-                        <div className="detailLine">{composition.lightDark.warning}</div>
-                      )}
-                    </div>
-
-                    <div className="miniCard">
-                      <div className="miniLabel">Colour balance</div>
-                      <div className="miniValue">{composition.colorBalance.label}</div>
-                      <div className="miniSub">
-                        Warm {composition.colorBalance.warmPct}% • Cool{" "}
-                        {composition.colorBalance.coolPct}% • Saturation spread{" "}
-                        {composition.colorBalance.saturationSpread}/100
-                      </div>
-                      <div className="detailLine">
-                        Dominant colour weight: {composition.colorBalance.dominantWeight}/100
-                      </div>
-                    </div>
-
-                    <div className="miniCard">
-                      <div className="miniLabel">Symmetry vs asymmetry</div>
-                      <div className="miniValue">{composition.symmetry.label}</div>
-                      <div className="miniSub">
-                        Vertical mirror similarity: {composition.symmetry.score}/100
-                      </div>
-                    </div>
-
-                    <div className="miniCard">
-                      <div className="miniLabel">Texture / complexity</div>
-                      <div className="miniValue">{composition.texture.label}</div>
-                      <div className="miniSub">
-                        Texture energy: {composition.texture.energy}/100
-                      </div>
-                    </div>
-
-                    <div className="miniCard">
-                      <div className="miniLabel">Organic vs technical</div>
-                      <div className="miniValue">{composition.organicTechnical.label}</div>
-                      <div className="miniSub">
-                        Structure score: {composition.organicTechnical.score}/100
-                      </div>
+                  <div className="toolbarRow">
+                    <div className="zoomControl">
+                      <span className="zoomLabel">ZOOM</span>
+                      <input
+                        className="range"
+                        type="range"
+                        min={1}
+                        max={2.5}
+                        step={0.01}
+                        value={zoom}
+                        onChange={(e) => setZoom(parseFloat(e.target.value))}
+                        disabled={viewMode !== "crop" || busy || navPending}
+                      />
+                      <button
+                        type="button"
+                        className="ghostBtn"
+                        onClick={() => {
+                          setCropPos({ x: 0.5, y: 0.5 });
+                          setZoom(1);
+                        }}
+                        disabled={viewMode !== "crop" || busy || navPending}
+                      >
+                        RESET CROP
+                      </button>
                     </div>
                   </div>
-                )}
+
+                  <div className="metaRow">
+                    {imgSize && (
+                      <span className="tag">
+                        {imgSize.w}×{imgSize.h}
+                      </span>
+                    )}
+                    <span className="tag">view: {viewMode.toUpperCase()}</span>
+                    {region ? (
+                      <span className="tag">
+                        region: {Math.round(region.w * 100)}% × {Math.round(region.h * 100)}%
+                      </span>
+                    ) : (
+                      <span className="tag">region: none</span>
+                    )}
+                    <span className={`statusTag ${release?.overallPass ? "pass" : "fail"}`}>
+                      {releaseBadgeText}
+                    </span>
+                  </div>
+
+                  {error && <div className="errorLine">{error}</div>}
+                </div>
+              </div>
+
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Composition</div>
+                  <div className="panelNote">
+                    A composition layer to complement readability. These five metrics
+                    describe overall character: light/dark, colour balance, symmetry,
+                    texture, and organic vs technical shape language.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!composition ? (
+                    <div className="miniHint">Composition will appear after the image loads.</div>
+                  ) : (
+                    <div className="compGrid compGridBig">
+                      <div className="miniCard">
+                        <div className="miniLabel">Light vs dark</div>
+                        <div className="miniValue">{composition.lightDark.label}</div>
+                        <div className="miniSub">
+                          Average luminance: {composition.lightDark.averageLuminance}/100
+                        </div>
+                        {composition.lightDark.warning && (
+                          <div className="detailLine">{composition.lightDark.warning}</div>
+                        )}
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Colour balance</div>
+                        <div className="miniValue">{composition.colorBalance.label}</div>
+                        <div className="miniSub">
+                          Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Saturation spread {composition.colorBalance.saturationSpread}/100
+                        </div>
+                        <div className="detailLine">
+                          Dominant colour weight: {composition.colorBalance.dominantWeight}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Symmetry vs asymmetry</div>
+                        <div className="miniValue">{composition.symmetry.label}</div>
+                        <div className="miniSub">
+                          Vertical mirror similarity: {composition.symmetry.score}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Texture / complexity</div>
+                        <div className="miniValue">{composition.texture.label}</div>
+                        <div className="miniSub">
+                          Texture energy: {composition.texture.energy}/100
+                        </div>
+                      </div>
+
+                      <div className="miniCard">
+                        <div className="miniLabel">Organic vs technical</div>
+                        <div className="miniValue">{composition.organicTechnical.label}</div>
+                        <div className="miniSub">
+                          Structure score: {composition.organicTechnical.score}/100
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
+            <div className="analyzeRight">
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Region analysis</div>
+                  <div className="panelNote">
+                    Core album-cover checks for the selected title/artist region:
+                    readability, placement risk, and palette guidance.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!region || !regionMetrics || !safeMargin || !palette ? (
+                    <div className="miniHint">Draw a region to analyze the title/artist area.</div>
+                  ) : (
+                    <div className="analysisSections">
+                      <div className="sectionBlock">
+                        <div className="sectionHead">Readability</div>
+
+                        <div className="metricsGrid">
+                          <div className="metricCard">
+                            <div className="metricLabel">Contrast</div>
+                            <div className="metricValue">
+                              {regionMetrics.contrastRatio.toFixed(2)}
+                            </div>
+                            <div className="metricSub">
+                              {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small / ≥ 3.0 large
+                            </div>
+                          </div>
+
+                          <div className="metricCard">
+                            <div className="metricLabel">Clutter</div>
+                            <div className="metricValue">
+                              {Math.round(regionMetrics.clutterScore)}
+                            </div>
+                            <div className="metricSub">
+                              {scoreLabel(regionMetrics.clutterScore)} • target ≥ 60/100
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="detailLine">
+                          Contrast estimates separation between text and background. Clutter
+                          estimates how much background detail competes with letterforms.
+                        </div>
+                      </div>
+
+                      <div className="sectionBlock">
+                        <div className="sectionHead">Placement</div>
+
+                        <div className="twoCol">
+                          <div className="miniCard">
+                            <div className="miniLabel">Safe area score</div>
+                            <div className="miniValue">{safeMargin.score.toFixed(0)}/100</div>
+                            <div className="miniSub">
+                              {safeMargin.pass ? "PASS" : "FAIL"} • {safeMargin.outsidePct.toFixed(0)}% outside
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Why it matters</div>
+                            <div className="miniSub">
+                              Platforms crop artwork, round corners, and add UI overlays. Edge
+                              text is the first thing to fail.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="sectionBlock">
+                        <div className="sectionHead">Colour guidance</div>
+
+                        <div className="chipRow">
+                          <div className="chipMeta">
+                            <div className="miniLabel">Region avg</div>
+                            <div className="chip" style={{ background: palette.regionAvg }} />
+                            <div className="miniSub">{palette.regionAvg}</div>
+                          </div>
+
+                          <div className="chipMeta">
+                            <div className="miniLabel">Best text</div>
+                            <div className="chip" style={{ background: palette.text.primary }} />
+                            <div className="miniSub">
+                              {palette.text.primary} • {palette.text.primaryRatio.toFixed(2)}×
+                            </div>
+                          </div>
+
+                          <div className="chipMeta">
+                            <div className="miniLabel">Alt text</div>
+                            <div className="chip" style={{ background: palette.text.secondary }} />
+                            <div className="miniSub">
+                              {palette.text.secondary} • {palette.text.secondaryRatio.toFixed(2)}×
+                            </div>
+                          </div>
+
+                          <div className="chipMeta">
+                            <div className="miniLabel">Accent</div>
+                            <div className="chip" style={{ background: palette.text.accent }} />
+                            <div className="miniSub">
+                              {palette.text.accent} • {palette.text.accentRatio.toFixed(2)}×
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="paletteRows">
+                          <div className="paletteLine">
+                            <span className="miniLabel">Region palette</span>
+                            <div className="paletteStrip">
+                              {palette.region.map((c) => (
+                                <span key={c} className="chip small" style={{ background: c }} />
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="paletteLine">
+                            <span className="miniLabel">Image palette</span>
+                            <div className="paletteStrip">
+                              {palette.image.map((c) => (
+                                <span key={c} className="chip small" style={{ background: c }} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="detailLine">
+                          Use the best text chip for maximum separation, then build
+                          accents/overlays around that palette rather than guessing.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Release readiness</div>
+                  <div className="panelNote">
+                    Final decision using explicit thresholds: contrast, safe area, clutter,
+                    and a 64px check.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!release ? (
+                    <div className="miniHint">Draw a region to compute release readiness.</div>
+                  ) : (
+                    <>
+                      <div className="readyTop">
+                        <span className={`statusTag ${release.overallPass ? "pass" : "fail"}`}>
+                          {release.overallPass ? "READY TO UPLOAD" : "NOT READY"} • {release.score}/100
+                        </span>
+                      </div>
+
+                      <div className="readyList">
+                        {release.checks.map((c) => (
+                          <div key={c.id} className="readyRow">
+                            <div>
+                              <div className="readyLabel">{c.label}</div>
+                              <div className="readyMeta">
+                                <b>Value:</b> {c.value} • <b>Target:</b> {c.target}
+                              </div>
+                              <div className="readyMeta">{c.why}</div>
+                            </div>
+                            <span className={`statusTag ${c.pass ? "pass" : "fail"}`}>
+                              {c.pass ? "PASS" : "FAIL"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {!release.overallPass && (
+                        <div className="readyFixes">
+                          <div className="sectionHead">What to change next</div>
+                          <ul className="readyFixList">
+                            {release.nextChanges.map((x) => (
+                              <li key={x}>{x}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="readyActions">
+                        <button
+                          type="button"
+                          className="primaryBtn"
+                          onClick={() => goToReport("report")}
+                          disabled={!hasAnalysis || isGeneratingReport || navPending}
+                        >
+                          {isGeneratingReport || navPending ? "GENERATING…" : "GENERATE REPORT"}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghostBtn"
+                          onClick={() =>
+                            navigate("/mockups", {
+                              state: { dataUrl, uploadedDataUrl },
+                            })
+                          }
+                          disabled={busy || navPending}
+                        >
+                          OPEN MOCKUPS
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Suggestions</div>
+                  <div className="panelNote">
+                    Plain-language actions based on region + crop + composition.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!suggestions.length ? (
+                    <div className="miniHint">Select a region to generate more detailed guidance.</div>
+                  ) : (
+                    <div className="suggestList">
+                      {suggestions.map((s, i) => (
+                        <div key={`${s.title}-${i}`} className="suggestItem">
+                          <div className="suggestTitle">{s.title}</div>
+                          <div className="suggestDetail">
+                            <div className="sLine">
+                              <b>Why:</b> {s.why}
+                            </div>
+                            <div className="sLine">
+                              <b>Try:</b> {s.try}
+                            </div>
+                            {s.target && (
+                              <div className="sLine">
+                                <b>Target:</b> {s.target}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="typoStressPanel">
             <TypographyStressTest
               dataUrl={dataUrl}
               viewMode={viewMode}
@@ -1391,250 +1642,7 @@ export default function AnalyzePage() {
               regionMetrics={regionMetrics}
             />
           </div>
-
-          <div className="analyzeRight">
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">Region analysis</div>
-                <div className="panelNote">
-                  Core album-cover checks for the selected title/artist region:
-                  readability, placement risk, and palette guidance.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                {!region || !regionMetrics || !safeMargin || !palette ? (
-                  <div className="miniHint">Draw a region to analyze the title/artist area.</div>
-                ) : (
-                  <div className="analysisSections">
-                    <div className="sectionBlock">
-                      <div className="sectionHead">Readability</div>
-
-                      <div className="metricsGrid">
-                        <div className="metricCard">
-                          <div className="metricLabel">Contrast</div>
-                          <div className="metricValue">
-                            {regionMetrics.contrastRatio.toFixed(2)}
-                          </div>
-                          <div className="metricSub">
-                            {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small / ≥
-                            3.0 large
-                          </div>
-                        </div>
-
-                        <div className="metricCard">
-                          <div className="metricLabel">Clutter</div>
-                          <div className="metricValue">
-                            {Math.round(regionMetrics.clutterScore)}
-                          </div>
-                          <div className="metricSub">
-                            {scoreLabel(regionMetrics.clutterScore)} • target ≥ 60/100
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="detailLine">
-                        Contrast estimates separation between text and background. Clutter
-                        estimates how much background detail competes with letterforms.
-                      </div>
-                    </div>
-
-                    <div className="sectionBlock">
-                      <div className="sectionHead">Placement</div>
-
-                      <div className="twoCol">
-                        <div className="miniCard">
-                          <div className="miniLabel">Safe area score</div>
-                          <div className="miniValue">{safeMargin.score.toFixed(0)}/100</div>
-                          <div className="miniSub">
-                            {safeMargin.pass ? "PASS" : "FAIL"} •{" "}
-                            {safeMargin.outsidePct.toFixed(0)}% outside
-                          </div>
-                        </div>
-
-                        <div className="miniCard">
-                          <div className="miniLabel">Why it matters</div>
-                          <div className="miniSub">
-                            Platforms crop artwork, round corners, and add UI overlays. Edge
-                            text is the first thing to fail.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="sectionBlock">
-                      <div className="sectionHead">Colour guidance</div>
-
-                      <div className="chipRow">
-                        <div className="chipMeta">
-                          <div className="miniLabel">Region avg</div>
-                          <div className="chip" style={{ background: palette.regionAvg }} />
-                          <div className="miniSub">{palette.regionAvg}</div>
-                        </div>
-
-                        <div className="chipMeta">
-                          <div className="miniLabel">Best text</div>
-                          <div className="chip" style={{ background: palette.text.primary }} />
-                          <div className="miniSub">
-                            {palette.text.primary} • {palette.text.primaryRatio.toFixed(2)}×
-                          </div>
-                        </div>
-
-                        <div className="chipMeta">
-                          <div className="miniLabel">Alt text</div>
-                          <div className="chip" style={{ background: palette.text.secondary }} />
-                          <div className="miniSub">
-                            {palette.text.secondary} •{" "}
-                            {palette.text.secondaryRatio.toFixed(2)}×
-                          </div>
-                        </div>
-
-                        <div className="chipMeta">
-                          <div className="miniLabel">Accent</div>
-                          <div className="chip" style={{ background: palette.text.accent }} />
-                          <div className="miniSub">
-                            {palette.text.accent} • {palette.text.accentRatio.toFixed(2)}×
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="paletteRows">
-                        <div className="paletteLine">
-                          <span className="miniLabel">Region palette</span>
-                          <div className="paletteStrip">
-                            {palette.region.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="paletteLine">
-                          <span className="miniLabel">Image palette</span>
-                          <div className="paletteStrip">
-                            {palette.image.map((c) => (
-                              <span key={c} className="chip small" style={{ background: c }} />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="detailLine">
-                        Use the best text chip for maximum separation, then build
-                        accents/overlays around that palette rather than guessing.
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">Release readiness</div>
-                <div className="panelNote">
-                  Final decision using explicit thresholds: contrast, safe area, clutter,
-                  and a 64px check.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                {!release ? (
-                  <div className="miniHint">Draw a region to compute release readiness.</div>
-                ) : (
-                  <>
-                    <div className="readyTop">
-                      <span className={`statusTag ${release.overallPass ? "pass" : "fail"}`}>
-                        {release.overallPass ? "READY TO UPLOAD" : "NOT READY"} •{" "}
-                        {release.score}/100
-                      </span>
-                    </div>
-
-                    <div className="readyList">
-                      {release.checks.map((c) => (
-                        <div key={c.id} className="readyRow">
-                          <div>
-                            <div className="readyLabel">{c.label}</div>
-                            <div className="readyMeta">
-                              <b>Value:</b> {c.value} • <b>Target:</b> {c.target}
-                            </div>
-                            <div className="readyMeta">{c.why}</div>
-                          </div>
-                          <span className={`statusTag ${c.pass ? "pass" : "fail"}`}>
-                            {c.pass ? "PASS" : "FAIL"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {!release.overallPass && (
-                      <div className="readyFixes">
-                        <div className="sectionHead">What to change next</div>
-                        <ul className="readyFixList">
-                          {release.nextChanges.map((x) => (
-                            <li key={x}>{x}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <div className="readyActions">
-                      <button
-                        className="primaryBtn"
-                        onClick={() => goToReport("report")}
-                        disabled={!hasAnalysis || isGeneratingReport || navPending}
-                      >
-                        {isGeneratingReport || navPending ? "GENERATING…" : "GENERATE REPORT"}
-                      </button>
-                      <button
-                        className="ghostBtn"
-                        onClick={() => navigate("/mockups", { state: { dataUrl } })}
-                        disabled={busy || navPending}
-                      >
-                        OPEN MOCKUPS
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">Suggestions</div>
-                <div className="panelNote">
-                  Plain-language actions based on region + crop + composition.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                {!suggestions.length ? (
-                  <div className="miniHint">Select a region to generate more detailed guidance.</div>
-                ) : (
-                  <div className="suggestList">
-                    {suggestions.map((s, i) => (
-                      <div key={`${s.title}-${i}`} className="suggestItem">
-                        <div className="suggestTitle">{s.title}</div>
-                        <div className="suggestDetail">
-                          <div className="sLine">
-                            <b>Why:</b> {s.why}
-                          </div>
-                          <div className="sLine">
-                            <b>Try:</b> {s.try}
-                          </div>
-                          {s.target && (
-                            <div className="sLine">
-                              <b>Target:</b> {s.target}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        </>
       )}
     </div>
   );
