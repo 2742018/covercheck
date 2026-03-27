@@ -17,6 +17,8 @@ type Question = {
   category: string;
   title: string;
   prompt: string;
+  whatItTests: string;
+  whyItMatters: string;
   options: Option[];
 };
 
@@ -27,7 +29,11 @@ const QUESTIONS: Question[] = [
     id: "type-weight",
     category: "Typography",
     title: "Typography weight",
-    prompt: "When the cover is tiny (64–128px), how should the title feel?",
+    prompt: "When the cover appears very small, how heavy or light should the title feel at first glance?",
+    whatItTests:
+      "This checks whether your instinct favors quiet, restrained lettering or thicker, more assertive type that survives thumbnail viewing.",
+    whyItMatters:
+      "In Analyze, heavier type often survives low contrast and busy imagery more easily, while lighter type usually needs calmer backgrounds and stronger spacing discipline.",
     options: [
       {
         label: "Clean + restrained",
@@ -63,7 +69,11 @@ const QUESTIONS: Question[] = [
     id: "type-size",
     category: "Typography",
     title: "Type scale",
-    prompt: "Your natural preference for title size on a cover:",
+    prompt: "How large do you naturally want the title to be compared with the rest of the cover?",
+    whatItTests:
+      "This measures whether your hierarchy instinct is subtle, balanced, headline-led, or concept-driven.",
+    whyItMatters:
+      "In Analyze, type scale affects readability, region dominance, and whether the title continues to lead once the image is reduced to streaming size.",
     options: [
       {
         label: "Small + subtle",
@@ -99,7 +109,11 @@ const QUESTIONS: Question[] = [
     id: "tracking",
     category: "Typography",
     title: "Letter spacing",
-    prompt: "How do you prefer letter spacing in title treatments?",
+    prompt: "How do you prefer letter spacing to behave in title treatments?",
+    whatItTests:
+      "This looks at whether your typography taste favors compact density, neutral control, elegant openness, or expressive irregular spacing.",
+    whyItMatters:
+      "In Analyze, spacing affects word-shape clarity, perceived calmness, and whether text still feels stable when viewed at 64–128px.",
     options: [
       {
         label: "Tight + compact",
@@ -135,7 +149,11 @@ const QUESTIONS: Question[] = [
     id: "bg-busyness",
     category: "Readability",
     title: "Background detail",
-    prompt: "Behind the title area, what background do you prefer?",
+    prompt: "What kind of background do you usually want behind the title area?",
+    whatItTests:
+      "This checks how much visual texture you are comfortable asking type to sit on top of.",
+    whyItMatters:
+      "In Analyze, busy backgrounds usually reduce contrast stability and increase clutter in the highlighted text box, which can make type feel fragile even if it looks good at full size.",
     options: [
       {
         label: "Very calm",
@@ -171,7 +189,11 @@ const QUESTIONS: Question[] = [
     id: "contrast",
     category: "Readability",
     title: "Contrast preference",
-    prompt: "How should the title separate from its background?",
+    prompt: "How strongly should the title separate from whatever sits behind it?",
+    whatItTests:
+      "This measures whether you instinctively prioritize strong separation, balanced harmony, mood-led subtlety, or concept over clarity.",
+    whyItMatters:
+      "In Analyze, contrast is one of the clearest indicators of whether title and artist text will still communicate once the cover is reduced or seen quickly in a feed.",
     options: [
       {
         label: "High contrast always",
@@ -207,7 +229,11 @@ const QUESTIONS: Question[] = [
     id: "placement",
     category: "Placement",
     title: "Title placement",
-    prompt: "Where do you naturally place the title/artist?",
+    prompt: "Where do you most naturally want to place the title and artist on the cover?",
+    whatItTests:
+      "This looks at your instinct for safe centered placement versus edge-led, asymmetrical, or image-reactive placement.",
+    whyItMatters:
+      "In Analyze, the highlighted box is checked against safe-area and edge risk. Placement choices that feel exciting at full size can become vulnerable to crops, UI overlays, or thumbnail compression.",
     options: [
       {
         label: "Centered safe zone",
@@ -243,7 +269,11 @@ const QUESTIONS: Question[] = [
     id: "overlay",
     category: "Readability",
     title: "Overlay strategy",
-    prompt: "Would you use an overlay behind text for readability?",
+    prompt: "Would you use a panel, gradient, or fade behind text to protect readability?",
+    whatItTests:
+      "This checks how willing you are to use deliberate support behind text rather than expecting the image alone to carry readability.",
+    whyItMatters:
+      "In Analyze, overlays often become the simplest fix when clutter is high or contrast is unstable inside the selected text region.",
     options: [
       {
         label: "Yes, clean panel",
@@ -279,7 +309,11 @@ const QUESTIONS: Question[] = [
     id: "color-approach",
     category: "Colour",
     title: "Color approach",
-    prompt: "How do you like choosing type/accent colors?",
+    prompt: "How do you usually choose title or accent colours for a cover?",
+    whatItTests:
+      "This checks whether your palette instinct is neutral, accent-led, image-led, or intentionally unexpected.",
+    whyItMatters:
+      "In Analyze, colour choices affect tone separation, contrast, and whether the title region feels calm, sharp, harmonious, or unstable.",
     options: [
       {
         label: "Neutral palette",
@@ -315,7 +349,11 @@ const QUESTIONS: Question[] = [
     id: "dominance",
     category: "Composition",
     title: "Image vs type dominance",
-    prompt: "What should visually dominate first?",
+    prompt: "What should visually dominate first when someone encounters the cover?",
+    whatItTests:
+      "This measures whether your hierarchy instinct places the title, the artwork, or a shifting concept at the front of the composition.",
+    whyItMatters:
+      "In Analyze, dominance relates to whether the title region is doing enough work, or whether the image is so strong that the information becomes secondary.",
     options: [
       {
         label: "Type first",
@@ -351,7 +389,11 @@ const QUESTIONS: Question[] = [
     id: "logo-density",
     category: "Information",
     title: "Info density",
-    prompt: "How much extra information do you want on the cover?",
+    prompt: "How much extra information do you like placing on the cover beyond title and artist?",
+    whatItTests:
+      "This checks your tolerance for sparse versus dense information systems.",
+    whyItMatters:
+      "In Analyze, extra marks, lines, stickers, credits, and texture can push a layout from clear to crowded, especially when everything collapses into thumbnail scale.",
     options: [
       {
         label: "Just essentials",
@@ -387,7 +429,11 @@ const QUESTIONS: Question[] = [
     id: "negative-space",
     category: "Composition",
     title: "Negative space",
-    prompt: "How do you feel about empty space around type?",
+    prompt: "How much empty space do you want around the type area?",
+    whatItTests:
+      "This looks at whether you prefer open compositions, balanced spacing, tight energy, or intentional crowding.",
+    whyItMatters:
+      "In Analyze, negative space influences clutter, calmness, and whether the title region has enough room to read as a clear unit.",
     options: [
       {
         label: "A lot of space",
@@ -423,7 +469,11 @@ const QUESTIONS: Question[] = [
     id: "symmetry",
     category: "Composition",
     title: "Balance preference",
-    prompt: "How should the composition feel structurally?",
+    prompt: "How stable or unstable should the overall composition feel?",
+    whatItTests:
+      "This checks whether you prefer orderly symmetry, controlled balance, purposeful asymmetry, or disruptive imbalance.",
+    whyItMatters:
+      "In Analyze, structural balance affects how calm or tense the composition feels, and whether the title region appears intentionally placed or visually unsettled.",
     options: [
       {
         label: "Orderly + symmetrical",
@@ -459,7 +509,11 @@ const QUESTIONS: Question[] = [
     id: "platform",
     category: "Context",
     title: "Platform priority",
-    prompt: "Which matters more for this project?",
+    prompt: "Which context matters most when judging whether the cover is successful?",
+    whatItTests:
+      "This checks whether you prioritize streaming thumbnails, balanced multi-use performance, image-first presentation, or concept over platform clarity.",
+    whyItMatters:
+      "In Analyze, context changes the threshold for what counts as good enough. A cover that works for print or large posters can still struggle badly in a small streaming grid.",
     options: [
       {
         label: "Streaming thumbnails",
@@ -495,7 +549,11 @@ const QUESTIONS: Question[] = [
     id: "goal",
     category: "Goal",
     title: "Primary goal",
-    prompt: "What matters most for the title/artist area?",
+    prompt: "What matters most to you in the title and artist area of a cover?",
+    whatItTests:
+      "This checks your underlying design goal: instant clarity, repeatable system, mood and storytelling, or experimentation.",
+    whyItMatters:
+      "In Analyze, your strongest goal shapes how you interpret the same metrics. A contrast warning can be a major problem for a clarity-led design but a deliberate tradeoff for a concept-led one.",
     options: [
       {
         label: "Instant legibility",
@@ -531,7 +589,11 @@ const QUESTIONS: Question[] = [
     id: "iteration-style",
     category: "Process",
     title: "Iteration style",
-    prompt: "When refining a cover, how do you usually work?",
+    prompt: "When refining a cover, what kind of process feels most natural to you?",
+    whatItTests:
+      "This checks whether your workflow leans toward controlled systems, performance tuning, image-led adjustment, or broad experimentation.",
+    whyItMatters:
+      "In Analyze, your iteration style affects what suggestions will feel most useful. Some people want one precise fix; others need the tool to show tradeoffs between multiple directions.",
     options: [
       {
         label: "Tight system",
@@ -574,11 +636,14 @@ const PROFILE_COPY: Record<
     watchouts: string[];
     tips: string[];
     nextInTool: string[];
+    detailedRead: string;
   }
 > = {
   minimal: {
     name: "Minimal / Typographic",
     subtitle: "Calm hierarchy, controlled spacing, predictable readability.",
+    detailedRead:
+      "Your answers suggest you trust spacing, restraint, and orderly hierarchy. You are more likely to create covers that feel controlled and readable, but they can become too quiet if contrast or emphasis is not strong enough.",
     strengths: [
       "Clear structure and spacing",
       "Usually passes safe-area checks",
@@ -602,6 +667,8 @@ const PROFILE_COPY: Record<
   bold: {
     name: "Bold / Contrast-led",
     subtitle: "Legibility-first decisions for strong thumbnail performance.",
+    detailedRead:
+      "Your answers suggest you naturally prioritize strong separation and clear hierarchy. You are more likely to produce covers that survive streaming-size viewing, though the main risk is overpowering the artwork or making the system feel visually loud.",
     strengths: [
       "High survivability at 64–128px",
       "Clear contrast decisions",
@@ -625,6 +692,8 @@ const PROFILE_COPY: Record<
   photo: {
     name: "Photographic / Mood-led",
     subtitle: "Image-first decisions with type harmonized to artwork.",
+    detailedRead:
+      "Your answers suggest you value atmosphere, storytelling, and colour harmony. You are more likely to build covers where the image leads and the type supports, which can feel premium but often needs careful protection against clutter and weak separation.",
     strengths: [
       "Strong mood and storytelling",
       "Premium when placed carefully",
@@ -648,6 +717,8 @@ const PROFILE_COPY: Record<
   experimental: {
     name: "Experimental / Texture-led",
     subtitle: "Distinctive concepts, trading some clarity for character.",
+    detailedRead:
+      "Your answers suggest you are comfortable taking visual risks when the concept deserves it. You are more likely to create memorable covers with strong character, but they will usually need more checking around readability, safe area, and thumbnail performance.",
     strengths: [
       "Memorable and unique",
       "Conceptually strong",
@@ -700,6 +771,21 @@ function readabilityLabel(n: number) {
   if (n >= 65) return "Usable";
   if (n >= 45) return "Fragile";
   return "Weak";
+}
+
+function profileTone(key: ProfileKey) {
+  switch (key) {
+    case "minimal":
+      return "clear systems, restraint, and quiet hierarchy";
+    case "bold":
+      return "strong contrast, visible hierarchy, and thumbnail performance";
+    case "photo":
+      return "mood, imagery, and color harmony";
+    case "experimental":
+      return "concept, texture, and visual risk";
+    default:
+      return "balanced design choices";
+  }
 }
 
 export default function TestPage() {
@@ -759,7 +845,29 @@ export default function TestPage() {
       share: Math.round((totals[k] / totalScore) * 100),
     }));
 
-    return { totals, top, runnerUp, readability, cropRisk, breakdown };
+    const answeredItems = QUESTIONS.filter((q) => answers[q.id] !== undefined).map((q) => ({
+      question: q,
+      option: q.options[answers[q.id]],
+    }));
+
+    const strongestReadability = [...answeredItems]
+      .sort((a, b) => b.option.readability - a.option.readability)
+      .slice(0, 3);
+
+    const strongestRisk = [...answeredItems]
+      .sort((a, b) => b.option.cropRisk - a.option.cropRisk)
+      .slice(0, 3);
+
+    return {
+      totals,
+      top,
+      runnerUp,
+      readability,
+      cropRisk,
+      breakdown,
+      strongestReadability,
+      strongestRisk,
+    };
   }, [answers]);
 
   const profile = PROFILE_COPY[computed.top];
@@ -795,19 +903,20 @@ export default function TestPage() {
           </div>
         </div>
 
-        <div className="testKicker"> Design Interpretation</div>
+        <div className="testKicker">Design Interpretation</div>
         <h1 className="testTitle">Test</h1>
         <p className="testLead">
           This design-tendency quiz helps interpret your likely strengths and tradeoffs
-          before using Analyze. It does not judge good or bad design — it helps explain
-          whether your instincts lean toward clarity, mood, structure, or experimentation.
+          before using Analyze. It does not decide whether your design taste is right or
+          wrong. Instead, it explains what your answers suggest about readability,
+          thumbnail performance, crop safety, mood, and experimentation.
         </p>
 
         <div className="testHeroStats">
           <div className="miniCard">
             <div className="miniLabel">Questions</div>
             <div className="miniValue">{totalCount}</div>
-            <div className="miniSub">Expanded for more varied outcomes</div>
+            <div className="miniSub">Expanded prompts with clearer guidance</div>
           </div>
           <div className="miniCard">
             <div className="miniLabel">Progress</div>
@@ -829,7 +938,8 @@ export default function TestPage() {
           <div className="panelTop">
             <div className="panelTitle">How it works</div>
             <div className="panelNote">
-              Answer all questions to reveal a richer design profile and practical next steps.
+              Answer all questions to reveal a richer design profile, likely tradeoffs, and
+              practical next steps for Analyze, Compare, and Mockups.
             </div>
           </div>
 
@@ -846,12 +956,22 @@ export default function TestPage() {
               </div>
 
               <div className="sectionBlock">
-                <div className="sectionHead">Why it matters</div>
+                <div className="sectionHead">How to answer well</div>
                 <ul className="testList">
-                  <li>Some cover instincts naturally support thumbnail performance.</li>
-                  <li>Others are stronger for mood, texture, or concept, but need more correction later.</li>
-                  <li>This helps you interpret Analyze results as design tradeoffs, not just “fail/pass” numbers.</li>
+                  <li>Choose the option that feels most natural to you, not the one that sounds safest.</li>
+                  <li>Treat the questions as covering your usual design instinct, not one special case.</li>
+                  <li>Use the detailed explanation under each question to understand what is really being measured.</li>
                 </ul>
+              </div>
+            </div>
+
+            <div className="sectionBlock" style={{ marginTop: 14 }}>
+              <div className="sectionHead">Why it matters before Analyze</div>
+              <div className="detailLine">
+                Analyze checks the actual highlighted text region on a cover. This quiz prepares
+                you to understand why the tool might praise some choices and challenge others.
+                For example, a mood-led answer can still be valid design thinking, but it often
+                means you should expect more contrast, clutter, or safe-area warnings later.
               </div>
             </div>
 
@@ -897,7 +1017,7 @@ export default function TestPage() {
           <div className="panelTop">
             <div className="panelTitle">Questions</div>
             <div className="panelNote">
-              Pick one option per question. Hover or read the selected detail for nuance.
+              Pick one option per question. Each card now explains what the question is testing and why it matters in the main analysis tools.
             </div>
           </div>
 
@@ -909,15 +1029,43 @@ export default function TestPage() {
                 return (
                   <div key={q.id} className="testQuestion sectionBlock">
                     <div className="testQuestionTop">
-                      <div className="sectionHead">
+                      <div
+                        className="sectionHead"
+                        style={{ fontSize: "1.22rem", lineHeight: 1.3, fontWeight: 700 }}
+                      >
                         Q{absoluteIndex + 1} — {q.title}
                       </div>
                       <span className="tag">{q.category}</span>
                     </div>
 
-                    <div className="detailLine testPrompt">{q.prompt}</div>
+                    <div
+                      className="detailLine testPrompt"
+                      style={{ fontSize: "1.06rem", lineHeight: 1.65, marginTop: 10 }}
+                    >
+                      {q.prompt}
+                    </div>
 
-                    <div className="testOptionGrid">
+                    <div className="twoCol" style={{ marginTop: 14, gap: 12 }}>
+                      <div className="sectionBlock" style={{ margin: 0, padding: 14 }}>
+                        <div className="sectionHead" style={{ fontSize: "0.92rem" }}>
+                          What this question is testing
+                        </div>
+                        <div className="detailLine" style={{ marginTop: 8 }}>
+                          {q.whatItTests}
+                        </div>
+                      </div>
+
+                      <div className="sectionBlock" style={{ margin: 0, padding: 14 }}>
+                        <div className="sectionHead" style={{ fontSize: "0.92rem" }}>
+                          Why it matters in Analyze
+                        </div>
+                        <div className="detailLine" style={{ marginTop: 8 }}>
+                          {q.whyItMatters}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="testOptionGrid" style={{ marginTop: 16 }}>
                       {q.options.map((opt, oi) => {
                         const on = selected === oi;
                         return (
@@ -930,16 +1078,28 @@ export default function TestPage() {
                               setShowResults(false);
                             }}
                           >
-                            <div className="testOptionLabel">{opt.label}</div>
-                            <div className="testOptionDetail">{opt.detail}</div>
+                            <div className="testOptionLabel" style={{ fontSize: "1rem", fontWeight: 700 }}>
+                              {opt.label}
+                            </div>
+                            <div className="testOptionDetail" style={{ lineHeight: 1.55 }}>
+                              {opt.detail}
+                            </div>
+                            <div className="miniHint" style={{ marginTop: 10 }}>
+                              Readability tendency: <b>{Math.round(opt.readability * 100)}/100</b> • Crop risk tendency:{" "}
+                              <b>{Math.round(opt.cropRisk * 100)}/100</b>
+                            </div>
                           </button>
                         );
                       })}
                     </div>
 
                     {selected !== undefined && (
-                      <div className="miniHint testSelected">
+                      <div className="miniHint testSelected" style={{ marginTop: 14, lineHeight: 1.6 }}>
                         <b>Selected:</b> {q.options[selected].detail}
+                        <br />
+                        <span>
+                          This answer will contribute to your overall profile mix, readability tendency, and crop-risk tendency once all answers are combined.
+                        </span>
                       </div>
                     )}
                   </div>
@@ -976,7 +1136,7 @@ export default function TestPage() {
             <div className="panelTitle">Results</div>
             <div className="panelNote">
               {showResults && allAnswered
-                ? "Your profile, blended tendency, and suggested next steps."
+                ? "Your profile, blended tendency, likely strengths, likely risks, and recommended next steps."
                 : "Locked until complete."}
             </div>
           </div>
@@ -1015,6 +1175,9 @@ export default function TestPage() {
                     <div className="miniSub" style={{ marginTop: 8 }}>
                       {profile.subtitle}
                     </div>
+                    <div className="detailLine" style={{ marginTop: 14, lineHeight: 1.65 }}>
+                      {profile.detailedRead}
+                    </div>
                     <div className="miniHint" style={{ marginTop: 12 }}>
                       Secondary tendency: <b>{runnerUpName}</b>
                     </div>
@@ -1038,6 +1201,24 @@ export default function TestPage() {
                   </div>
                 </div>
 
+                <div className="twoCol" style={{ marginTop: 16 }}>
+                  <div className="sectionBlock">
+                    <div className="sectionHead">How to read these results</div>
+                    <ul className="testList">
+                      <li>A higher readability tendency suggests your instincts already support small-size performance.</li>
+                      <li>A higher crop-risk tendency suggests you should check safe area and edge placement earlier.</li>
+                      <li>A mixed profile usually means your best work comes from balancing clarity with concept, not choosing one extreme.</li>
+                    </ul>
+                  </div>
+
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Main tendency summary</div>
+                    <div className="detailLine" style={{ lineHeight: 1.65 }}>
+                      Your dominant pattern points toward <b>{profileTone(computed.top)}</b>. The runner-up profile of <b>{runnerUpName}</b> suggests your work also carries some secondary traits, which is why the result is shown as a blended reading rather than a fixed label.
+                    </div>
+                  </div>
+                </div>
+
                 <div className="sectionBlock">
                   <div className="sectionHead">Profile mix</div>
                   <div className="testBreakdown">
@@ -1053,6 +1234,30 @@ export default function TestPage() {
                         <div className="testBarValue">{b.value}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div className="twoCol">
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Answers that most support readability</div>
+                    <ul className="testList">
+                      {computed.strongestReadability.map(({ question, option }) => (
+                        <li key={`${question.id}-read`}>
+                          <b>{question.title}:</b> {option.label} — {option.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="sectionBlock">
+                    <div className="sectionHead">Answers that may need extra checking</div>
+                    <ul className="testList">
+                      {computed.strongestRisk.map(({ question, option }) => (
+                        <li key={`${question.id}-risk`}>
+                          <b>{question.title}:</b> {option.label} — {option.detail}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
 
@@ -1090,13 +1295,13 @@ export default function TestPage() {
                     <div className="sectionHead">Interpretation</div>
                     <ul className="testList">
                       <li>
-                        A higher readability tendency suggests your instincts already support small-size performance.
+                        A strong readability result does not automatically mean the design is better overall; it means the cover is more likely to survive reduction and quick scanning.
                       </li>
                       <li>
-                        A higher crop-risk tendency suggests you should check safe area and edge placement earlier.
+                        A higher risk result does not automatically mean failure; it often indicates a concept-led design that needs more deliberate protection around placement, contrast, or clutter.
                       </li>
                       <li>
-                        A mixed profile usually means your best work comes from balancing clarity with concept, not choosing one extreme.
+                        The most useful next step is to compare your instinct with the actual metrics in Analyze and see where they support or challenge each other.
                       </li>
                     </ul>
                   </div>

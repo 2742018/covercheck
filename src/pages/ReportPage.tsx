@@ -39,14 +39,6 @@ function statusTone(pass: boolean) {
   return pass ? "pass" : "fail";
 }
 
-function scoreLabel(score: number) {
-  if (score >= 80) return "Excellent";
-  if (score >= 60) return "Good";
-  if (score >= 40) return "Needs work";
-  return "Poor";
-}
-
-
 function formatEffect(n: unknown) {
   if (typeof n !== "number" || Number.isNaN(n)) return "—";
   return n > 0 ? `+${n}` : `${n}`;
