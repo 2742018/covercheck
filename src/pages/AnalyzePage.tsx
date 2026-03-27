@@ -28,7 +28,7 @@ import {
   type Thumb64Snapshot,
 } from "../lib/release";
 import { saveReportToSession } from "../lib/reportStore";
-import type { ReportData, Suggestion, ViewMode } from "../lib/report";
+import type { ReportData, Suggestion, TypographyStressSnapshot, ViewMode } from "../lib/report";
 import TypographyStressTest from "../components/typographystresstest";
 
 type AnalyzeState = {
@@ -584,6 +584,7 @@ export default function AnalyzePage() {
   const [thumb64, setThumb64] = useState<Thumb64Snapshot | null>(null);
   const [release, setRelease] = useState<ReleaseReadiness | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [typography, setTypography] = useState<TypographyStressSnapshot | null>(null);
 
   const [navPending, startNavTransition] = useTransition();
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -683,6 +684,7 @@ export default function AnalyzePage() {
     setThumb64(null);
     setRelease(null);
     setSuggestions([]);
+    setTypography(null);
   }, []);
 
   const resetForNewImage = useCallback(() => {
@@ -903,6 +905,7 @@ export default function AnalyzePage() {
       release,
       suggestions,
       changes: null,
+      typography,
     };
   }, [
     composition,
@@ -915,6 +918,7 @@ export default function AnalyzePage() {
     safeMargin,
     suggestions,
     thumb64,
+    typography,
     viewMode,
     zoom,
   ]);
@@ -1971,6 +1975,7 @@ export default function AnalyzePage() {
               region={region}
               palette={palette}
               regionMetrics={regionMetrics}
+              onEvaluationChange={setTypography}
             />
           </div>
         </>

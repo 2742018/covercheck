@@ -1,5 +1,6 @@
 import React from "react";
 import type { NormalizedRect, PaletteResult, RegionMetrics } from "../analysis/metrics";
+import type { TypographyStressSnapshot } from "../lib/report";
 
 type TypographyStressTestProps = {
   dataUrl: string | null;
@@ -9,6 +10,7 @@ type TypographyStressTestProps = {
   region: NormalizedRect | null;
   palette: PaletteResult | null;
   regionMetrics: RegionMetrics | null;
+  onEvaluationChange?: (snapshot: TypographyStressSnapshot | null) => void;
 };
 
 type SampleSize = 64 | 96 | 128 | 256;
@@ -871,6 +873,7 @@ export default function TypographyStressTest({
   region,
   palette,
   regionMetrics,
+  onEvaluationChange,
 }: TypographyStressTestProps) {
   const [sampleSize, setSampleSize] = React.useState<SampleSize>(96);
   const [font, setFont] = React.useState<FontKey>("inter");
@@ -975,6 +978,85 @@ export default function TypographyStressTest({
       align,
     ]
   );
+
+
+const typographySnapshot = React.useMemo<TypographyStressSnapshot | null>(() => {
+  if (!dataUrl || !region) return null;
+
+  return {
+    score: evaluation.score,
+    label: evaluation.label,
+    summary: evaluation.summary,
+    basis: evaluation.basis,
+    sampleSize,
+    controls: {
+      font,
+      fontLabel: fontMeta.label,
+      fontVibe: fontMeta.vibe,
+      weight,
+      tracking,
+      align,
+      overlay: getOverlayModeLabel(overlay),
+      caseMode,
+      titleText,
+      artistText,
+      titleScale,
+      artistScale,
+      blockX,
+      blockY,
+      blockWidth,
+      titleLift,
+      artistGap,
+      titleItalic,
+      artistCaps,
+      textColor,
+    },
+    regionContext: rm
+      ? {
+          contrastRatio:
+            typeof rm.contrastRatio === "number" ? rm.contrastRatio : undefined,
+          clutterScore:
+            typeof rm.clutterScore === "number" ? rm.clutterScore : undefined,
+          uniformityScore:
+            typeof rm.uniformityScore === "number" ? rm.uniformityScore : undefined,
+          toneLabel: typeof rm.toneLabel === "string" ? rm.toneLabel : undefined,
+          areaPct: typeof rm.areaPct === "number" ? rm.areaPct : undefined,
+        }
+      : null,
+    factors: evaluation.factors.map((factor) => ({ ...factor })),
+    suggestions: evaluation.suggestions.map((item) => ({ ...item })),
+  };
+}, [
+  dataUrl,
+  region,
+  evaluation,
+  sampleSize,
+  font,
+  fontMeta.label,
+  fontMeta.vibe,
+  weight,
+  tracking,
+  align,
+  overlay,
+  caseMode,
+  titleText,
+  artistText,
+  titleScale,
+  artistScale,
+  blockX,
+  blockY,
+  blockWidth,
+  titleLift,
+  artistGap,
+  titleItalic,
+  artistCaps,
+  textColor,
+  rm,
+]);
+
+React.useEffect(() => {
+  onEvaluationChange?.(typographySnapshot);
+}, [onEvaluationChange, typographySnapshot]);
 
   React.useEffect(() => {
     let alive = true;
