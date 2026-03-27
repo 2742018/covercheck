@@ -1,11 +1,8 @@
-// src/pages/LicensingPage.jsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const LINKS = {
   github: "https://github.com/2742018/covercheck",
-  fma: "https://freemusicarchive.org/",
-  cc: "https://creativecommons.org/licenses/",
 };
 
 export default function LicensingPage() {
@@ -14,7 +11,7 @@ export default function LicensingPage() {
   useEffect(() => {
     const hadLightMode = document.body.classList.contains("lightMode");
     document.body.classList.add("lightMode");
-    document.title = "Copyright & Licensing — CoverCheck";
+    document.title = "Use & Privacy — CoverCheck";
 
     return () => {
       if (!hadLightMode) document.body.classList.remove("lightMode");
@@ -39,29 +36,32 @@ export default function LicensingPage() {
 
         <div className="aboutEditorialHeading">
           <div>
-            <h1 className="aboutEditorialTitle">Copyright &amp; Licensing</h1>
+            <h1 className="aboutEditorialTitle">Use &amp; Privacy</h1>
             <p className="aboutEditorialSubtitle">
-              CoverCheck is built to be privacy-first and rights-aware. It does
-              not include a hosted album-cover library and it does not ask users
-              to upload copyrighted artwork they do not have permission to use.
+              CoverCheck analyses album artwork locally in the browser. It does
+              not store, host, or redistribute uploaded images.
             </p>
 
-            <aside className="aboutEditorialIntroNote" aria-label="Quick summary">
-            <div className="aboutEditorialNoteLabel">Quick summary</div>
-            <p>
-              Uploads stay in the browser. Users remain responsible for the
-              rights and licensing status of any artwork they choose to test.
-            </p>
-          </aside>
-
+            <aside
+              className="aboutEditorialIntroNote"
+              aria-label="Quick summary"
+            >
+              <div className="aboutEditorialNoteLabel">Quick summary</div>
+              <p>
+                Images are used only for analysis during the session. CoverCheck
+                is designed as a privacy-first evaluation tool rather than an
+                image hosting or publishing platform.
+              </p>
+            </aside>
           </div>
         </div>
 
         <div className="aboutEditorialLeadRow">
           <p className="aboutEditorialLead">
-            The tool is intended for responsible evaluation, portfolio review,
-            and coursework-style use. You should only analyse artwork you own,
-            created yourself, or have permission or licensing to use.
+            This project is intended for design evaluation, coursework, and
+            reflection. Its purpose is to help users assess readability,
+            contrast, and composition without collecting or storing their image
+            files.
           </p>
         </div>
 
@@ -69,141 +69,96 @@ export default function LicensingPage() {
       </section>
 
       <div className="aboutEditorialGrid">
-        <aside className="aboutEditorialRail" aria-label="Licensing page navigation">
+        <aside
+          className="aboutEditorialRail"
+          aria-label="Use and privacy page navigation"
+        >
           <div className="aboutEditorialRailBlock">
-            <div className="aboutEditorialLabel">Quick principles</div>
+            <div className="aboutEditorialLabel">Key points</div>
             <ul className="aboutEditorialList">
-              <li>Local processing. No server storage. Rights-aware use.</li>
-              <li>Use your own artwork whenever possible.</li>
-              <li>Do not upload copyrighted covers without permission.</li>
-              <li>Prefer public-domain or clearly licensed demo material.</li>
-              <li>Keep attribution when a licence requires it.</li>
+              <li>Images are analysed locally in the browser.</li>
+              <li>CoverCheck does not store uploaded files.</li>
+              <li>CoverCheck does not host or redistribute artwork.</li>
+              <li>The tool is for evaluation, not publishing.</li>
+              <li>Users remain responsible for the images they choose to test.</li>
             </ul>
           </div>
         </aside>
 
         <div className="aboutEditorialMain">
-          <section id="uploads" className="aboutEditorialSection">
-            <div className="aboutEditorialSectionLabel">Uploads</div>
-            <h2 className="aboutEditorialSectionTitle">What users should upload</h2>
+          <section id="local-analysis" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Local analysis</div>
+            <h2 className="aboutEditorialSectionTitle">
+              How image handling works
+            </h2>
 
-            <div className="aboutEditorialSplit">
-              <div className="aboutEditorialSplitMain">
-                <div className="aboutEditorialTextBlock">
-                  <p>
-                    You should upload only content you have the right to use.
-                    That includes your own cover artwork, work you created, CC0
-                    assets, or material you have explicit permission or a valid
-                    licence to analyse.
-                  </p>
-                  <p>
-                    CoverCheck does not host or redistribute your images. It
-                    processes them locally in your browser as part of the
-                    evaluation flow.
-                  </p>
-                </div>
-              </div>
-
-              <div className="aboutEditorialSplitSide2">
-                <div className="aboutEditorialNoteCard">
-                  <div className="aboutEditorialNoteLabel">Recommended</div>
-                  <ul className="aboutEditorialList">
-                    <li>Use your own artwork whenever possible.</li>
-                    <li>Prefer clearly licensed or public-domain materials.</li>
-                    <li>Keep source and attribution notes for your records.</li>
-                  </ul>
-                </div>
-              </div>
+            <div className="aboutEditorialTextBlock">
+              <p>
+                CoverCheck processes images in the browser so they can be
+                analysed for readability, contrast, and layout issues. The
+                project does not aim to build a hosted collection of album
+                covers and does not treat uploads as stored content.
+              </p>
+              <p>
+                This makes the page more appropriate as a privacy and use note
+                than a formal copyright policy. The main role of the tool is to
+                evaluate artwork temporarily during use.
+              </p>
             </div>
           </section>
 
-          <section id="licensed-artwork" className="aboutEditorialSection">
-            <div className="aboutEditorialSectionLabel">Licensing guidance</div>
-            <h2 className="aboutEditorialSectionTitle">If you use licensed artwork</h2>
+          <section id="why-this-matters" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">Why this matters</div>
+            <h2 className="aboutEditorialSectionTitle">
+              Why this suits the project
+            </h2>
 
-            <div className="aboutEditorialSteps">
-              <div className="aboutEditorialStep">
-                <div className="aboutEditorialStepNo">01</div>
-                <div>
-                  <div className="aboutEditorialStepTitle">Check the licence first</div>
-                  <p>
-                    Before using any album artwork or music-related visual,
-                    confirm the licence shown on the source page.
-                  </p>
-                </div>
+            <div className="aboutEditorialQualities">
+              <div className="aboutEditorialQuality">
+                <h3>Privacy-first</h3>
+                <p>
+                  Users can test artwork without uploading it to a server or
+                  relying on cloud storage as part of the analysis flow.
+                </p>
               </div>
 
-              <div className="aboutEditorialStep">
-                <div className="aboutEditorialStepNo">02</div>
-                <div>
-                  <div className="aboutEditorialStepTitle">
-                    Give attribution when required
-                  </div>
-                  <p>
-                    Some licences require credit to the performer,
-                    photographer, illustrator, or cover artist. Keep a short
-                    attribution note in your report, README, or project
-                    documentation.
-                  </p>
-                </div>
+              <div className="aboutEditorialQuality">
+                <h3>Evaluation-focused</h3>
+                <p>
+                  The tool exists to assess communication and readability, not
+                  to publish, distribute, or archive album art.
+                </p>
               </div>
 
-              <div className="aboutEditorialStep">
-                <div className="aboutEditorialStepNo">03</div>
-                <div>
-                  <div className="aboutEditorialStepTitle">Respect restrictions</div>
-                  <p>
-                    NC may restrict commercial use, ND may restrict modification,
-                    and SA may require you to share derivatives under the same
-                    terms.
-                  </p>
-                </div>
-              </div>
-
-              <div className="aboutEditorialStep">
-                <div className="aboutEditorialStepNo">04</div>
-                <div>
-                  <div className="aboutEditorialStepTitle">
-                    Use safer demo material
-                  </div>
-                  <p>
-                    For coursework, presentations, and public demos, your own
-                    assets or clearly licensed material are usually the safest
-                    choice.
-                  </p>
-                </div>
+              <div className="aboutEditorialQuality">
+                <h3>Simple and relevant</h3>
+                <p>
+                  This keeps the page aligned with what CoverCheck actually
+                  does, instead of overstating legal or licensing concerns that
+                  are not central to the project.
+                </p>
               </div>
             </div>
           </section>
 
           <section id="responsible-use" className="aboutEditorialSection">
-            <div className="aboutEditorialSectionLabel">Why this matters</div>
-            <h2 className="aboutEditorialSectionTitle">Responsible use of the tool</h2>
+            <div className="aboutEditorialSectionLabel">Responsible use</div>
+            <h2 className="aboutEditorialSectionTitle">
+              What users should understand
+            </h2>
 
-            <div className="aboutEditorialQualities">
-              <div className="aboutEditorialQuality">
-                <h3>Course / Project safe</h3>
-                <p>
-                  You can demonstrate the tool without bundling copyrighted
-                  album covers or relying on a hosted image library.
-                </p>
-              </div>
-
-              <div className="aboutEditorialQuality">
-                <h3>Privacy-first</h3>
-                <p>
-                  Files are analysed locally in the browser. That reduces the
-                  need to upload sensitive or copyrighted material to a server.
-                </p>
-              </div>
-
-              <div className="aboutEditorialQuality">
-                <h3>User responsibility</h3>
-                <p>
-                  The tool supports evaluation and learning, but users remain
-                  responsible for what they upload and how they use it.
-                </p>
-              </div>
+            <div className="aboutEditorialTextBlock">
+              <p>
+                Although CoverCheck does not store or redistribute images, users
+                should still act responsibly when choosing artwork to analyse.
+                The tool does not transfer ownership or permissions, and users
+                remain responsible for how they obtain and use their files.
+              </p>
+              <p>
+                In practice, this means CoverCheck supports temporary analysis
+                only. It does not claim rights over uploaded work and does not
+                present uploaded images as part of a public library.
+              </p>
             </div>
           </section>
 
@@ -213,61 +168,41 @@ export default function LicensingPage() {
 
             <div className="aboutEditorialTextBlock">
               <p>
-                This page is informational only and is not legal advice. If you
-                are unsure about rights, permissions, or licence obligations,
-                use your own assets or clearly public-domain material and verify
-                the licence terms on the source page directly.
+                This page explains how CoverCheck handles images within the
+                project. It is not legal advice. If you are unsure about your
+                right to use a particular image outside this tool, you should
+                check the relevant permissions or source terms yourself.
               </p>
             </div>
           </section>
 
           <section id="references" className="aboutEditorialSection">
-            <div className="aboutEditorialSectionLabel">Links</div>
-            <h2 className="aboutEditorialSectionTitle">Reference links</h2>
+            <div className="aboutEditorialSectionLabel">Project</div>
+              <h2 className="aboutEditorialSectionTitle">Project reference</h2>
 
-            <div className="aboutEditorialSplit">
-              <div className="aboutEditorialSplitMain">
-                <div className="aboutEditorialNoteCard">
-                  <div className="aboutEditorialNoteLabel">Repository</div>
-                  <p>
-                    <a href={LINKS.github} target="https://github.com/2742018/covercheck" rel="noopener noreferrer">
-                      GitHub
-                    </a>{" "}
-                    — project source and implementation context.
-                  </p>
-                </div>
+            <div className="aboutEditorialTextBlock">
+              <p>
+                 The repository contains the source code and implementation context for
+                  CoverCheck.
+              </p>
+      </div>
 
-                <div className="aboutEditorialNoteCard">
-                  <div className="aboutEditorialNoteLabel">Licensing</div>
-                  <p>
-                    <a href={LINKS.cc} target="https://creativecommons.org/" rel="noopener noreferrer">
-                      Creative Commons
-                    </a>{" "}
-                    — read the licence families and their conditions directly.
-                  </p>
-                </div>
+      <div className="aboutEditorialNoteCard aboutEditorialReferenceCard">
+        <div className="aboutEditorialNoteLabel">Source code</div>
+          <h3 className="aboutEditorialReferenceTitle">CoverCheck on GitHub</h3>
+            <p>
+              View the project repository for the codebase, structure, and development
+              context.
+            </p>
 
-                <div className="aboutEditorialNoteCard">
-                  <div className="aboutEditorialNoteLabel">Example source</div>
-                  <p>
-                    <a href={LINKS.fma} target="https://unsplash.com/" rel="noopener noreferrer">
-                      Unsplash
-                    </a>{" "}
-                    — a source where images are offered under a CC0 licence, meaning they can be used without permission or attribution.
-                  </p>
-                </div>
-              </div>
-
-              <div className="aboutEditorialSplitSide">
-                <div className="aboutEditorialNoteCard">
-                  <div className="aboutEditorialNoteLabel">Reminder</div>
-                  <p>
-                    Always verify the exact terms attached to the artwork you
-                    use, especially for public sharing, portfolio work, or
-                    commercial contexts.
-                  </p>
-                </div>
-              </div>
+            <a
+              className="aboutEditorialReferenceButton"
+              href={LINKS.github}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open GitHub repository
+            </a>
             </div>
           </section>
         </div>

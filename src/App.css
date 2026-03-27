@@ -2601,7 +2601,7 @@ body.lightMode .miniValue {
 }
 
 /* =========================================================
-   LICENSING PAGE — match ABOUT page styling
+   LICENSING PAGE
    ========================================================= */
 
 body.lightMode .aboutPageV2 {
@@ -2875,6 +2875,31 @@ body.lightMode .aboutLinkCardV2:hover {
   body.lightMode .aboutTitleV2 {
     font-size: clamp(40px, 15vw, 62px);
   }
+}
+
+/* ---------- Project reference section ---------- */
+
+.aboutEditorialReferenceCard {
+  max-width: 560px;
+  margin-top: 1rem;
+}
+
+.aboutEditorialReferenceTitle {
+  margin: 0.35rem 0 0.65rem;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.aboutEditorialReferenceButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid currentColor;
 }
 
 /* =========================================================

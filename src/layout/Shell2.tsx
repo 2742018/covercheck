@@ -68,7 +68,7 @@ export default function Shell() {
               to="/licensing"
               className={({ isActive }) => cx("topLink", isActive && "active")}
             >
-              LICENSING
+              USE & PRIVACY
             </NavLink>
           </nav>
         </div>
@@ -140,7 +140,7 @@ export default function Shell() {
               to="/licensing"
               className={({ isActive }) => cx("bottomLink", isActive && "active")}
             >
-              LICENSING
+              USE & PRIVACY
             </NavLink>
           </div>
         </div>

@@ -1,6 +1,5 @@
-// src/pages/AboutPage.jsx
 import { useEffect, useMemo } from "react";
-import {useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 const LINKS = {
   github: "https://github.com/2742018/covercheck",
@@ -71,6 +70,24 @@ export default function AboutPage() {
     []
   );
 
+  const differences = useMemo(
+    () => [
+      {
+        title: "Not a streaming platform",
+        body: "Spotify, Apple Music, and similar platforms display album art, but they do not explain whether the artwork will remain readable or visually stable before release.",
+      },
+      {
+        title: "Not a general design editor",
+        body: "Tools such as Photoshop or Canva help create covers, but they do not specifically evaluate title and artist clarity under small, streaming-style viewing conditions.",
+      },
+      {
+        title: "Focused on the gap",
+        body: "CoverCheck sits between making the artwork and publishing it. Its role is to test readability, hierarchy, and placement before the cover reaches listeners.",
+      },
+    ],
+    []
+  );
+
   useEffect(() => {
     const hadLightMode = document.body.classList.contains("lightMode");
     document.body.classList.add("lightMode");
@@ -92,7 +109,7 @@ export default function AboutPage() {
             onClick={() => navigate("/analyze")}
             aria-label="Start Analyzing"
           >
-          START ANALYZING 
+            START ANALYZING
           </button>
         </div>
 
@@ -105,17 +122,15 @@ export default function AboutPage() {
             </div>
 
             <aside className="aboutEditorialIntroNote" aria-label="Overview">
-            <div className="aboutEditorialNoteLabel">Overview</div>
-            <p>
-              CoverCheck helps musicians and design students test whether a cover
-              still communicates once it leaves the full-size canvas and enters
-              real listening surfaces.
-            </p>
-          </aside>
-        </div>
-      
+              <div className="aboutEditorialNoteLabel">Overview</div>
+              <p>
+                CoverCheck helps musicians and design students test whether a
+                cover still communicates once it leaves the full-size canvas and
+                enters real listening surfaces.
+              </p>
+            </aside>
           </div>
-
+        </div>
 
         <div className="aboutEditorialLeadRow">
           <p className="aboutEditorialLead">
@@ -185,9 +200,44 @@ export default function AboutPage() {
                 under the conditions where most listeners actually encounter it.
               </p>
               <p>
-                This makes the project useful both as a practical design aid and
-                as a reflective tool for discussing why certain visual choices
-                succeed, weaken, or change meaning in context.
+                This project exists because there is a gap between making album
+                art and testing how it performs in use. Designers can create
+                strong work in editing software and distribute it on streaming
+                services, but there are fewer simple tools focused on checking
+                readability, hierarchy, and composition before release.
+              </p>
+              <p>
+                In that sense, CoverCheck addresses a practical need: helping
+                users catch visual problems early, explain those problems
+                clearly, and make more informed design revisions.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className="aboutEditorialSection"
+            aria-labelledby="about-audience-title"
+          >
+            <div className="aboutEditorialSectionLabel">Audience</div>
+            <h2
+              id="about-audience-title"
+              className="aboutEditorialSectionTitle"
+            >
+              Who the project is for
+            </h2>
+            <div className="aboutEditorialTextBlock">
+              <p>
+                The main audience is musicians, independent creators, and design
+                students who need to assess whether cover artwork still works in
+                the places where audiences actually see it: streaming grids,
+                recommendation panels, and reduced thumbnail views.
+              </p>
+              <p>
+                It is also relevant for tutors, supervisors, and reviewers
+                because it supports discussion. Instead of only giving a final
+                opinion on a cover, the tool creates a clearer basis for talking
+                about contrast, clutter, placement, and whether the design still
+                communicates at smaller sizes.
               </p>
             </div>
           </section>
@@ -207,7 +257,11 @@ export default function AboutPage() {
 
               <div className="aboutEditorialSteps" role="list">
                 {steps.map((step) => (
-                  <div className="aboutEditorialStep" role="listitem" key={step.no}>
+                  <div
+                    className="aboutEditorialStep"
+                    role="listitem"
+                    key={step.no}
+                  >
                     <div className="aboutEditorialStepNo" aria-hidden="true">
                       {step.no}
                     </div>
@@ -238,6 +292,69 @@ export default function AboutPage() {
                 </p>
               </div>
             </aside>
+          </section>
+
+          <section
+            className="aboutEditorialSection"
+            aria-labelledby="about-method-title"
+          >
+            <div className="aboutEditorialSectionLabel">Method</div>
+            <h2
+              id="about-method-title"
+              className="aboutEditorialSectionTitle"
+            >
+              How the artwork is assessed
+            </h2>
+            <div className="aboutEditorialTextBlock">
+              <p>
+                CoverCheck treats the uploaded image as album artwork and asks
+                the user to identify the most important reading area, usually
+                the title and artist text. This keeps the analysis tied to the
+                part of the cover that carries the key information.
+              </p>
+              <p>
+                From there, the tool checks visible design conditions such as
+                contrast, background interference, edge safety, and how the
+                selected region behaves when the cover is viewed more like a
+                streaming thumbnail than a full-size design file.
+              </p>
+              <p>
+                The aim is not to decide whether the artwork is artistically
+                good or bad. The aim is to determine whether the artwork still
+                communicates clearly in context.
+              </p>
+            </div>
+          </section>
+
+          <section
+            className="aboutEditorialSection"
+            aria-labelledby="about-gap-title"
+          >
+            <div className="aboutEditorialSectionLabel">Difference</div>
+            <h2
+              id="about-gap-title"
+              className="aboutEditorialSectionTitle"
+            >
+              What makes it different from existing platforms
+            </h2>
+
+            <div className="aboutEditorialQualities">
+              {differences.map((item) => (
+                <div className="aboutEditorialQuality" key={item.title}>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="aboutEditorialTextBlock">
+              <p>
+                The biggest difference is that CoverCheck is an evaluation tool,
+                not a publishing platform or a general editing tool. Its job is
+                to provide simple but useful feedback about readability and
+                communication before the artwork is released.
+              </p>
+            </div>
           </section>
 
           <section
