@@ -591,7 +591,7 @@ function ReportInner() {
         </>
       </Panel>
 
-      <div className="reportGrid" style={{ marginTop: 16 }}>
+      <div className="reportGrid" style={{ marginTop: 16, alignItems: "start" }}>
         <Panel title="Cover snapshot" note="Your uploaded cover and the analysed text region.">
           <>
             <div className="reportFigure">
@@ -636,67 +636,163 @@ function ReportInner() {
           </>
         </Panel>
 
-        <Panel title="Analysis at a glance" note="The strongest signals pulled through from Analyze.">
-          <>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-                gap: 10,
-              }}
-            >
-              <StatChip
-                label="Contrast"
-                value={`${safeToFixed(rm.contrastRatio)}×`}
-                tone={typeof rm.contrastRatio === "number" ? (rm.contrastRatio >= 4.5 ? "good" : rm.contrastRatio >= 3 ? "warn" : "bad") : "default"}
-              />
-              <StatChip
-                label="Clutter"
-                value={`${typeof rm.clutterScore === "number" ? Math.round(rm.clutterScore) : "—"}/100`}
-                tone={typeof rm.clutterScore === "number" ? (rm.clutterScore >= 60 ? "good" : "bad") : "default"}
-              />
-              <StatChip
-                label="Uniformity"
-                value={`${typeof rm.uniformityScore === "number" ? Math.round(rm.uniformityScore) : "—"}/100`}
-                tone={typeof rm.uniformityScore === "number" ? (rm.uniformityScore >= 55 ? "good" : "warn") : "default"}
-              />
-              <StatChip
-                label="Safe area"
-                value={`${typeof safe.score === "number" ? Math.round(safe.score) : "—"}/100`}
-                tone={safe.pass ? "good" : "bad"}
-              />
-              <StatChip
-                label="64px check"
-                value={thumb ? `${thumb.pass ? "Pass" : "Fail"}` : "Not available"}
-                tone={thumb ? (thumb.pass ? "good" : "bad") : "default"}
-              />
-              <StatChip
-                label="Composition"
-                value={comp.summary?.headline ?? comp.lightDark?.label ?? "—"}
-              />
-            </div>
-
-            {comp.summary?.guidance ? (
-              <div className="detailLine" style={{ marginTop: 14 }}>
-                <b>Overall reading:</b> {comp.summary.guidance}
+        <div style={{ display: "grid", gap: 16, minWidth: 0 }}>
+          <Panel title="Analysis at a glance" note="The strongest signals pulled through from Analyze.">
+            <>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <StatChip
+                  label="Contrast"
+                  value={`${safeToFixed(rm.contrastRatio)}×`}
+                  tone={typeof rm.contrastRatio === "number" ? (rm.contrastRatio >= 4.5 ? "good" : rm.contrastRatio >= 3 ? "warn" : "bad") : "default"}
+                />
+                <StatChip
+                  label="Clutter"
+                  value={`${typeof rm.clutterScore === "number" ? Math.round(rm.clutterScore) : "—"}/100`}
+                  tone={typeof rm.clutterScore === "number" ? (rm.clutterScore >= 60 ? "good" : "bad") : "default"}
+                />
+                <StatChip
+                  label="Uniformity"
+                  value={`${typeof rm.uniformityScore === "number" ? Math.round(rm.uniformityScore) : "—"}/100`}
+                  tone={typeof rm.uniformityScore === "number" ? (rm.uniformityScore >= 55 ? "good" : "warn") : "default"}
+                />
+                <StatChip
+                  label="Safe area"
+                  value={`${typeof safe.score === "number" ? Math.round(safe.score) : "—"}/100`}
+                  tone={safe.pass ? "good" : "bad"}
+                />
+                <StatChip
+                  label="64px check"
+                  value={thumb ? `${thumb.pass ? "Pass" : "Fail"}` : "Not available"}
+                  tone={thumb ? (thumb.pass ? "good" : "bad") : "default"}
+                />
+                <StatChip
+                  label="Composition"
+                  value={comp.summary?.headline ?? comp.lightDark?.label ?? "—"}
+                />
               </div>
-            ) : null}
 
-            {Array.isArray(comp.highlights) && comp.highlights.length ? (
-              <div className="readyFixes" style={{ marginTop: 14 }}>
-                <div className="sectionHead">Most important visual highlights</div>
-                <ul className="readyFixList">
-                  {comp.highlights.map((item: any, idx: number) => (
-                    <li key={`${item.key ?? item.title ?? idx}`}>
-                      <b>{item.title}:</b> {item.detail}
-                    </li>
-                  ))}
-                </ul>
+              {comp.summary?.guidance ? (
+                <div className="detailLine" style={{ marginTop: 14 }}>
+                  <b>Overall reading:</b> {comp.summary.guidance}
+                </div>
+              ) : null}
+
+              {Array.isArray(comp.highlights) && comp.highlights.length ? (
+                <div className="readyFixes" style={{ marginTop: 14 }}>
+                  <div className="sectionHead">Most important visual highlights</div>
+                  <ul className="readyFixList">
+                    {comp.highlights.map((item: any, idx: number) => (
+                      <li key={`${item.key ?? item.title ?? idx}`}>
+                        <b>{item.title}:</b> {item.detail}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
+          </Panel>
+
+          <Panel title="Safe area and thumbnail checks" note="These checks explain how the selected text region behaves in reduced or constrained viewing conditions.">
+            <>
+              <KeyValueTable
+                rows={[
+                  {
+                    k: "Safe area",
+                    v: `${typeof safe.score === "number" ? Math.round(safe.score) : "—"}/100 • ${safe.pass ? "PASS" : "FAIL"}`,
+                  },
+                  {
+                    k: "Outside safe area",
+                    v: typeof safe.outsidePct === "number" ? `${Math.round(safe.outsidePct)}%` : "—",
+                  },
+                  {
+                    k: "Inset guide",
+                    v: typeof safe.insetPct === "number" ? `${Math.round(safe.insetPct)}% from each edge` : "—",
+                  },
+                  {
+                    k: "64px thumbnail",
+                    v: thumb ? `${thumb.pass ? "PASS" : "FAIL"} • ${thumb.note}` : "Not available in full-image mode",
+                  },
+                  {
+                    k: "Thumbnail contrast",
+                    v: thumb ? `${safeToFixed(thumb.contrastRatio)}×` : "—",
+                  },
+                  {
+                    k: "Thumbnail clutter",
+                    v: thumb ? `${Math.round(thumb.clutterScore)}/100` : "—",
+                  },
+                  {
+                    k: "Smallest box side",
+                    v: thumb ? `${Math.round(thumb.regionMinPx)}px` : "—",
+                  },
+                ]}
+              />
+
+              <div className="detailLine" style={{ marginTop: 12 }}>
+                The safe-area score checks whether the selected box stays comfortably away from the cover edges. The 64px
+                test simulates how the same region is likely to behave once the artwork is reduced to a small streaming-style thumbnail.
               </div>
-            ) : null}
-          </>
-        </Panel>
+            </>
+          </Panel>
+        </div>
       </div>
+
+      <Panel
+        title="Composition reading"
+        note="This mirrors the richer composition panel from Analyze so the report explains what the values mean, not just the labels."
+        style={{ marginTop: 16 }}
+      >
+        <>
+          <div style={{ border: "1px solid rgba(255,255,255,0.10)", borderRadius: 16, padding: 14, background: "rgba(255,255,255,0.03)" }}>
+            <div className="sectionHead">Overall reading</div>
+            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{comp.summary?.headline ?? "Composition summary"}</div>
+            <div className="detailLine" style={{ marginTop: 8 }}>
+              {comp.summary?.guidance ?? "This section describes how the current crop or full-image view reads overall in terms of brightness, balance, and structure."}
+            </div>
+            <div className="detailLine" style={{ marginTop: 8, opacity: 0.72 }}>
+              <b>Basis:</b> {comp.summary?.basis ?? "Computed from sampled pixels across the current crop or full-image view."}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 12 }}>
+              <StatChip label="Sample count" value={comp.sampleCount ?? "—"} />
+              <StatChip label="Sample step" value={typeof comp.sampleStep === "number" ? `${comp.sampleStep}px` : "—"} />
+              <StatChip label="Warm / cool / neutral" value={comp.colorBalance ? `${comp.colorBalance.warmPct ?? 0}% / ${comp.colorBalance.coolPct ?? 0}% / ${comp.colorBalance.neutralPct ?? 0}%` : "—"} />
+              <StatChip label="Avg saturation" value={typeof comp.colorBalance?.averageSaturation === "number" ? `${comp.colorBalance.averageSaturation}/100` : "—"} />
+            </div>
+          </div>
+
+          {Array.isArray(comp.highlights) && comp.highlights.length ? (
+            <div className="readyFixes" style={{ marginTop: 14 }}>
+              <div className="sectionHead">Highlights</div>
+              <ul className="readyFixList">
+                {comp.highlights.map((item: any, idx: number) => (
+                  <li key={`${item.key ?? item.title ?? idx}`}>
+                    <b>{item.title}:</b> {item.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <div className="sectionHead" style={{ marginTop: 16 }}>What each metric means</div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
+              gap: 12,
+              marginTop: 10,
+            }}
+          >
+            {compositionCards.map((card) => (
+              <InfoCard key={card.title} title={card.title} value={card.value} meaning={card.meaning} basis={card.basis} />
+            ))}
+          </div>
+        </>
+      </Panel>
 
       <Panel
         title="Region analysis"
@@ -712,7 +808,7 @@ function ReportInner() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(330px, 1fr))",
               gap: 12,
               marginTop: 14,
             }}
@@ -768,98 +864,6 @@ function ReportInner() {
           </div>
         </>
       </Panel>
-
-      <div className="reportGrid" style={{ marginTop: 16 }}>
-        <Panel title="Safe area and thumbnail checks" note="These checks explain how the selected text region behaves in reduced or constrained viewing conditions.">
-          <>
-            <KeyValueTable
-              rows={[
-                {
-                  k: "Safe area",
-                  v: `${typeof safe.score === "number" ? Math.round(safe.score) : "—"}/100 • ${safe.pass ? "PASS" : "FAIL"}`,
-                },
-                {
-                  k: "Outside safe area",
-                  v: typeof safe.outsidePct === "number" ? `${Math.round(safe.outsidePct)}%` : "—",
-                },
-                {
-                  k: "Inset guide",
-                  v: typeof safe.insetPct === "number" ? `${Math.round(safe.insetPct)}% from each edge` : "—",
-                },
-                {
-                  k: "64px thumbnail",
-                  v: thumb ? `${thumb.pass ? "PASS" : "FAIL"} • ${thumb.note}` : "Not available in full-image mode",
-                },
-                {
-                  k: "Thumbnail contrast",
-                  v: thumb ? `${safeToFixed(thumb.contrastRatio)}×` : "—",
-                },
-                {
-                  k: "Thumbnail clutter",
-                  v: thumb ? `${Math.round(thumb.clutterScore)}/100` : "—",
-                },
-                {
-                  k: "Smallest box side",
-                  v: thumb ? `${Math.round(thumb.regionMinPx)}px` : "—",
-                },
-              ]}
-            />
-
-            <div className="detailLine" style={{ marginTop: 12 }}>
-              The safe-area score checks whether the selected box stays comfortably away from the cover edges. The 64px
-              test simulates how the same region is likely to behave once the artwork is reduced to a small streaming-style thumbnail.
-            </div>
-          </>
-        </Panel>
-
-        <Panel title="Composition reading" note="This mirrors the richer composition panel from Analyze so the report explains what the values mean, not just the labels.">
-          <>
-            <div style={{ border: "1px solid rgba(255,255,255,0.10)", borderRadius: 16, padding: 14, background: "rgba(255,255,255,0.03)" }}>
-              <div className="sectionHead">Overall reading</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>{comp.summary?.headline ?? "Composition summary"}</div>
-              <div className="detailLine" style={{ marginTop: 8 }}>
-                {comp.summary?.guidance ?? "This section describes how the current crop or full-image view reads overall in terms of brightness, balance, and structure."}
-              </div>
-              <div className="detailLine" style={{ marginTop: 8, opacity: 0.72 }}>
-                <b>Basis:</b> {comp.summary?.basis ?? "Computed from sampled pixels across the current crop or full-image view."}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 12 }}>
-                <StatChip label="Sample count" value={comp.sampleCount ?? "—"} />
-                <StatChip label="Sample step" value={typeof comp.sampleStep === "number" ? `${comp.sampleStep}px` : "—"} />
-                <StatChip label="Warm / cool / neutral" value={comp.colorBalance ? `${comp.colorBalance.warmPct ?? 0}% / ${comp.colorBalance.coolPct ?? 0}% / ${comp.colorBalance.neutralPct ?? 0}%` : "—"} />
-                <StatChip label="Avg saturation" value={typeof comp.colorBalance?.averageSaturation === "number" ? `${comp.colorBalance.averageSaturation}/100` : "—"} />
-              </div>
-            </div>
-
-            {Array.isArray(comp.highlights) && comp.highlights.length ? (
-              <div className="readyFixes" style={{ marginTop: 14 }}>
-                <div className="sectionHead">Highlights</div>
-                <ul className="readyFixList">
-                  {comp.highlights.map((item: any, idx: number) => (
-                    <li key={`${item.key ?? item.title ?? idx}`}>
-                      <b>{item.title}:</b> {item.detail}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            <div className="sectionHead" style={{ marginTop: 16 }}>What each metric means</div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-                gap: 12,
-                marginTop: 10,
-              }}
-            >
-              {compositionCards.map((card) => (
-                <InfoCard key={card.title} title={card.title} value={card.value} meaning={card.meaning} basis={card.basis} />
-              ))}
-            </div>
-          </>
-        </Panel>
-      </div>
 
 
 {typo ? (

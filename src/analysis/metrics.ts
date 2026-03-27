@@ -18,6 +18,10 @@ export type RegionMetrics = {
   toneLabel: "Dark" | "Mid-tone" | "Light";
 };
 
+export const RECOMMENDED_ARTWORK_SIZE_PX = 3000;
+export const ARTWORK_SIZE_OPTIONS_PX = [64, 96, 128, 256, 512, 768, 1024, 1500, 2000, 2500, 3000] as const;
+
+
 export type SafeMarginResult = {
   score: number;              // 0–100
   pass: boolean;

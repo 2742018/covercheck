@@ -444,11 +444,24 @@ export const GENRE_REFERENCE_MAP: Record<GenreReferenceKey, GenreReferenceProfil
   },
 };
 
+
+export type GenreAlignmentDimension = {
+  key: keyof CoverMoodInput;
+  title: string;
+  inputValue: string;
+  acceptedValues: string[];
+  matches: boolean;
+  whyItMatters: string;
+  advice: string;
+};
+
 export type GenreAlignmentResult = {
   score: number;
   label: "Strong" | "Moderate" | "Loose";
   strengths: string[];
   cautions: string[];
+  summary: string;
+  dimensions: GenreAlignmentDimension[];
 };
 
 type CoverMoodInput = {
@@ -548,63 +561,135 @@ const genreTargets: Record<
   },
 };
 
+const dimensionMeta: Record<
+  keyof CoverMoodInput,
+  { title: string; whyItMatters: string; advice: string }
+> = {
+  brightness: {
+    title: "Brightness range",
+    whyItMatters:
+      "Brightness strongly affects first impression and whether the cover feels open, heavy, intimate, or aggressive for that genre.",
+    advice:
+      "Adjust exposure, tonal grading, or the light/dark balance of the main image if this feels off."
+  },
+  saturation: {
+    title: "Saturation level",
+    whyItMatters:
+      "Saturation shapes how energetic, restrained, polished, or raw the cover feels.",
+    advice:
+      "Increase or reduce colour intensity rather than changing every design element at once."
+  },
+  temperature: {
+    title: "Warm / cool temperature",
+    whyItMatters:
+      "Warmth and coolness affect emotional direction and can quickly pull the image toward or away from genre expectations.",
+    advice:
+      "Shift grading, accents, or dominant image hues to better support the intended mood."
+  },
+  texture: {
+    title: "Texture level",
+    whyItMatters:
+      "Texture changes whether the cover feels smooth, rough, atmospheric, or dense.",
+    advice:
+      "Add or remove grain, layering, edge detail, or background texture depending on the direction you want."
+  },
+  symmetry: {
+    title: "Balance / symmetry",
+    whyItMatters:
+      "Structural balance affects whether the design feels formal, stable, raw, or off-centre in a useful way.",
+    advice:
+      "Reposition the focal point or rebalance the layout if the structure feels too rigid or too unstable for the genre."
+  },
+};
+
 export function evaluateGenreAlignment(
   genre: GenreReferenceKey,
   input: CoverMoodInput
 ): GenreAlignmentResult {
   const target = genreTargets[genre];
 
-  const checks = [
-    target.brightness.includes(input.brightness),
-    target.saturation.includes(input.saturation),
-    target.temperature.includes(input.temperature),
-    target.texture.includes(input.texture),
-    target.symmetry.includes(input.symmetry),
+  const dimensions: GenreAlignmentDimension[] = [
+    {
+      key: "brightness",
+      title: dimensionMeta.brightness.title,
+      inputValue: input.brightness,
+      acceptedValues: target.brightness,
+      matches: target.brightness.includes(input.brightness),
+      whyItMatters: dimensionMeta.brightness.whyItMatters,
+      advice: dimensionMeta.brightness.advice,
+    },
+    {
+      key: "saturation",
+      title: dimensionMeta.saturation.title,
+      inputValue: input.saturation,
+      acceptedValues: target.saturation,
+      matches: target.saturation.includes(input.saturation),
+      whyItMatters: dimensionMeta.saturation.whyItMatters,
+      advice: dimensionMeta.saturation.advice,
+    },
+    {
+      key: "temperature",
+      title: dimensionMeta.temperature.title,
+      inputValue: input.temperature,
+      acceptedValues: target.temperature,
+      matches: target.temperature.includes(input.temperature),
+      whyItMatters: dimensionMeta.temperature.whyItMatters,
+      advice: dimensionMeta.temperature.advice,
+    },
+    {
+      key: "texture",
+      title: dimensionMeta.texture.title,
+      inputValue: input.texture,
+      acceptedValues: target.texture,
+      matches: target.texture.includes(input.texture),
+      whyItMatters: dimensionMeta.texture.whyItMatters,
+      advice: dimensionMeta.texture.advice,
+    },
+    {
+      key: "symmetry",
+      title: dimensionMeta.symmetry.title,
+      inputValue: input.symmetry,
+      acceptedValues: target.symmetry,
+      matches: target.symmetry.includes(input.symmetry),
+      whyItMatters: dimensionMeta.symmetry.whyItMatters,
+      advice: dimensionMeta.symmetry.advice,
+    },
   ];
 
-  const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  const matches = dimensions.filter((item) => item.matches).length;
+  const score = Math.round((matches / dimensions.length) * 100);
 
   let label: GenreAlignmentResult["label"] = "Loose";
   if (score >= 80) label = "Strong";
   else if (score >= 55) label = "Moderate";
 
-  const strengths: string[] = [];
-  const cautions: string[] = [];
+  const strengths = dimensions
+    .filter((item) => item.matches)
+    .map(
+      (item) =>
+        `${item.title} supports this genre direction (${item.inputValue} sits within ${item.acceptedValues.join(" / ")}).`
+    );
 
-  if (target.brightness.includes(input.brightness)) {
-    strengths.push("Brightness is in a genre-consistent range.");
-  } else {
-    cautions.push("Brightness feels less typical for this genre direction.");
-  }
+  const cautions = dimensions
+    .filter((item) => !item.matches)
+    .map(
+      (item) =>
+        `${item.title} is less typical here (${item.inputValue} vs ${item.acceptedValues.join(" / ")}). ${item.advice}`
+    );
 
-  if (target.saturation.includes(input.saturation)) {
-    strengths.push("Saturation level supports the chosen mood direction.");
-  } else {
-    cautions.push("Saturation level may push the cover away from typical genre expectations.");
-  }
-
-  if (target.temperature.includes(input.temperature)) {
-    strengths.push("Warm/cool colour mood aligns well.");
-  } else {
-    cautions.push("Colour temperature may weaken the intended genre association.");
-  }
-
-  if (target.texture.includes(input.texture)) {
-    strengths.push("Texture level suits the genre reference profile.");
-  } else {
-    cautions.push("Texture level may feel too busy or too plain for this direction.");
-  }
-
-  if (target.symmetry.includes(input.symmetry)) {
-    strengths.push("Overall balance / symmetry feels appropriate.");
-  } else {
-    cautions.push("Structural balance may feel unusual for this genre direction.");
-  }
+  const summary =
+    label === "Strong"
+      ? "Your current cover mood broadly fits the chosen reference direction. That does not make it correct, but it means the main genre signals are lining up."
+      : label === "Moderate"
+      ? "Some cues support this genre direction, while others pull away from it. This can still work if the mismatch is intentional."
+      : "The current mood sits some distance from the chosen genre reference. That may be deliberate, but it is likely to read as a looser fit to genre expectations.";
 
   return {
     score,
     label,
     strengths,
     cautions,
+    summary,
+    dimensions,
   };
 }

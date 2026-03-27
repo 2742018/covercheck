@@ -1,4 +1,8 @@
 import React from "react";
+import {
+  ARTWORK_SIZE_OPTIONS_PX,
+  RECOMMENDED_ARTWORK_SIZE_PX,
+} from "../analysis/metrics";
 import type { NormalizedRect, PaletteResult, RegionMetrics } from "../analysis/metrics";
 import type { TypographyStressSnapshot } from "../lib/report";
 
@@ -13,7 +17,7 @@ type TypographyStressTestProps = {
   onEvaluationChange?: (snapshot: TypographyStressSnapshot | null) => void;
 };
 
-type SampleSize = 64 | 96 | 128 | 256;
+type SampleSize = (typeof ARTWORK_SIZE_OPTIONS_PX)[number];
 type WeightMode = 400 | 500 | 600 | 700 | 800 | 900;
 type AlignMode = "left" | "center" | "right";
 type OverlayMode = "none" | "soft" | "strong" | "gradient" | "glass";
@@ -410,7 +414,7 @@ function buildStressEvaluation(args: {
       "sample",
       "Sample size",
       `${sampleSize}px`,
-      -3,
+      -4,
       "96px still reflects strong thumbnail pressure, but it is slightly more forgiving than 64px."
     );
   } else if (sampleSize <= 128) {
@@ -418,16 +422,48 @@ function buildStressEvaluation(args: {
       "sample",
       "Sample size",
       `${sampleSize}px`,
+      -1,
+      "128px is still a reduced-size reading condition used to test whether hierarchy survives."
+    );
+  } else if (sampleSize <= 256) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      2,
+      "256px is useful for checking hierarchy and placement with less severe thumbnail pressure."
+    );
+  } else if (sampleSize <= 512) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
       4,
-      "128px is a useful mid-size test for browsing grids and playlists."
+      "512px is a comfortable mid-size preview where typography should read clearly if the system is stable."
+    );
+  } else if (sampleSize <= 1024) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      6,
+      "1024px gives a clearer presentation view while still showing whether the text block is well organised."
+    );
+  } else if (sampleSize < RECOMMENDED_ARTWORK_SIZE_PX) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      8,
+      "Larger export sizes preserve more detail, but they should still support the same hierarchy seen in smaller tests."
     );
   } else {
     apply(
       "sample",
       "Sample size",
       `${sampleSize}px`,
-      9,
-      "256px is a generous test size, so hierarchy becomes easier to preserve."
+      10,
+      "3000px is the recommended square working/export size here, giving the typography maximum room and detail."
     );
   }
 
@@ -595,12 +631,30 @@ function buildStressEvaluation(args: {
 
   if (region) {
     const area = region.w * region.h;
-    if (area < 0.035 && sampleSize <= 96) {
-      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, -9, "The highlighted box is physically small, so the headline has less room to survive downscaling.");
-    } else if (area < 0.05) {
-      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, -3, "The selected region is compact, so scale choices matter more.");
+    if (area < 0.035 && sampleSize <= 128) {
+      apply(
+        "region-size",
+        "Selected region size",
+        `${Math.round(area * 100)}%`,
+        -9,
+        "The highlighted box is physically small, so the headline has less room to survive in smaller px tests."
+      );
+    } else if (area < 0.05 && sampleSize <= 512) {
+      apply(
+        "region-size",
+        "Selected region size",
+        `${Math.round(area * 100)}%`,
+        -4,
+        "The selected region is still fairly compact, so type scale and placement matter more."
+      );
     } else {
-      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, 3, "The box gives the typography a reasonable amount of space to work in.");
+      apply(
+        "region-size",
+        "Selected region size",
+        `${Math.round(area * 100)}%`,
+        3,
+        "The box gives the typography a reasonable amount of space to work in across both small tests and larger export sizes."
+      );
     }
   }
 
@@ -698,7 +752,7 @@ function buildStressEvaluation(args: {
       : "The current treatment is likely to fail under reduction unless the text region becomes more stable.";
 
   const basis =
-    "This score combines typography choices with measured region conditions. It is based on sample size, title scale, weight, tracking, overlay, region contrast, background calmness, tone stability, and selected-region size.";
+    "This score combines typography choices with measured region conditions. It is based on size, title scale, weight, tracking, overlay, region contrast, background calmness, tone stability, and selected-region size. Smaller px settings act as pressure tests, while 3000px is the recommended final square target.";
 
   return {
     score,
@@ -875,7 +929,7 @@ export default function TypographyStressTest({
   regionMetrics,
   onEvaluationChange,
 }: TypographyStressTestProps) {
-  const [sampleSize, setSampleSize] = React.useState<SampleSize>(96);
+  const [sampleSize, setSampleSize] = React.useState<SampleSize>(RECOMMENDED_ARTWORK_SIZE_PX);
   const [font, setFont] = React.useState<FontKey>("inter");
   const [weight, setWeight] = React.useState<WeightMode>(700);
   const [tracking, setTracking] = React.useState(0.015);
@@ -979,6 +1033,16 @@ export default function TypographyStressTest({
     ]
   );
 
+
+
+  const projectedRegionPx = React.useMemo(() => {
+    if (!region) return null;
+    return {
+      width: Math.round(region.w * sampleSize),
+      height: Math.round(region.h * sampleSize),
+      smallestSide: Math.round(Math.min(region.w * sampleSize, region.h * sampleSize)),
+    };
+  }, [region, sampleSize]);
 
 const typographySnapshot = React.useMemo<TypographyStressSnapshot | null>(() => {
   if (!dataUrl || !region) return null;
@@ -1180,7 +1244,9 @@ React.useEffect(() => {
                     <div className="miniLabel">Preview logic</div>
                     <div className="miniSub">
                       The mockup redraws the artwork at {sampleSize}px and applies your current title
-                      system inside the selected region. The dashed inner box is the live text block.
+                      system inside the selected region. 3000px is the recommended final square size,
+                      while the smaller px options are there to pressure-test readability. The dashed
+                      inner box is the live text block.
                     </div>
                   </div>
                   <div className="miniCard">
@@ -1294,9 +1360,21 @@ React.useEffect(() => {
                     </div>
                   </div>
                   <div className="row">
-                    <div className="k">Sample</div>
-                    <div className="v">{sampleSize}px</div>
+                    <div className="k">Size</div>
+                    <div className="v">
+                      {sampleSize}px{sampleSize === RECOMMENDED_ARTWORK_SIZE_PX ? " • recommended" : ""}
+                    </div>
                   </div>
+                  {projectedRegionPx && (
+                    <div className="row">
+                      <div className="k">Region at this size</div>
+                      <div className="v">
+                        {projectedRegionPx.width}px × {projectedRegionPx.height}px
+                        {" • "}
+                        smallest side {projectedRegionPx.smallestSide}px
+                      </div>
+                    </div>
+                  )}
                   <div className="row">
                     <div className="k">Title scale</div>
                     <div className="v">{Math.round(titleScale * 100)}%</div>
@@ -1383,17 +1461,29 @@ React.useEffect(() => {
                   <div style={{ display: "grid", gap: 12 }}>
                     <div style={controlRowStyle}>
                       <div className="miniLabel" style={{ padding: 0 }}>Size</div>
-                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                        {[64, 96, 128, 256].map((sizeValue) => (
-                          <button
-                            key={sizeValue}
-                            type="button"
-                            className={`pillBtn ${sampleSize === sizeValue ? "on" : ""}`}
-                            onClick={() => setSampleSize(sizeValue as SampleSize)}
-                          >
-                            {sizeValue}px
-                          </button>
-                        ))}
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                          {ARTWORK_SIZE_OPTIONS_PX.map((sizeValue) => (
+                            <button
+                              key={sizeValue}
+                              type="button"
+                              className={`pillBtn ${sampleSize === sizeValue ? "on" : ""}`}
+                              onClick={() => setSampleSize(sizeValue)}
+                              title={
+                                sizeValue === RECOMMENDED_ARTWORK_SIZE_PX ? "Recommended" : undefined
+                              }
+                            >
+                              {sizeValue}px
+                              {sizeValue === RECOMMENDED_ARTWORK_SIZE_PX ? " • recommended" : ""}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="miniSub">
+                          Recommended square working/export size: <strong>3000px</strong>. Use the
+                          smaller options to pressure-test readability, then confirm the final
+                          direction at 3000px.
+                        </div>
                       </div>
                     </div>
 
@@ -1506,8 +1596,8 @@ React.useEffect(() => {
                   </div>
                 ) : (
                   <div className="miniSub">
-                    Open this panel to adjust sample size, font, weight, alignment, overlay, casing,
-                    and emphasis choices.
+                    Open this panel to adjust size, font, weight, alignment, overlay, casing,
+                    and emphasis choices. 3000px is the recommended final square size.
                   </div>
                 )}
               </div>

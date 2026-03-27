@@ -415,7 +415,7 @@ textarea {
 }
 
 .panelTitle {
-  font-size: 1.2rem;
+  font-size: 1.7rem;
   line-height: 1.2;
   font-weight: 750;
   letter-spacing: -0.02em;
@@ -479,7 +479,7 @@ textarea {
 }
 
 .miniValue {
-  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-size: clamp(1.3rem, 3vw, 2rem);
   line-height: 1;
   font-weight: 800;
   margin-bottom: 6px;
@@ -648,7 +648,7 @@ textarea {
 }
 
 /* =========================================================
-   ANALYZE
+   ANALYZE PAGE
    ========================================================= */
 
 .analyzeWrap {
@@ -722,13 +722,19 @@ textarea {
 
 .analysisSubgrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
+  min-width: 0;
+}
+
+.analysisSubgrid > * {
+  min-width: 0;
 }
 
 .analysisSections {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .sectionBlock {
@@ -736,6 +742,8 @@ textarea {
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.14);
   padding: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sectionHead {
@@ -751,12 +759,19 @@ textarea {
   color: rgba(242, 242, 242, 0.5);
   font-size: 12px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .metricsGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
+}
+
+.metricsGrid > * {
+  min-width: 0;
 }
 
 .metricCard {
@@ -764,6 +779,8 @@ textarea {
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.18);
   padding: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .metricLabel {
@@ -778,6 +795,8 @@ textarea {
   font-size: 28px;
   letter-spacing: 0.02em;
   color: rgba(242, 242, 242, 0.92);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .metricSub {
@@ -785,13 +804,22 @@ textarea {
   color: rgba(242, 242, 242, 0.55);
   font-size: 12px;
   letter-spacing: 0.04em;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .twoCol,
 .compGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
+}
+
+.twoCol > *,
+.compGrid > * {
+  min-width: 0;
 }
 
 .factCard {
@@ -799,6 +827,8 @@ textarea {
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.16);
   padding: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .factTitle {
@@ -806,6 +836,8 @@ textarea {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(242, 242, 242, 0.88);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .factMeta {
@@ -813,6 +845,8 @@ textarea {
   color: rgba(242, 242, 242, 0.72);
   font-size: 12px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .factBody {
@@ -820,18 +854,26 @@ textarea {
   color: rgba(242, 242, 242, 0.58);
   font-size: 12px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .chipRow {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
+}
+
+.chipRow > * {
+  min-width: 0;
 }
 
 .chipMeta {
   display: grid;
   gap: 8px;
   align-items: start;
+  min-width: 0;
 }
 
 .chip {
@@ -841,6 +883,7 @@ textarea {
   border: 1px solid rgba(242, 242, 242, 0.14);
   background: rgba(255, 255, 255, 0.08);
   display: inline-block;
+  flex: 0 0 auto;
 }
 
 .chip.small {
@@ -853,25 +896,30 @@ textarea {
   margin-top: 12px;
   display: grid;
   gap: 10px;
+  min-width: 0;
 }
 
 .paletteLine {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .paletteStrip {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  min-width: 0;
 }
 
 .suggestList {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 .suggestItem {
@@ -879,6 +927,8 @@ textarea {
   border-radius: 18px;
   background: rgba(0, 0, 0, 0.16);
   padding: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .suggestTitle {
@@ -886,6 +936,8 @@ textarea {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(255, 196, 0, 0.92);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .suggestDetail {
@@ -894,6 +946,8 @@ textarea {
   font-size: 12px;
   letter-spacing: 0.02em;
   line-height: 1.6;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .sLine {
@@ -989,6 +1043,7 @@ textarea {
 
 .range {
   width: 180px;
+  max-width: 100%;
 }
 
 .emptyState {
@@ -1017,6 +1072,8 @@ textarea {
   letter-spacing: 0.04em;
   line-height: 1.7;
   max-width: 78ch;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .emptyState .primaryBtn {
@@ -1029,10 +1086,58 @@ textarea {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+  min-width: 0;
+}
+
+.thumbPreviewGrid > * {
+  min-width: 0;
 }
 
 .analyzeHero {
   margin: 6px 0 16px;
+}
+
+@media (max-width: 1100px) {
+  .analyzeGrid2,
+  .analyzeWorkspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 980px) {
+  .analysisSubgrid,
+  .twoCol,
+  .compGrid,
+  .metricsGrid,
+  .chipRow,
+  .thumbPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .analyzeWrap {
+    padding: 16px 14px 32px;
+  }
+
+  .analyzeHeader2 {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .analyzeActions2 {
+    justify-self: start;
+    justify-content: flex-start;
+  }
+
+  .mediaStage.crop,
+  .mediaStage.full {
+    width: 100%;
+  }
+
+  .metricValue {
+    font-size: 24px;
+  }
 }
 
 /* =========================================================
@@ -1986,7 +2091,7 @@ body.lightMode .miniValue {
 }
 
 /* =========================================================
-   MATCH
+   MATCH PAGE 
    ========================================================= */
 
 .matchPageWrap {
@@ -1996,9 +2101,30 @@ body.lightMode .miniValue {
 
 .matchGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1.05fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
   gap: 16px;
   align-items: start;
+}
+
+.sideStack {
+  display: grid;
+  gap: 16px;
+}
+
+.matchResultSection {
+  margin-top: 16px;
+}
+
+.matchResultLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.matchResultSummary,
+.matchResultDetails {
+  min-width: 0;
 }
 
 .matchUploadRow {
@@ -2074,6 +2200,94 @@ body.lightMode .miniValue {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
   line-height: 1;
+}
+
+@media (max-width: 980px) {
+  .matchGrid,
+  .matchResultLayout,
+  .matchUploadRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.matchResultFull {
+  margin-top: 16px;
+}
+
+.matchResultFull {
+  grid-column: 1 / -1;
+}
+
+.matchResultFull {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.matchResultFull .panelBody {
+  display: grid;
+  gap: 14px;
+}
+
+.matchResultFull .matchScoreHero {
+  align-items: flex-start;
+  padding: 16px;
+}
+
+.matchResultFull .matchScoreMeta {
+  min-width: 0;
+}
+
+.matchResultFull .suggestList {
+  display: grid;
+  gap: 12px;
+}
+
+.matchResultFull .suggestItem {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.matchResultFull .suggestTitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.matchResultFull .suggestDetail {
+  line-height: 1.6;
+  opacity: 0.95;
+}
+
+.matchResultFull .miniHint,
+.matchResultFull .miniSub {
+  line-height: 1.55;
+}
+
+.matchResultFull .readyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.matchResultFull .sectionHead {
+  margin-top: 4px;
+}
+
+@media (max-width: 980px) {
+  .matchResultFull .matchScoreHero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .matchResultFull .readyActions {
+    flex-direction: column;
+  }
+
+  .matchResultFull .readyActions button {
+    width: 100%;
+  }
 }
 
 /* =========================================================
@@ -4014,7 +4228,7 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .genreMapTitle {
-  font-size: 1.12rem;
+  font-size: 1.7rem;
   font-weight: 700;
   line-height: 1.3;
   margin: 0;

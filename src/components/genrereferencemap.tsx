@@ -30,8 +30,21 @@ export default function GenreReferenceMap({
       <div className="genreMapHeader">
         <div className="genreMapTitle">Genre reference map</div>
         <div className="genreMapNote">
-          A curated genre-facing visual guide for art direction and reflection, not
-          automatic genre detection.
+          Use this as a reference for art direction and reflection, not as genre detection or a complete list of all music genres.
+        </div>
+      </div>
+
+      <div
+        className="genreMapIntroCard"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.03)",
+        }}
+      >
+        <div className="genreMapSectionHead">Reference notice</div>
+        <div className="genreMapText">
+          This map is only a reference guide. It does not cover every genre, subgenre, or hybrid direction, and a good cover can still work by deliberately resisting these conventions.
         </div>
       </div>
 
@@ -78,6 +91,9 @@ export default function GenreReferenceMap({
         <div className="genreMapIntroCard">
           <div className="genreMapSectionHead">Overview</div>
           <div className="genreMapText">{profile.shortDescription}</div>
+          <div className="genreMapText" style={{ marginTop: 10, opacity: 0.88 }}>
+            Use this profile to compare your current visual direction against broad genre cues in colour, typography, composition, and mood.
+          </div>
         </div>
 
         <div className="genreMapGrid">
@@ -158,7 +174,11 @@ export default function GenreReferenceMap({
               Alignment with current cover mood
             </div>
 
-            <div className="genreMapReportGrid">
+            <div className="genreMapText" style={{ marginBottom: 12 }}>
+              {alignment.summary}
+            </div>
+
+            <div className="genreMapReportGrid" style={{ marginBottom: 14 }}>
               <div className="genreMapCard">
                 <div className="genreMapCardLabel">What aligns</div>
                 {alignment.strengths.length > 0 ? (
@@ -186,10 +206,29 @@ export default function GenreReferenceMap({
               </div>
             </div>
 
+            <div className="genreMapCard" style={{ marginTop: 8 }}>
+              <div className="genreMapCardLabel">How the alignment was judged</div>
+              <div className="genreMapReportGrid" style={{ marginTop: 10 }}>
+                {alignment.dimensions.map((item) => (
+                  <div key={item.key} className="genreMapCard" style={{ padding: 14 }}>
+                    <div className="genreMapCardLabel">{item.title}</div>
+                    <div className="genreMapText" style={{ marginBottom: 6 }}>
+                      Current: <strong>{item.inputValue}</strong>
+                      {" "}• Expected range: <strong>{item.acceptedValues.join(" / ")}</strong>
+                    </div>
+                    <div className="genreMapText" style={{ marginBottom: 8, opacity: 0.88 }}>
+                      {item.whyItMatters}
+                    </div>
+                    <div className="genreMapHint">
+                      {item.matches ? "Fits the reference direction." : item.advice}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="genreMapText" style={{ marginTop: 12 }}>
-              Strong alignment suggests your current direction fits the selected
-              genre conventions. Looser alignment can still be valid if the goal is
-              to deliberately resist or reinterpret those conventions.
+              A strong score means your current mood is close to the chosen reference direction. A looser score does not automatically mean the cover is wrong; it may mean the design is more cross-genre, more experimental, or intentionally resisting convention.
             </div>
           </div>
         )}
