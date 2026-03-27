@@ -110,6 +110,76 @@ function scoreLabel(score: number) {
   return "Poor";
 }
 
+function toneLabel(score: number, good: number, warn: number) {
+  if (score >= good) return "Strong";
+  if (score >= warn) return "Borderline";
+  return "Weak";
+}
+
+function describeContrast(rm: RegionMetrics) {
+  if (rm.contrastRatio >= 7) {
+    return "Very strong tonal separation inside the selected box.";
+  }
+  if (rm.contrastRatio >= 4.5) {
+    return "Good contrast for most small text uses.";
+  }
+  if (rm.contrastRatio >= 3) {
+    return "Usable for larger display text, but still risky for small type.";
+  }
+  return "Low separation between light and dark values in the selected box.";
+}
+
+function describeClutter(rm: RegionMetrics) {
+  if (rm.clutterScore >= 75) {
+    return "The background behind the box is fairly calm, so letterforms are less likely to compete with texture.";
+  }
+  if (rm.clutterScore >= 60) {
+    return "There is some detail behind the box, but it is still reasonably manageable.";
+  }
+  return "Background edges and texture are likely to interfere with text clarity.";
+}
+
+function describeUniformity(rm: RegionMetrics) {
+  if (rm.uniformityScore >= 75) {
+    return "Tone stays fairly even across the box, which makes text treatment more predictable.";
+  }
+  if (rm.uniformityScore >= 55) {
+    return "The box mixes a few tonal zones, so text styling needs to work harder.";
+  }
+  return "The box shifts sharply between light and dark patches, which can make the same text treatment unstable.";
+}
+
+function describeTone(rm: RegionMetrics) {
+  if (rm.toneLabel === "Dark") {
+    return "This region sits mainly on darker tones, so lighter text will usually separate best.";
+  }
+  if (rm.toneLabel === "Light") {
+    return "This region sits mainly on lighter tones, so darker text will usually separate best.";
+  }
+  return "This region sits in mixed mid-tones, so both contrast and clutter matter more than average brightness alone.";
+}
+
+function buildCommentBasis(args: {
+  regionMetrics: RegionMetrics | null;
+  safeMargin: SafeMarginResult | null;
+  thumb64: Thumb64Snapshot | null;
+  viewMode: ViewMode;
+}) {
+  const { regionMetrics: rm, safeMargin: safe, thumb64, viewMode } = args;
+  if (!rm || !safe) return [] as string[];
+
+  const out: string[] = [];
+  if (rm.contrastRatio < 4.5) out.push(`contrast ${rm.contrastRatio.toFixed(2)}× is below the preferred text target`);
+  if (rm.clutterScore < 60) out.push(`clutter ${Math.round(rm.clutterScore)}/100 shows strong background interference`);
+  if (rm.uniformityScore < 55) out.push(`uniformity ${Math.round(rm.uniformityScore)}/100 shows unstable tone across the box`);
+  if (!safe.pass) out.push(`${safe.outsidePct.toFixed(0)}% of the box sits outside the safe area`);
+  if (viewMode === "crop" && thumb64 && !thumb64.pass) {
+    out.push(`64px thumbnail check breaks first at roughly ${Math.round(thumb64.regionMinPx)}px`);
+  }
+  if (!out.length) out.push("current comments are mostly confirmatory because the selected box is passing the main thresholds");
+  return out;
+}
+
 async function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -344,84 +414,144 @@ function buildSuggestions(args: {
   viewMode: ViewMode;
 }): Suggestion[] {
   const { region, regionMetrics: rm, safe, palette, composition, thumb64, viewMode } = args;
-  const out: Suggestion[] = [];
   const area = region.w * region.h;
+  const items: Array<Suggestion & { key: string; priority: number }> = [];
+
+  const pushUnique = (item: Suggestion & { key: string; priority: number }) => {
+    if (!items.some((existing) => existing.key === item.key)) items.push(item);
+  };
+
+  const thumbnailTooSmall = Boolean(thumb64 && thumb64.regionMinPx < 10);
+  const regionTooLarge = rm.areaPct > 18;
+
+  if (thumbnailTooSmall || area < 0.04) {
+    pushUnique({
+      key: "scale",
+      priority: 100,
+      title: "Increase the text region or final type size",
+      why: thumb64
+        ? `At 64px the smallest side of the selected box is only about ${Math.round(thumb64.regionMinPx)}px, so the title area will disappear first.`
+        : "The selected text area is very small relative to the cover.",
+      try: "Give the title / artist block more physical space, use a bolder type treatment, or simplify the crop so the text occupies more of the square thumbnail.",
+      target: "Aim for roughly 10px+ on the smallest side in the 64px preview",
+    });
+  }
 
   if (!safe.pass) {
-    out.push({
-      title: "Move text inward",
-      why: `${safe.outsidePct.toFixed(0)}% of your region falls outside the safe area.`,
-      try: "Shift title/artist toward the centre so important information stays inside the dashed guide.",
+    pushUnique({
+      key: "safe",
+      priority: 96,
+      title: "Move the text box inward",
+      why: `${safe.outsidePct.toFixed(0)}% of the selected region falls outside the ${safe.insetPct.toFixed(0)}% inset safe guide.`,
+      try: "Shift the title / artist block further from the edge so the key information survives thumbnail crops, rounded corners, and interface overlays.",
       target: "Safe score ≥ 95/100",
     });
   }
 
-  if (area < 0.04) {
-    out.push({
-      title: "Increase title area",
-      why: "Very small title regions disappear quickly in 64–128px thumbnails.",
-      try: "Reserve more space for the title/artist block or use a larger/bolder type treatment.",
-      target: "Region should feel substantial at thumbnail scale",
-    });
-  }
-
   if (rm.contrastRatio < 3) {
-    out.push({
-      title: "Contrast is too low",
-      why: `Estimated contrast is ${rm.contrastRatio.toFixed(2)}.`,
-      try: `Use the recommended text colour (${palette.text.primary}) and add a 20–40% overlay behind text.`,
-      target: "≥ 4.5 small text, ≥ 3.0 large text",
+    pushUnique({
+      key: "contrast",
+      priority: 94,
+      title: "Increase tonal separation behind the text",
+      why: `Contrast is only ${rm.contrastRatio.toFixed(2)}× based on the 10th and 90th luminance percentiles inside the box.`,
+      try: `Switch toward ${palette.text.primary} text, darken or lighten the text zone with an overlay, or move the title to a more separated tonal area.`,
+      target: "Prefer ≥ 4.5× for smaller text",
     });
   } else if (rm.contrastRatio < 4.5) {
-    out.push({
-      title: "Contrast is borderline",
-      why: `Estimated contrast is ${rm.contrastRatio.toFixed(2)}.`,
-      try: "Try a gradient strip, stronger font weight, or a more separated text colour.",
-      target: "≥ 4.5 preferred",
+    pushUnique({
+      key: "contrast",
+      priority: 82,
+      title: "Strengthen a borderline contrast result",
+      why: `Contrast is ${rm.contrastRatio.toFixed(2)}×, which is workable for larger display type but still risky for smaller text.` ,
+      try: `Keep the same placement but increase the light/dark split with a gradient strip, a panel, a heavier font weight, or a clearer shift toward ${palette.text.primary}.`,
+      target: "Prefer ≥ 4.5× for safer text rendering",
     });
   }
 
   if (rm.clutterScore < 60) {
-    out.push({
-      title: "Background is too busy behind text",
-      why: "Texture/detail behind letters reduces readability even when contrast is acceptable.",
-      try: "Move text to a calmer area, blur/simplify behind it, or add a panel shape behind the type.",
+    pushUnique({
+      key: "clutter",
+      priority: 88,
+      title: "Reduce background interference behind letters",
+      why: `Clutter is ${Math.round(rm.clutterScore)}/100 and edge density is ${rm.edgeMean.toFixed(3)}, which means texture is competing with the text.` ,
+      try: "Move the title to a calmer patch, blur or simplify the image behind it, or introduce a solid or semi-transparent backing shape.",
       target: "Clutter ≥ 60/100",
+    });
+  } else if (rm.uniformityScore < 55) {
+    pushUnique({
+      key: "uniformity",
+      priority: 74,
+      title: "Stabilise the tone inside the selected box",
+      why: `Uniformity is ${Math.round(rm.uniformityScore)}/100, so the selected box swings between different tonal patches.` ,
+      try: "Keep the same general area but tighten the box, reduce lighting variation behind the text, or use a text treatment that can survive both the lightest and darkest parts of the region.",
+      target: "Uniformity ≥ 55/100",
     });
   }
 
-  if (thumb64 && !thumb64.pass && viewMode === "crop") {
-    out.push({
-      title: "64px check still fails",
-      why: `Tiny check: contrast ${thumb64.contrastRatio.toFixed(2)}, clutter ${Math.round(
-        thumb64.clutterScore
-      )}, region size ${Math.round(thumb64.regionMinPx)}px.`,
-      try: "Increase type size/weight, reduce background texture, or choose a cleaner square crop.",
+  if (regionTooLarge) {
+    pushUnique({
+      key: "selection",
+      priority: 68,
+      title: "Tighten the analysis box around the real text zone",
+      why: `The selected box covers ${rm.areaPct.toFixed(1)}% of the full image, which is often wider than the actual title area.` ,
+      try: "Keep the box focused on the title / artist region rather than the wider artwork so the metrics describe the text environment more accurately.",
+      target: "Select the text zone, not the whole cover",
+    });
+  }
+
+  if (
+    viewMode === "crop" &&
+    thumb64 &&
+    !thumb64.pass &&
+    !thumbnailTooSmall &&
+    rm.contrastRatio >= 4.5 &&
+    rm.clutterScore >= 60
+  ) {
+    pushUnique({
+      key: "thumbnail",
+      priority: 72,
+      title: "The thumbnail crop still feels too dense",
+      why: `The box passes most local checks, but the 64px thumbnail preview still fails, which suggests the crop is compressing too much information at once.` ,
+      try: "Try a cleaner crop with a clearer focal hierarchy so the title area competes with fewer elements when reduced to thumbnail size.",
       target: "Readable at 64px",
     });
   }
 
-  if (composition.lightDark.label === "Dark") {
-    out.push({
-      title: "Very dark overall image",
-      why: "Dark covers can crush detail and subtle type in dark-mode UIs.",
-      try: "Use a lighter text/overlay combination and increase tonal separation in the title zone.",
+  if (composition.lightDark.label === "Dark" && rm.contrastRatio < 7) {
+    pushUnique({
+      key: "dark-ui",
+      priority: 54,
+      title: "Watch dark-on-dark behaviour in platform UI",
+      why: "The overall cover is dark, so subtle title treatment can disappear faster once it sits inside dark-mode streaming interfaces.",
+      try: "Push the title zone lighter, or add a clearer edge between text and background so the cover does not collapse into the surrounding interface.",
+      target: "Keep the title region visibly distinct from dark UI chrome",
     });
-  } else if (composition.lightDark.label === "Light") {
-    out.push({
-      title: "Very light overall image",
-      why: "Light covers can wash out pale typography or weak focal points.",
-      try: "Use a darker text tone or slightly deepen the title region with an overlay.",
+  } else if (composition.lightDark.label === "Light" && rm.contrastRatio < 7) {
+    pushUnique({
+      key: "light-ui",
+      priority: 54,
+      title: "Watch washed-out behaviour on light artwork",
+      why: "The overall cover is light, so pale type or weak focal treatment can flatten quickly in dense browsing grids.",
+      try: "Deepen the text area slightly or shift toward a darker text choice so the title remains the first readable layer.",
+      target: "Keep the title region clearly darker or lighter than its background",
     });
   }
 
-  out.push({
-    title: "Use palette-compatible accents",
-    why: `Region-average colour is ${palette.regionAvg}.`,
-    try: `Try accent ${palette.text.accent} or use the palette as overlay/highlight options.`,
-  });
+  if (!items.length) {
+    pushUnique({
+      key: "positive",
+      priority: 40,
+      title: "Current text zone is working well",
+      why: `The selected box is passing contrast, clutter, placement, and thumbnail checks, so the current treatment is already strong.` ,
+      try: `Preserve this contrast relationship and use ${palette.text.accent} only as a secondary highlight rather than changing the main text treatment.`,
+      target: "Maintain this reading hierarchy through revisions",
+    });
+  }
 
-  return out.slice(0, 10);
+  return items
+    .sort((a, b) => b.priority - a.priority)
+    .slice(0, 5)
+    .map(({ key, priority, ...rest }) => rest);
 }
 
 export default function AnalyzePage() {
@@ -507,6 +637,23 @@ export default function AnalyzePage() {
   }, [busy, hasAnalysis, isGeneratingReport, navPending, pendingAnalysis, region]);
 
   const showProgress = progressLabel.length > 0;
+
+  const boxGuideText = useMemo(() => {
+    if (viewMode === "crop" && panCrop) {
+      return "PAN CROP is on. Drag the image to choose the square thumbnail framing. Turn PAN CROP off when you are ready to draw or adjust the yellow analysis box.";
+    }
+    if (!region) {
+      return "The yellow box marks the text test region. Draw it tightly around the title / artist area you want scored. The tool analyses pixels inside that box rather than the whole cover.";
+    }
+    return viewMode === "crop"
+      ? "The yellow box is your analysis region inside the current square crop. Scores on the right are calculated from the pixels inside this box after mapping it back to the source image."
+      : "The yellow box is your analysis region on the full artwork. Scores on the right are calculated only from the pixels inside this box.";
+  }, [panCrop, region, viewMode]);
+
+  const commentBasis = useMemo(
+    () => buildCommentBasis({ regionMetrics, safeMargin, thumb64, viewMode }),
+    [regionMetrics, safeMargin, thumb64, viewMode]
+  );
 
   const imgStyle = useMemo(() => {
     if (viewMode !== "crop") return undefined;
@@ -612,6 +759,19 @@ export default function AnalyzePage() {
     ctx.lineWidth = 2;
     ctx.fillRect(x, y, w, h);
     ctx.strokeRect(x, y, w, h);
+
+    const label = "TEXT TEST REGION";
+    ctx.font = "600 11px system-ui, -apple-system, sans-serif";
+    const labelW = Math.min(cssW - 12, Math.ceil(ctx.measureText(label).width) + 14);
+    const labelX = Math.min(x, Math.max(6, cssW - labelW - 6));
+    const labelY = Math.max(6, y - 24);
+    ctx.fillStyle = "rgba(0,0,0,0.78)";
+    ctx.strokeStyle = "rgba(255,196,0,0.95)";
+    ctx.lineWidth = 1;
+    ctx.fillRect(labelX, labelY, labelW, 18);
+    ctx.strokeRect(labelX, labelY, labelW, 18);
+    ctx.fillStyle = "rgba(255,245,210,0.96)";
+    ctx.fillText(label, labelX + 7, labelY + 12);
 
     const drawHandle = (hx: number, hy: number) => {
       ctx.beginPath();
@@ -1143,8 +1303,9 @@ export default function AnalyzePage() {
         <div className="testKicker">Cover Analysis</div>
         <div className="testTitle">Analyze</div>
         <div className="testLead">
-          Draw a region for title/artist, review readability + composition, then use
-          Release Readiness as your final decision.
+          First frame the cover the way a listener would see it, then draw the yellow
+          text test box around the title / artist area. Every reading score on this page
+          is based on that selection, so keep the box tight and intentional.
         </div>
 
         <hr className="mockRule" />
@@ -1189,8 +1350,8 @@ export default function AnalyzePage() {
                   <div className="panelTitle">Cover + region</div>
                   <div className="panelNote">
                     {viewMode === "crop"
-                      ? "Crop view simulates square streaming thumbnails. Use PAN CROP to choose the most realistic square framing."
-                      : "Full view shows the entire image using contain."}
+                      ? "Crop view simulates a streaming thumbnail. Use PAN CROP to set the square framing first, then turn it off to place the yellow text test box."
+                      : "Full view shows the entire uploaded artwork. Draw the yellow box tightly around the title / artist area you want analysed."}
                   </div>
                 </div>
 
@@ -1315,6 +1476,28 @@ export default function AnalyzePage() {
                     </span>
                   </div>
 
+                  <div className="detailLine">
+                    <b>About the yellow box:</b> {boxGuideText}
+                  </div>
+
+                  <div className="twoCol">
+                    <div className="miniCard">
+                      <div className="miniLabel">1. Frame the cover</div>
+                      <div className="miniSub">
+                        In crop view, choose the square thumbnail framing first. In full view,
+                        keep the full artwork visible while you decide where the title area sits.
+                      </div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">2. Draw the text test region</div>
+                      <div className="miniSub">
+                        The box should describe the text environment, not the whole cover. Keep it
+                        close to the title / artist area so the analysis reflects the real reading zone.
+                      </div>
+                    </div>
+                  </div>
+
                   {error && <div className="errorLine">{error}</div>}
                 </div>
               </div>
@@ -1323,9 +1506,9 @@ export default function AnalyzePage() {
                 <div className="panelTop">
                   <div className="panelTitle">Composition</div>
                   <div className="panelNote">
-                    A composition layer to complement readability. These five metrics
-                    describe overall character: light/dark, colour balance, symmetry,
-                    texture, and organic vs technical shape language.
+                    A composition layer to complement readability. These values explain what the
+                    cover feels like before typography is added, how each value is calculated,
+                    and which overall traits matter most.
                   </div>
                 </div>
 
@@ -1333,50 +1516,108 @@ export default function AnalyzePage() {
                   {!composition ? (
                     <div className="miniHint">Composition will appear after the image loads.</div>
                   ) : (
-                    <div className="compGrid compGridBig">
-                      <div className="miniCard">
-                        <div className="miniLabel">Light vs dark</div>
-                        <div className="miniValue">{composition.lightDark.label}</div>
-                        <div className="miniSub">
-                          Average luminance: {composition.lightDark.averageLuminance}/100
+                    <div className="analysisSections">
+                      <div className="sectionBlock">
+                        <div className="sectionHead">Overall reading</div>
+
+                        <div className="miniCard">
+                          <div className="miniLabel">Summary</div>
+                          <div className="miniValue">{composition.summary.headline}</div>
+                          <div className="miniSub">{composition.summary.guidance}</div>
+                          <div className="detailLine">
+                            <b>Basis:</b> {composition.summary.basis}
+                          </div>
                         </div>
-                        {composition.lightDark.warning && (
-                          <div className="detailLine">{composition.lightDark.warning}</div>
+
+                        {!!composition.highlights.length && (
+                          <div className="suggestList">
+                            {composition.highlights.map((item) => (
+                              <div key={item.key} className="suggestItem">
+                                <div className="suggestTitle">{item.title}</div>
+                                <div className="suggestDetail">
+                                  <div className="sLine">{item.detail}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </div>
 
-                      <div className="miniCard">
-                        <div className="miniLabel">Colour balance</div>
-                        <div className="miniValue">{composition.colorBalance.label}</div>
-                        <div className="miniSub">
-                          Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Saturation spread {composition.colorBalance.saturationSpread}/100
+                      <div className="sectionBlock">
+                        <div className="sectionHead">What each metric means</div>
+
+                        <div className="compGrid compGridBig">
+                          <div className="miniCard">
+                            <div className="miniLabel">Light vs dark</div>
+                            <div className="miniValue">{composition.lightDark.label}</div>
+                            <div className="miniSub">
+                              Average luminance {composition.lightDark.averageLuminance}/100 • spread {composition.lightDark.luminanceSpread}/100
+                            </div>
+                            <div className="detailLine">{composition.lightDark.explanation}</div>
+                            <div className="detailLine">
+                              <b>How it is calculated:</b> {composition.lightDark.basis}
+                            </div>
+                            {composition.lightDark.warning && (
+                              <div className="detailLine">
+                                <b>Why it matters:</b> {composition.lightDark.warning}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Colour balance</div>
+                            <div className="miniValue">{composition.colorBalance.label}</div>
+                            <div className="miniSub">
+                              Warm {composition.colorBalance.warmPct}% • Cool {composition.colorBalance.coolPct}% • Neutral {composition.colorBalance.neutralPct}%
+                            </div>
+                            <div className="detailLine">
+                              Average saturation {composition.colorBalance.averageSaturation}/100 • spread {composition.colorBalance.saturationSpread}/100 • dominant hue weight {composition.colorBalance.dominantWeight}/100
+                            </div>
+                            <div className="detailLine">{composition.colorBalance.explanation}</div>
+                            <div className="detailLine">
+                              <b>How it is calculated:</b> {composition.colorBalance.basis}
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Symmetry vs asymmetry</div>
+                            <div className="miniValue">{composition.symmetry.label}</div>
+                            <div className="miniSub">
+                              Vertical mirror similarity {composition.symmetry.score}/100
+                            </div>
+                            <div className="detailLine">{composition.symmetry.explanation}</div>
+                            <div className="detailLine">
+                              <b>How it is calculated:</b> {composition.symmetry.basis}
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Texture / complexity</div>
+                            <div className="miniValue">{composition.texture.label}</div>
+                            <div className="miniSub">
+                              Texture energy {composition.texture.energy}/100
+                            </div>
+                            <div className="detailLine">{composition.texture.explanation}</div>
+                            <div className="detailLine">
+                              <b>How it is calculated:</b> {composition.texture.basis}
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Organic vs technical</div>
+                            <div className="miniValue">{composition.organicTechnical.label}</div>
+                            <div className="miniSub">
+                              Structure score {composition.organicTechnical.score}/100
+                            </div>
+                            <div className="detailLine">{composition.organicTechnical.explanation}</div>
+                            <div className="detailLine">
+                              <b>How it is calculated:</b> {composition.organicTechnical.basis}
+                            </div>
+                          </div>
                         </div>
+
                         <div className="detailLine">
-                          Dominant colour weight: {composition.colorBalance.dominantWeight}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Symmetry vs asymmetry</div>
-                        <div className="miniValue">{composition.symmetry.label}</div>
-                        <div className="miniSub">
-                          Vertical mirror similarity: {composition.symmetry.score}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Texture / complexity</div>
-                        <div className="miniValue">{composition.texture.label}</div>
-                        <div className="miniSub">
-                          Texture energy: {composition.texture.energy}/100
-                        </div>
-                      </div>
-
-                      <div className="miniCard">
-                        <div className="miniLabel">Organic vs technical</div>
-                        <div className="miniValue">{composition.organicTechnical.label}</div>
-                        <div className="miniSub">
-                          Structure score: {composition.organicTechnical.score}/100
+                          These metrics are computed from {composition.sampleCount.toLocaleString()} sampled pixels at roughly {composition.sampleStep}px intervals inside the current {viewMode === "crop" ? "crop" : "full-image"} view.
                         </div>
                       </div>
                     </div>
@@ -1390,64 +1631,152 @@ export default function AnalyzePage() {
                 <div className="panelTop">
                   <div className="panelTitle">Region analysis</div>
                   <div className="panelNote">
-                    Core album-cover checks for the selected title/artist region:
-                    readability, placement risk, and palette guidance.
+                    This panel explains what the selected box means, what each value is measuring,
+                    and why specific comments are being triggered.
                   </div>
                 </div>
 
                 <div className="panelBody">
                   {!region || !regionMetrics || !safeMargin || !palette ? (
-                    <div className="miniHint">Draw a region to analyze the title/artist area.</div>
+                    <div className="analysisSections">
+                      <div className="sectionBlock">
+                        <div className="sectionHead">How this analysis works</div>
+                        <div className="twoCol">
+                          <div className="miniCard">
+                            <div className="miniLabel">What the highlighted box is</div>
+                            <div className="miniSub">
+                              The yellow box is the text test region. It should wrap the title /
+                              artist area you want scored, because the readability metrics are
+                              calculated from pixels inside that box.
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">What to do next</div>
+                            <div className="miniSub">
+                              First frame the crop, then draw the box around the important text.
+                              Once the box is in place, the right-hand panels explain contrast,
+                              clutter, placement, scale, and suggested text colours.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="analysisSections">
+                      <div className="sectionBlock">
+                        <div className="sectionHead">What is being analysed</div>
+
+                        <div className="twoCol">
+                          <div className="miniCard">
+                            <div className="miniLabel">Selected text region</div>
+                            <div className="miniValue">{regionMetrics.areaPct.toFixed(1)}%</div>
+                            <div className="miniSub">
+                              of the full artwork • {regionMetrics.pixelWidth}×{regionMetrics.pixelHeight}px in the source image
+                            </div>
+                            <div className="detailLine">
+                              Keep this box tight around the title / artist zone. A loose box makes
+                              the metrics describe the wider artwork instead of the real reading area.
+                            </div>
+                          </div>
+
+                          <div className="miniCard">
+                            <div className="miniLabel">Why comments appear</div>
+                            <div className="miniSub">
+                              Suggestions are triggered from contrast, clutter, uniformity, safe-area fit,
+                              and thumbnail scale rather than repeating the same issue in different words.
+                            </div>
+                            <div className="detailLine">
+                              <b>Current basis:</b> {commentBasis.join(" • ")}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="sectionBlock">
                         <div className="sectionHead">Readability</div>
 
                         <div className="metricsGrid">
                           <div className="metricCard">
                             <div className="metricLabel">Contrast</div>
-                            <div className="metricValue">
-                              {regionMetrics.contrastRatio.toFixed(2)}
-                            </div>
+                            <div className="metricValue">{regionMetrics.contrastRatio.toFixed(2)}×</div>
                             <div className="metricSub">
-                              {scoreLabel(regionMetrics.contrastScore)} • target ≥ 4.5 small / ≥ 3.0 large
+                              {toneLabel(regionMetrics.contrastRatio, 4.5, 3)} • p10 {regionMetrics.p10Luminance.toFixed(0)} / p90 {regionMetrics.p90Luminance.toFixed(0)}
+                            </div>
+                            <div className="detailLine">
+                              Calculated from the 10th and 90th luminance percentiles inside the box.
+                              {" "}{describeContrast(regionMetrics)}
                             </div>
                           </div>
 
                           <div className="metricCard">
                             <div className="metricLabel">Clutter</div>
-                            <div className="metricValue">
-                              {Math.round(regionMetrics.clutterScore)}
-                            </div>
+                            <div className="metricValue">{Math.round(regionMetrics.clutterScore)}</div>
                             <div className="metricSub">
-                              {scoreLabel(regionMetrics.clutterScore)} • target ≥ 60/100
+                              {scoreLabel(regionMetrics.clutterScore)} • edge mean {regionMetrics.edgeMean.toFixed(3)}
+                            </div>
+                            <div className="detailLine">
+                              Calculated from local edge density inside the box. Higher edge activity
+                              means the background is competing more strongly with letterforms. {describeClutter(regionMetrics)}
                             </div>
                           </div>
-                        </div>
 
-                        <div className="detailLine">
-                          Contrast estimates separation between text and background. Clutter
-                          estimates how much background detail competes with letterforms.
+                          <div className="metricCard">
+                            <div className="metricLabel">Uniformity</div>
+                            <div className="metricValue">{Math.round(regionMetrics.uniformityScore)}</div>
+                            <div className="metricSub">
+                              {scoreLabel(regionMetrics.uniformityScore)} • tonal deviation {regionMetrics.luminanceStdDev.toFixed(0)}/100
+                            </div>
+                            <div className="detailLine">
+                              Calculated from luminance variation across the box. Higher scores mean the
+                              text sits on a more even field. {describeUniformity(regionMetrics)}
+                            </div>
+                          </div>
+
+                          <div className="metricCard">
+                            <div className="metricLabel">Tone</div>
+                            <div className="metricValue">{regionMetrics.toneLabel}</div>
+                            <div className="metricSub">
+                              average {regionMetrics.averageLuminance.toFixed(0)}/100 • spread {regionMetrics.luminanceSpread.toFixed(0)}/100
+                            </div>
+                            <div className="detailLine">
+                              This shows whether the selected box sits on mainly dark, mid-tone, or
+                              light background values. {describeTone(regionMetrics)}
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       <div className="sectionBlock">
-                        <div className="sectionHead">Placement</div>
+                        <div className="sectionHead">Placement and scale</div>
 
                         <div className="twoCol">
                           <div className="miniCard">
                             <div className="miniLabel">Safe area score</div>
                             <div className="miniValue">{safeMargin.score.toFixed(0)}/100</div>
                             <div className="miniSub">
-                              {safeMargin.pass ? "PASS" : "FAIL"} • {safeMargin.outsidePct.toFixed(0)}% outside
+                              {safeMargin.pass ? "PASS" : "FAIL"} • {safeMargin.insidePct.toFixed(0)}% inside • {safeMargin.outsidePct.toFixed(0)}% outside
+                            </div>
+                            <div className="detailLine">
+                              Calculated as the proportion of the selected box that stays inside the
+                              dashed {safeMargin.insetPct.toFixed(0)}% inset guide.
                             </div>
                           </div>
 
                           <div className="miniCard">
-                            <div className="miniLabel">Why it matters</div>
+                            <div className="miniLabel">64px thumbnail check</div>
+                            <div className="miniValue">
+                              {viewMode === "crop" && thumb64 ? (thumb64.pass ? "Pass" : "Fail") : "—"}
+                            </div>
                             <div className="miniSub">
-                              Platforms crop artwork, round corners, and add UI overlays. Edge
-                              text is the first thing to fail.
+                              {viewMode === "crop" && thumb64
+                                ? `smallest region side ≈ ${Math.round(thumb64.regionMinPx)}px`
+                                : "Available in crop view"}
+                            </div>
+                            <div className="detailLine">
+                              {viewMode === "crop" && thumb64
+                                ? thumb64.note
+                                : "Switch to crop view to test the selected text region against a thumbnail-like square framing."}
                             </div>
                           </div>
                         </div>
@@ -1509,8 +1838,9 @@ export default function AnalyzePage() {
                         </div>
 
                         <div className="detailLine">
-                          Use the best text chip for maximum separation, then build
-                          accents/overlays around that palette rather than guessing.
+                          The recommended text chips are chosen from contrast against the region-average
+                          colour. Use them as a starting point, then add accents or overlays from the
+                          palette rather than guessing new colours.
                         </div>
                       </div>
                     </div>
@@ -1597,7 +1927,8 @@ export default function AnalyzePage() {
                 <div className="panelTop">
                   <div className="panelTitle">Suggestions</div>
                   <div className="panelNote">
-                    Plain-language actions based on region + crop + composition.
+                    Prioritised findings only. Suggestions are filtered so each one adds a new insight
+                    instead of repeating the same problem in different wording.
                   </div>
                 </div>
 

@@ -1,15 +1,29 @@
 export type NormalizedRect = { x: number; y: number; w: number; h: number };
 
 export type RegionMetrics = {
-  contrastRatio: number;     // WCAG-style ratio from sampled luminance percentiles
-  contrastScore: number;     // 0–100 derived
-  clutterScore: number;      // 0–100 (higher = cleaner)
+  contrastRatio: number;      // WCAG-style ratio from sampled luminance percentiles
+  contrastScore: number;      // 0–100 derived
+  clutterScore: number;       // 0–100 (higher = cleaner)
+  uniformityScore: number;    // 0–100 (higher = more uniform)
+  averageLuminance: number;   // 0–100
+  luminanceSpread: number;    // 0–100
+  luminanceStdDev: number;    // 0–100
+  p10Luminance: number;       // 0–100
+  p90Luminance: number;       // 0–100
+  edgeMean: number;           // raw edge strength mean (not normalized)
+  areaPct: number;            // region area as percentage of image area
+  pixelWidth: number;
+  pixelHeight: number;
+  sampleCount: number;
+  toneLabel: "Dark" | "Mid-tone" | "Light";
 };
 
 export type SafeMarginResult = {
-  score: number;             // 0–100
+  score: number;              // 0–100
   pass: boolean;
-  outsidePct: number;        // 0–100
+  insidePct: number;          // 0–100
+  outsidePct: number;         // 0–100
+  insetPct: number;           // guide inset as 0–100
 };
 
 export type PaletteResult = {
@@ -26,17 +40,18 @@ export type PaletteResult = {
   };
   compatible: {
     complement: string;
-    analogous: string[];       // 2 colors
-    triadic: string[];         // 2 colors
-    splitComplement: string[]; // 2 colors
-    tints: string[];           // lighter versions of base
-    shades: string[];          // darker versions of base
+    analogous: string[];
+    triadic: string[];
+    splitComplement: string[];
+    tints: string[];
+    shades: string[];
   };
 };
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
+
 function clamp01(v: number) {
   return clamp(v, 0, 1);
 }
@@ -58,12 +73,14 @@ function srgbToLin(u8: number) {
   const c = u8 / 255;
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
 }
+
 function relLuminance(r: number, g: number, b: number) {
   const R = srgbToLin(r);
   const G = srgbToLin(g);
   const B = srgbToLin(b);
   return 0.2126 * R + 0.7152 * G + 0.0722 * B;
 }
+
 function contrastRatioFromL(L1: number, L2: number) {
   const hi = Math.max(L1, L2);
   const lo = Math.min(L1, L2);
@@ -72,7 +89,9 @@ function contrastRatioFromL(L1: number, L2: number) {
 
 function rgbToHex(r: number, g: number, b: number) {
   const to = (n: number) => n.toString(16).padStart(2, "0");
-  return `#${to(clamp(Math.round(r), 0, 255))}${to(clamp(Math.round(g), 0, 255))}${to(clamp(Math.round(b), 0, 255))}`;
+  return `#${to(clamp(Math.round(r), 0, 255))}${to(clamp(Math.round(g), 0, 255))}${to(
+    clamp(Math.round(b), 0, 255)
+  )}`;
 }
 
 function hexToRgb(hex: string) {
@@ -82,17 +101,26 @@ function hexToRgb(hex: string) {
 }
 
 function rgbToHsl(r: number, g: number, b: number) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
   const d = max - min;
   let h = 0;
   const l = (max + min) / 2;
   const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
   if (d !== 0) {
     switch (max) {
-      case r: h = ((g - b) / d) % 6; break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
+      case r:
+        h = ((g - b) / d) % 6;
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
     }
     h *= 60;
     if (h < 0) h += 360;
@@ -104,13 +132,34 @@ function hslToRgb(h: number, s: number, l: number) {
   const C = (1 - Math.abs(2 * l - 1)) * s;
   const Hp = (h % 360) / 60;
   const X = C * (1 - Math.abs((Hp % 2) - 1));
-  let r1 = 0, g1 = 0, b1 = 0;
-  if (0 <= Hp && Hp < 1) { r1 = C; g1 = X; b1 = 0; }
-  else if (1 <= Hp && Hp < 2) { r1 = X; g1 = C; b1 = 0; }
-  else if (2 <= Hp && Hp < 3) { r1 = 0; g1 = C; b1 = X; }
-  else if (3 <= Hp && Hp < 4) { r1 = 0; g1 = X; b1 = C; }
-  else if (4 <= Hp && Hp < 5) { r1 = X; g1 = 0; b1 = C; }
-  else { r1 = C; g1 = 0; b1 = X; }
+  let r1 = 0;
+  let g1 = 0;
+  let b1 = 0;
+  if (0 <= Hp && Hp < 1) {
+    r1 = C;
+    g1 = X;
+    b1 = 0;
+  } else if (1 <= Hp && Hp < 2) {
+    r1 = X;
+    g1 = C;
+    b1 = 0;
+  } else if (2 <= Hp && Hp < 3) {
+    r1 = 0;
+    g1 = C;
+    b1 = X;
+  } else if (3 <= Hp && Hp < 4) {
+    r1 = 0;
+    g1 = X;
+    b1 = C;
+  } else if (4 <= Hp && Hp < 5) {
+    r1 = X;
+    g1 = 0;
+    b1 = C;
+  } else {
+    r1 = C;
+    g1 = 0;
+    b1 = X;
+  }
   const m = l - C / 2;
   return {
     r: Math.round((r1 + m) * 255),
@@ -119,7 +168,11 @@ function hslToRgb(h: number, s: number, l: number) {
   };
 }
 
-function samplePixels(img: ImageData, rect: { x: number; y: number; w: number; h: number }, maxSamples = 8000) {
+function samplePixels(
+  img: ImageData,
+  rect: { x: number; y: number; w: number; h: number },
+  maxSamples = 8000
+) {
   const { data, width } = img;
   const total = rect.w * rect.h;
   const step = Math.max(1, Math.floor(Math.sqrt(total / maxSamples)));
@@ -136,7 +189,6 @@ function samplePixels(img: ImageData, rect: { x: number; y: number; w: number; h
 }
 
 function dominantPalette(samples: Array<[number, number, number]>, count = 6) {
-  // quantize -> histogram -> pick top distinct
   const hist = new Map<number, number>();
   for (const [r, g, b] of samples) {
     const key = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4);
@@ -146,7 +198,8 @@ function dominantPalette(samples: Array<[number, number, number]>, count = 6) {
 
   const picked: string[] = [];
   const tooClose = (c1: string, c2: string) => {
-    const a = hexToRgb(c1), b = hexToRgb(c2);
+    const a = hexToRgb(c1);
+    const b = hexToRgb(c2);
     const d = Math.abs(a.r - b.r) + Math.abs(a.g - b.g) + Math.abs(a.b - b.b);
     return d < 90;
   };
@@ -164,10 +217,27 @@ function dominantPalette(samples: Array<[number, number, number]>, count = 6) {
 }
 
 function avgColor(samples: Array<[number, number, number]>) {
-  let r = 0, g = 0, b = 0;
+  let r = 0;
+  let g = 0;
+  let b = 0;
   const n = Math.max(1, samples.length);
-  for (const s of samples) { r += s[0]; g += s[1]; b += s[2]; }
+  for (const s of samples) {
+    r += s[0];
+    g += s[1];
+    b += s[2];
+  }
   return rgbToHex(r / n, g / n, b / n);
+}
+
+function mean(values: number[]) {
+  if (!values.length) return 0;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
+function stdDev(values: number[], avg = mean(values)) {
+  if (!values.length) return 0;
+  const variance = values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / values.length;
+  return Math.sqrt(variance);
 }
 
 function bestTextColors(bgHex: string) {
@@ -183,22 +253,25 @@ function bestTextColors(bgHex: string) {
   const primary = crWhite >= crBlack ? white.hex : black.hex;
   const secondary = primary === white.hex ? "#e6e6e6" : "#1a1a1a";
 
-  // accent: pick whichever of these “pops” with better contrast
   const accents = ["#ffc400", "#7cf1ff", "#ff5a9f", "#a8ff60"];
   let best = accents[0];
   let bestCR = 0;
   for (const a of accents) {
     const c = hexToRgb(a);
     const cr = contrastRatioFromL(Lbg, relLuminance(c.r, c.g, c.b));
-    if (cr > bestCR) { bestCR = cr; best = a; }
+    if (cr > bestCR) {
+      bestCR = cr;
+      best = a;
+    }
   }
 
+  const sec = hexToRgb(secondary);
   return {
     primary,
     secondary,
     accent: best,
     primaryRatio: Math.max(crBlack, crWhite),
-    secondaryRatio: contrastRatioFromL(Lbg, relLuminance(...Object.values(hexToRgb(secondary)) as [number, number, number])),
+    secondaryRatio: contrastRatioFromL(Lbg, relLuminance(sec.r, sec.g, sec.b)),
     accentRatio: bestCR,
   };
 }
@@ -215,7 +288,6 @@ function harmony(baseHex: string) {
   const analogous = [mk(h - 30), mk(h + 30)];
   const triadic = [mk(h - 120), mk(h + 120)];
   const splitComplement = [mk(h + 150), mk(h - 150)];
-
   const tints = [mk(h, s, clamp(l + 0.12, 0, 1)), mk(h, s, clamp(l + 0.24, 0, 1))];
   const shades = [mk(h, s, clamp(l - 0.12, 0, 1)), mk(h, s, clamp(l - 0.24, 0, 1))];
 
@@ -239,30 +311,37 @@ export function computeSafeMargin(region: NormalizedRect, inset = 0.08): SafeMar
   const outsidePct = 100 - insidePct;
   const score = insidePct;
 
-  return { score, pass: insidePct >= 95, outsidePct };
+  return {
+    score,
+    pass: insidePct >= 95,
+    insidePct,
+    outsidePct,
+    insetPct: inset * 100,
+  };
 }
 
 export function computeRegionMetrics(img: ImageData, region: NormalizedRect): RegionMetrics {
   const rect = rectToPxRect(img, region);
   const samples = samplePixels(img, rect, 9000);
-
-  // Contrast (percentile-based luminance)
   const lum = samples.map(([r, g, b]) => relLuminance(r, g, b)).sort((a, b) => a - b);
-  const n = lum.length || 1;
-  const p10 = lum[Math.floor(n * 0.10)] ?? 0;
-  const p90 = lum[Math.floor(n * 0.90)] ?? 0.9;
-  const contrastRatio = contrastRatioFromL(p90, p10);
+  const n = Math.max(1, lum.length);
 
-  // Score mapping: 1..7+ into 0..100
+  const p10 = lum[Math.floor((n - 1) * 0.1)] ?? 0;
+  const p90 = lum[Math.floor((n - 1) * 0.9)] ?? 0.9;
+  const avgLum = mean(lum);
+  const stdLum = stdDev(lum, avgLum);
+
+  const contrastRatio = contrastRatioFromL(p90, p10);
   const contrastScore = clamp(((contrastRatio - 1) / 6) * 100, 0, 100);
 
-  // Clutter: simple edge density (difference between neighbors)
-  // More edges => lower score.
   const { data, width, height } = img;
   let edgeSum = 0;
   let edgeCount = 0;
 
-  const x0 = rect.x, y0 = rect.y, x1 = rect.x + rect.w, y1 = rect.y + rect.h;
+  const x0 = rect.x;
+  const y0 = rect.y;
+  const x1 = rect.x + rect.w;
+  const y1 = rect.y + rect.h;
   const step = Math.max(1, Math.floor(Math.sqrt((rect.w * rect.h) / 9000)));
 
   const lumAt = (x: number, y: number) => {
@@ -281,10 +360,33 @@ export function computeRegionMetrics(img: ImageData, region: NormalizedRect): Re
   }
 
   const edgeMean = edgeCount ? edgeSum / edgeCount : 0;
-  // edgeMean ~0..0.25 (typical). Map to 100..0
   const clutterScore = clamp(100 - edgeMean * 520, 0, 100);
+  const uniformityScore = clamp(100 - stdLum * 280, 0, 100);
 
-  return { contrastRatio, contrastScore, clutterScore };
+  const averageLuminance = avgLum * 100;
+  const luminanceSpread = (p90 - p10) * 100;
+  const luminanceStdDev = stdLum * 100;
+  const areaPct = (rect.w * rect.h * 100) / Math.max(1, img.width * img.height);
+  const toneLabel: RegionMetrics["toneLabel"] =
+    averageLuminance < 35 ? "Dark" : averageLuminance > 65 ? "Light" : "Mid-tone";
+
+  return {
+    contrastRatio,
+    contrastScore,
+    clutterScore,
+    uniformityScore,
+    averageLuminance,
+    luminanceSpread,
+    luminanceStdDev,
+    p10Luminance: p10 * 100,
+    p90Luminance: p90 * 100,
+    edgeMean,
+    areaPct,
+    pixelWidth: rect.w,
+    pixelHeight: rect.h,
+    sampleCount: samples.length,
+    toneLabel,
+  };
 }
 
 export function computePalette(img: ImageData, region: NormalizedRect): PaletteResult {

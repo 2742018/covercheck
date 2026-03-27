@@ -59,6 +59,45 @@ type RenderState = {
   textColor: string;
 };
 
+type EnhancedRegionMetrics = RegionMetrics &
+  Partial<{
+    uniformityScore: number;
+    averageLuminance: number;
+    luminanceSpread: number;
+    toneLabel: "Dark" | "Mid-tone" | "Light";
+    areaPct: number;
+    pixelWidth: number;
+    pixelHeight: number;
+    p10Luminance: number;
+    p90Luminance: number;
+    edgeMean: number;
+  }>;
+
+type StressFactor = {
+  key: string;
+  label: string;
+  value: string;
+  effect: number;
+  basis: string;
+};
+
+type StressSuggestion = {
+  key: string;
+  title: string;
+  detail: string;
+  tryLine: string;
+  priority: number;
+};
+
+type StressEvaluation = {
+  score: number;
+  label: "Strong" | "Usable" | "Risky" | "Weak";
+  summary: string;
+  basis: string;
+  factors: StressFactor[];
+  suggestions: StressSuggestion[];
+};
+
 const FONT_OPTIONS: Record<
   FontKey,
   {
@@ -221,7 +260,9 @@ async function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 function toTitleCase(text: string) {
-  return text.replace(/\w\S*/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  return text.replace(/\w\S*/g, (word) =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  );
 }
 
 function applyCase(text: string, mode: CaseMode) {
@@ -300,7 +341,20 @@ function drawTrackedText(args: {
   }
 }
 
-function estimateStressScore(args: {
+function pushUniqueSuggestion(list: StressSuggestion[], item: StressSuggestion) {
+  if (!list.some((existing) => existing.key === item.key)) {
+    list.push(item);
+  }
+}
+
+function addFactor(list: StressFactor[], factor: StressFactor) {
+  const existing = list.find((item) => item.key === factor.key);
+  if (!existing) {
+    list.push(factor);
+  }
+}
+
+function buildStressEvaluation(args: {
   sampleSize: number;
   weight: number;
   tracking: number;
@@ -309,114 +363,349 @@ function estimateStressScore(args: {
   region: NormalizedRect | null;
   font: FontKey;
   titleScale: number;
+  blockWidth: number;
+  align: AlignMode;
 }) {
-  const { sampleSize, weight, tracking, overlay, regionMetrics, region, font, titleScale } = args;
+  const {
+    sampleSize,
+    weight,
+    tracking,
+    overlay,
+    regionMetrics,
+    region,
+    font,
+    titleScale,
+    blockWidth,
+    align,
+  } = args;
 
-  let score = 48;
+  const rm = (regionMetrics as EnhancedRegionMetrics | null) ?? null;
+  const factors: StressFactor[] = [];
+  const suggestions: StressSuggestion[] = [];
+  let score = 50;
 
-  if (sampleSize >= 256) score += 16;
-  else if (sampleSize >= 128) score += 10;
-  else if (sampleSize >= 96) score += 4;
-  else score -= 6;
+  const apply = (
+    key: string,
+    label: string,
+    value: string,
+    effect: number,
+    basis: string
+  ) => {
+    score += effect;
+    addFactor(factors, { key, label, value, effect, basis });
+  };
 
-  if (weight >= 900) score += 14;
-  else if (weight >= 700) score += 9;
-  else if (weight >= 600) score += 5;
-  else score += 1;
+  if (sampleSize <= 64) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      -8,
+      "64px is the harshest thumbnail test, so even decent styles can fail here first."
+    );
+  } else if (sampleSize <= 96) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      -3,
+      "96px still reflects strong thumbnail pressure, but it is slightly more forgiving than 64px."
+    );
+  } else if (sampleSize <= 128) {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      4,
+      "128px is a useful mid-size test for browsing grids and playlists."
+    );
+  } else {
+    apply(
+      "sample",
+      "Sample size",
+      `${sampleSize}px`,
+      9,
+      "256px is a generous test size, so hierarchy becomes easier to preserve."
+    );
+  }
 
-  if (tracking >= 0.03) score += 6;
-  else if (tracking >= 0.015) score += 3;
-  else if (tracking < 0) score -= 6;
+  if (weight >= 800) {
+    apply("weight", "Title weight", `${weight}`, 8, "Heavier title weight usually survives downscaling better.");
+  } else if (weight >= 700) {
+    apply("weight", "Title weight", `${weight}`, 4, "This is a healthy display weight for most thumbnail contexts.");
+  } else if (weight >= 600) {
+    apply("weight", "Title weight", `${weight}`, 0, "Medium weight can work, but it depends more on contrast and calmness.");
+  } else {
+    apply("weight", "Title weight", `${weight}`, -7, "Lighter title weights often break sooner when the artwork is reduced.");
+  }
 
-  if (overlay === "soft") score += 6;
-  if (overlay === "strong") score += 12;
-  if (overlay === "gradient") score += 9;
-  if (overlay === "glass") score += 7;
+  if (tracking < 0.005) {
+    apply("tracking", "Tracking", `${tracking.toFixed(3)}em`, -4, "Tight letter spacing can close counters and weaken small-size clarity.");
+  } else if (tracking <= 0.03) {
+    apply("tracking", "Tracking", `${tracking.toFixed(3)}em`, 3, "Moderate spacing usually helps scanning without destroying word shape.");
+  } else if (tracking <= 0.04) {
+    apply("tracking", "Tracking", `${tracking.toFixed(3)}em`, 0, "Wide spacing can still work, but the title starts to feel more fragile as words spread out.");
+  } else {
+    apply("tracking", "Tracking", `${tracking.toFixed(3)}em`, -4, "Very wide tracking can separate letters so much that word shape weakens.");
+  }
 
-  if (font === "display" && sampleSize <= 96) score += 4;
-  if (font === "mono" && sampleSize <= 64) score -= 3;
-  if ((font === "serif" || font === "editorial") && sampleSize <= 64) score -= 4;
+  if (overlay === "none") {
+    apply("overlay", "Overlay", "none", -5, "Without an overlay, the title depends entirely on the image for separation.");
+  } else if (overlay === "soft") {
+    apply("overlay", "Overlay", "soft", 4, "A soft overlay gives separation without making the text block feel too heavy.");
+  } else if (overlay === "strong") {
+    apply("overlay", "Overlay", "strong", 8, "A strong overlay creates the most direct tonal separation for type.");
+  } else if (overlay === "gradient") {
+    apply("overlay", "Overlay", "gradient", 6, "A gradient can stabilise the text zone while preserving more of the artwork underneath.");
+  } else {
+    apply("overlay", "Overlay", "glass", 5, "Glass styling adds separation with less weight than a solid panel.");
+  }
 
-  if (titleScale >= 0.17) score += 6;
-  else if (titleScale < 0.13 && sampleSize <= 96) score -= 8;
+  if (titleScale >= 0.17) {
+    apply("title-scale", "Title scale", `${Math.round(titleScale * 100)}%`, 7, "The title takes up enough vertical space to stay visible sooner.");
+  } else if (titleScale >= 0.145) {
+    apply("title-scale", "Title scale", `${Math.round(titleScale * 100)}%`, 3, "The title scale is workable, but still depends on a stable background.");
+  } else {
+    apply("title-scale", "Title scale", `${Math.round(titleScale * 100)}%`, -8, "A conservative headline scale often disappears first under thumbnail pressure.");
+  }
 
-  if (regionMetrics) {
-    if (regionMetrics.contrastRatio >= 4.5) score += 16;
-    else if (regionMetrics.contrastRatio >= 3) score += 7;
-    else score -= 16;
+  if (blockWidth < 0.5) {
+    apply("block-width", "Text block width", blockWidth.toFixed(2), -4, "A narrow text block can look refined, but it reduces flexibility for headline layout.");
+  } else if (blockWidth > 0.9) {
+    apply("block-width", "Text block width", blockWidth.toFixed(2), -1, "A very wide block can flatten hierarchy if everything stretches across the whole region.");
+  } else {
+    apply("block-width", "Text block width", blockWidth.toFixed(2), 2, "The current width gives the text room without forcing it across the whole selected area.");
+  }
 
-    if (regionMetrics.clutterScore >= 70) score += 14;
-    else if (regionMetrics.clutterScore >= 60) score += 8;
-    else if (regionMetrics.clutterScore < 45) score -= 14;
-    else score -= 6;
+  if (align === "center") {
+    apply("align", "Alignment", "center", 1, "Center alignment can feel poster-like, but it depends more on strong hierarchy.");
+  } else {
+    apply("align", "Alignment", align, 2, "Edge-aligned text usually scans more quickly in small interfaces.");
+  }
+
+  if (font === "display" && sampleSize <= 96) {
+    apply("font", "Font style", FONT_OPTIONS[font].label, 3, "The display face is bold enough to survive aggressive reduction reasonably well.");
+  } else if ((font === "serif" || font === "editorial") && sampleSize <= 96) {
+    apply("font", "Font style", FONT_OPTIONS[font].label, -3, "Editorial and serif styles often need more contrast support when reduced.");
+  } else if (font === "mono" && sampleSize <= 64) {
+    apply("font", "Font style", FONT_OPTIONS[font].label, -4, "Monospaced styles tend to need more size to breathe at thumbnail scale.");
+  } else {
+    apply("font", "Font style", FONT_OPTIONS[font].label, 1, `The ${FONT_OPTIONS[font].vibe} direction is workable in the current setup.`);
+  }
+
+  if (rm) {
+    if (rm.contrastRatio >= 7) {
+      apply(
+        "contrast",
+        "Region contrast",
+        `${rm.contrastRatio.toFixed(2)}×`,
+        14,
+        "The selected region has strong tonal separation, so the text has a stable base to work from."
+      );
+    } else if (rm.contrastRatio >= 4.5) {
+      apply(
+        "contrast",
+        "Region contrast",
+        `${rm.contrastRatio.toFixed(2)}×`,
+        7,
+        "Contrast is safely above the preferred small-text threshold."
+      );
+    } else if (rm.contrastRatio >= 3) {
+      apply(
+        "contrast",
+        "Region contrast",
+        `${rm.contrastRatio.toFixed(2)}×`,
+        -5,
+        "Contrast is only moderate, so styling decisions have to carry more of the load."
+      );
+    } else {
+      apply(
+        "contrast",
+        "Region contrast",
+        `${rm.contrastRatio.toFixed(2)}×`,
+        -16,
+        "Contrast is low, so the image is not giving the title enough tonal separation."
+      );
+    }
+
+    if (rm.clutterScore >= 75) {
+      apply(
+        "clutter",
+        "Background calmness",
+        `${Math.round(rm.clutterScore)}/100`,
+        10,
+        "The selected region is calm enough that texture is unlikely to compete strongly with letterforms."
+      );
+    } else if (rm.clutterScore >= 60) {
+      apply(
+        "clutter",
+        "Background calmness",
+        `${Math.round(rm.clutterScore)}/100`,
+        4,
+        "There is some detail behind the type, but it remains manageable."
+      );
+    } else if (rm.clutterScore >= 45) {
+      apply(
+        "clutter",
+        "Background calmness",
+        `${Math.round(rm.clutterScore)}/100`,
+        -6,
+        "Texture is beginning to compete with the title zone."
+      );
+    } else {
+      apply(
+        "clutter",
+        "Background calmness",
+        `${Math.round(rm.clutterScore)}/100`,
+        -14,
+        "The title region is busy enough that letter edges will struggle to stay clean."
+      );
+    }
+
+    if (typeof rm.uniformityScore === "number") {
+      if (rm.uniformityScore >= 75) {
+        apply(
+          "uniformity",
+          "Tone stability",
+          `${Math.round(rm.uniformityScore)}/100`,
+          7,
+          "Tone stays fairly even across the selected box, so the same text treatment can hold together more reliably."
+        );
+      } else if (rm.uniformityScore >= 55) {
+        apply(
+          "uniformity",
+          "Tone stability",
+          `${Math.round(rm.uniformityScore)}/100`,
+          2,
+          "Tone is mixed but still manageable inside the selected region."
+        );
+      } else {
+        apply(
+          "uniformity",
+          "Tone stability",
+          `${Math.round(rm.uniformityScore)}/100`,
+          -7,
+          "The region swings between lighter and darker patches, so the same style may not hold consistently across the whole box."
+        );
+      }
+    }
   }
 
   if (region) {
     const area = region.w * region.h;
-    if (area < 0.035 && sampleSize <= 64) score -= 10;
-    else if (area < 0.05 && sampleSize <= 128) score -= 5;
+    if (area < 0.035 && sampleSize <= 96) {
+      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, -9, "The highlighted box is physically small, so the headline has less room to survive downscaling.");
+    } else if (area < 0.05) {
+      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, -3, "The selected region is compact, so scale choices matter more.");
+    } else {
+      apply("region-size", "Selected region size", `${Math.round(area * 100)}%`, 3, "The box gives the typography a reasonable amount of space to work in.");
+    }
+  }
+
+  if (rm && rm.contrastRatio < 4.5) {
+    pushUniqueSuggestion(suggestions, {
+      key: "contrast",
+      title: "Increase tonal separation first",
+      detail: `The score is being dragged down most clearly by contrast at ${rm.contrastRatio.toFixed(2)}×, so styling changes alone will only help so much.`,
+      tryLine: "Move the text to a lighter or darker patch, or add a stronger panel / gradient so the title sits on a more stable value split.",
+      priority: 100,
+    });
+  }
+
+  if (rm && rm.clutterScore < 60) {
+    pushUniqueSuggestion(suggestions, {
+      key: "clutter",
+      title: "Calm the background behind the title",
+      detail: `Background calmness is only ${Math.round(rm.clutterScore)}/100, which means texture is likely competing directly with the letterforms.`,
+      tryLine: "Use a calmer placement, blur or darken the title patch, or introduce an overlay so the text is not sitting directly on busy detail.",
+      priority: 96,
+    });
+  }
+
+  if (rm && typeof rm.uniformityScore === "number" && rm.uniformityScore < 55) {
+    pushUniqueSuggestion(suggestions, {
+      key: "uniformity",
+      title: "Make the text zone more tonally stable",
+      detail: `Tone stability is ${Math.round(rm.uniformityScore)}/100, so one part of the title block is likely landing on a different brightness band than another.`,
+      tryLine: "Tighten the region, shift the text block within it, or use a treatment that can survive both the lightest and darkest parts of the selected area.",
+      priority: 90,
+    });
+  }
+
+  if ((sampleSize <= 96 && titleScale < 0.145) || weight < 700) {
+    pushUniqueSuggestion(suggestions, {
+      key: "headline-scale",
+      title: "Give the headline more authority",
+      detail: "The current title system is fairly conservative for a reduced-size interface, so it risks becoming decorative instead of readable.",
+      tryLine: "Increase title scale, increase weight, or reduce supporting text pressure so the title becomes the first readable layer.",
+      priority: 88,
+    });
+  }
+
+  if (overlay === "none" && rm && (rm.contrastRatio < 4.5 || rm.clutterScore < 60)) {
+    pushUniqueSuggestion(suggestions, {
+      key: "overlay",
+      title: "Let the image do less of the work",
+      detail: "Because there is no overlay, every readability problem has to be solved by the image alone.",
+      tryLine: "Try soft, gradient, or glass overlay mode before changing fonts. It often fixes the real problem faster than typography tweaks do.",
+      priority: 84,
+    });
+  }
+
+  if (tracking > 0.04 || tracking < 0.005) {
+    pushUniqueSuggestion(suggestions, {
+      key: "tracking",
+      title: "Normalise the letter spacing",
+      detail: `Tracking at ${tracking.toFixed(3)}em is pushing the word shape away from its safest range.`,
+      tryLine: "Aim for a moderate spacing range so letters stay readable without turning into isolated shapes.",
+      priority: 72,
+    });
+  }
+
+  if (blockWidth < 0.5) {
+    pushUniqueSuggestion(suggestions, {
+      key: "block-width",
+      title: "Give the text block a little more room",
+      detail: "The current width looks refined, but it reduces your options once the headline gets longer or the thumbnail gets smaller.",
+      tryLine: "Increase block width slightly so the title can breathe before you enlarge the type again.",
+      priority: 66,
+    });
+  }
+
+  if (!suggestions.length) {
+    pushUniqueSuggestion(suggestions, {
+      key: "positive",
+      title: "This setup is already solving the main problems",
+      detail: "The current combination of scale, weight, separation, and region quality is holding together well.",
+      tryLine: "Use the controls to explore style changes, but keep the same basic contrast relationship and text-region discipline.",
+      priority: 40,
+    });
   }
 
   score = clamp(Math.round(score), 0, 100);
-
-  const label =
+  const label: StressEvaluation["label"] =
     score >= 82 ? "Strong" : score >= 64 ? "Usable" : score >= 44 ? "Risky" : "Weak";
 
-  return { score, label };
-}
+  const summary =
+    label === "Strong"
+      ? "The current text system should survive most streaming-style reductions without major help."
+      : label === "Usable"
+      ? "The setup is workable, but it still depends on the image remaining calm and separated."
+      : label === "Risky"
+      ? "The type can work at larger sizes, but thumbnail pressure is exposing real weaknesses."
+      : "The current treatment is likely to fail under reduction unless the text region becomes more stable.";
 
-function buildStressNotes(args: {
-  sampleSize: number;
-  weight: number;
-  tracking: number;
-  overlay: OverlayMode;
-  regionMetrics: RegionMetrics | null;
-  font: FontKey;
-  titleScale: number;
-  blockWidth: number;
-}) {
-  const { sampleSize, weight, tracking, overlay, regionMetrics, font, titleScale, blockWidth } = args;
-  const lines: string[] = [];
+  const basis =
+    "This score combines typography choices with measured region conditions. It is based on sample size, title scale, weight, tracking, overlay, region contrast, background calmness, tone stability, and selected-region size.";
 
-  if (sampleSize <= 64) {
-    lines.push("64px is the hardest reading condition and best reflects thumbnail pressure.");
-  } else if (sampleSize <= 128) {
-    lines.push("128px is a useful mid-scale check for playlist and grid contexts.");
-  } else {
-    lines.push("256px is forgiving and helps judge hierarchy, not just survival.");
-  }
-
-  if (weight < 700) lines.push("A heavier title weight may improve survival at smaller sizes.");
-  if (tracking < 0.01) lines.push("Slightly wider tracking may improve small-size clarity.");
-  if (tracking > 0.035) lines.push("Very wide tracking can weaken word-shape cohesion if pushed too far.");
-  if (titleScale < 0.13) lines.push("The title scale is conservative. Try a bigger headline for stronger scanning.");
-  if (blockWidth < 0.55) lines.push("A narrow text block looks refined, but it can force awkward line pressure at tiny sizes.");
-
-  if (overlay === "none") {
-    lines.push("No overlay means the title depends entirely on the image for separation.");
-  } else if (overlay === "glass") {
-    lines.push("Glass overlay adds separation with less visual heaviness than a solid panel.");
-  } else if (overlay === "gradient") {
-    lines.push("Gradient overlay can preserve artwork while still anchoring the text block.");
-  }
-
-  if (font === "display") lines.push("Display faces feel loud and fast, but check letter spacing carefully on short titles.");
-  if (font === "editorial" || font === "serif") lines.push("Serif styles can feel premium, but they usually need stronger contrast support.");
-  if (font === "mono") lines.push("Monospaced styles feel intentional and cold, but they may need more size to breathe.");
-
-  if (regionMetrics) {
-    if (regionMetrics.contrastRatio < 3) {
-      lines.push("Measured contrast is low, so typography may fail regardless of weight changes.");
-    } else if (regionMetrics.contrastRatio < 4.5) {
-      lines.push("Contrast is only moderate, so type styling decisions matter more than usual.");
-    }
-
-    if (regionMetrics.clutterScore < 60) {
-      lines.push("The title area is visually busy, so stronger separation or a calmer placement is likely needed.");
-    }
-  }
-
-  return lines;
+  return {
+    score,
+    label,
+    summary,
+    basis,
+    factors: factors.sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect)),
+    suggestions: suggestions.sort((a, b) => b.priority - a.priority).slice(0, 4),
+  } satisfies StressEvaluation;
 }
 
 function applyPreset(
@@ -484,7 +773,11 @@ function buildPreviewCanvas(args: {
     const title = applyCase(renderState.titleText, renderState.caseMode);
     const artist = applyCase(
       renderState.artistText,
-      renderState.artistCaps ? "upper" : renderState.caseMode === "upper" ? "upper" : "sentence"
+      renderState.artistCaps
+        ? "upper"
+        : renderState.caseMode === "upper"
+        ? "upper"
+        : "sentence"
     );
 
     const fontDef = FONT_OPTIONS[renderState.font];
@@ -507,7 +800,7 @@ function buildPreviewCanvas(args: {
         ? blockX + blockWidthPx * 0.92
         : blockX + blockWidthPx / 2;
 
-  const overlayFill = getOverlayFill(
+    const overlayFill = getOverlayFill(
       ctx,
       blockX,
       blockY,
@@ -601,9 +894,12 @@ export default function TypographyStressTest({
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [activePreset, setActivePreset] = React.useState<string | null>(null);
+  const [styleControlsOpen, setStyleControlsOpen] = React.useState(true);
+  const [textPlacementOpen, setTextPlacementOpen] = React.useState(true);
 
   const textColor = deriveTextColor(palette);
   const fontMeta = FONT_OPTIONS[font];
+  const rm = (regionMetrics as EnhancedRegionMetrics | null) ?? null;
 
   const renderState = React.useMemo<RenderState>(
     () => ({
@@ -652,9 +948,9 @@ export default function TypographyStressTest({
     ]
   );
 
-  const stress = React.useMemo(
+  const evaluation = React.useMemo(
     () =>
-      estimateStressScore({
+      buildStressEvaluation({
         sampleSize,
         weight,
         tracking,
@@ -663,23 +959,21 @@ export default function TypographyStressTest({
         region,
         font,
         titleScale,
-      }),
-    [sampleSize, weight, tracking, overlay, regionMetrics, region, font, titleScale]
-  );
-
-  const notes = React.useMemo(
-    () =>
-      buildStressNotes({
-        sampleSize,
-        weight,
-        tracking,
-        overlay,
-        regionMetrics,
-        font,
-        titleScale,
         blockWidth,
+        align,
       }),
-    [sampleSize, weight, tracking, overlay, regionMetrics, font, titleScale, blockWidth]
+    [
+      sampleSize,
+      weight,
+      tracking,
+      overlay,
+      regionMetrics,
+      region,
+      font,
+      titleScale,
+      blockWidth,
+      align,
+    ]
   );
 
   React.useEffect(() => {
@@ -737,14 +1031,34 @@ export default function TypographyStressTest({
     padding: 12,
   };
 
+  const collapsibleHeaderStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 10,
+  };
+
+  const toggleButtonStyle: React.CSSProperties = {
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "rgba(255,255,255,0.04)",
+    color: "inherit",
+    borderRadius: 999,
+    padding: "6px 12px",
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: "0.04em",
+    cursor: "pointer",
+  };
 
   return (
     <div className="panelDark typoStressPanel">
       <div className="panelTop">
         <div className="panelTitle">Typography stress test</div>
         <div className="panelNote">
-          Simulate headline treatments inside your selected title zone. This version adds
-          richer font styles, direct position control, wider size tuning, and faster preset exploration.
+          This preview redraws your current artwork at small platform-style sizes and places a
+          simulated title system inside the highlighted region. It is designed to explain why a
+          headline survives or fails, not just show an isolated mockup.
         </div>
       </div>
 
@@ -752,11 +1066,53 @@ export default function TypographyStressTest({
         {!dataUrl ? (
           <div className="miniHint">Upload an image to begin typography stress testing.</div>
         ) : !region ? (
-          <div className="miniHint">
-            Draw a title/artist region first. The stress test uses that region as the text placement area.
+          <div className="analysisSections">
+            <div className="sectionBlock">
+              <div className="sectionHead">How this tool works</div>
+              <div className="twoCol">
+                <div className="miniCard">
+                  <div className="miniLabel">What the highlighted box means here</div>
+                  <div className="miniSub">
+                    The yellow box is the text test region. The preview places title and artist text
+                    inside that area so the score reflects the real image patch your typography has to
+                    survive on.
+                  </div>
+                </div>
+                <div className="miniCard">
+                  <div className="miniLabel">What to do next</div>
+                  <div className="miniSub">
+                    First draw the region around the actual title / artist zone. Then use the preview
+                    to test whether different text systems still hold together once the cover is reduced.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <>
+            <div className="analysisSections" style={{ marginBottom: 16 }}>
+              <div className="sectionBlock">
+                <div className="sectionHead">What you are testing</div>
+                <div className="twoCol">
+                  <div className="miniCard">
+                    <div className="miniLabel">Preview logic</div>
+                    <div className="miniSub">
+                      The mockup redraws the artwork at {sampleSize}px and applies your current title
+                      system inside the selected region. The dashed inner box is the live text block.
+                    </div>
+                  </div>
+                  <div className="miniCard">
+                    <div className="miniLabel">Why the score changes</div>
+                    <div className="miniSub">
+                      The score is based on size, weight, tracking, overlay, region contrast,
+                      background calmness, tone stability, and how much room the highlighted box gives
+                      the typography.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="suggestList" style={{ marginBottom: 16 }}>
               <div className="suggestItem">
                 <div className="suggestTitle">Quick presets</div>
@@ -787,7 +1143,8 @@ export default function TypographyStressTest({
                     ))}
                   </div>
                   <div className="detailLine" style={{ marginTop: 0 }}>
-                    Try presets to explore different cover personalities quickly, then fine-tune below.
+                    Start with a preset to establish a clear direction, then tune the controls below
+                    while watching which factors move the score most.
                   </div>
                 </div>
               </div>
@@ -821,6 +1178,10 @@ export default function TypographyStressTest({
                     <div className="miniHint">No preview available.</div>
                   )}
                 </div>
+                <div className="detailLine" style={{ marginTop: 12 }}>
+                  Yellow outline = selected text region. Dashed outline = current text block inside
+                  that region.
+                </div>
               </div>
 
               <div className="miniCard" style={{ minWidth: 0 }}>
@@ -828,15 +1189,19 @@ export default function TypographyStressTest({
                 <div className="readyTop" style={{ marginBottom: 12 }}>
                   <span
                     className={`statusTag ${
-                      stress.label === "Strong"
+                      evaluation.label === "Strong"
                         ? "pass"
-                        : stress.label === "Weak"
+                        : evaluation.label === "Weak"
                         ? "fail"
                         : ""
                     }`}
                   >
-                    {stress.label.toUpperCase()} • {stress.score}/100
+                    {evaluation.label.toUpperCase()} • {evaluation.score}/100
                   </span>
+                </div>
+
+                <div className="detailLine" style={{ marginTop: 0, marginBottom: 12 }}>
+                  {evaluation.summary}
                 </div>
 
                 <div className="reportTable">
@@ -866,37 +1231,45 @@ export default function TypographyStressTest({
                     <div className="k">Suggested text</div>
                     <div className="v">{textColor}</div>
                   </div>
-                  <div className="row">
-                    <div className="k">Placement</div>
-                    <div className="v">
-                      X {blockX.toFixed(2)} • Y {blockY.toFixed(2)} • Width {blockWidth.toFixed(2)}
-                    </div>
-                  </div>
+                  {rm && (
+                    <>
+                      <div className="row">
+                        <div className="k">Region contrast</div>
+                        <div className="v">{rm.contrastRatio.toFixed(2)}×</div>
+                      </div>
+                      <div className="row">
+                        <div className="k">Background calmness</div>
+                        <div className="v">{Math.round(rm.clutterScore)}/100</div>
+                      </div>
+                      {typeof rm.uniformityScore === "number" && (
+                        <div className="row">
+                          <div className="k">Tone stability</div>
+                          <div className="v">{Math.round(rm.uniformityScore)}/100</div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
                   <div style={compactCardStyle}>
                     <div className="miniLabel" style={{ padding: 0, marginBottom: 8 }}>
-                      Current style
+                      How this score is built
                     </div>
-                    <div className="miniSub">
-                      {fontMeta.vibe}. {align} aligned, {getOverlayModeLabel(overlay)} overlay,
-                      tracking {tracking.toFixed(3)}em.
-                    </div>
+                    <div className="miniSub">{evaluation.basis}</div>
                   </div>
 
                   <div style={compactCardStyle}>
                     <div className="miniLabel" style={{ padding: 0, marginBottom: 8 }}>
-                      Quick read
+                      Region context
                     </div>
                     <div className="miniSub">
-                      {stress.label === "Strong"
-                        ? "This setup should survive most thumbnail contexts well."
-                        : stress.label === "Usable"
-                        ? "This setup is workable, but it still depends on image calmness and contrast."
-                        : stress.label === "Risky"
-                        ? "This setup may break at smaller sizes without stronger separation."
-                        : "This setup is likely to fail under thumbnail pressure without major adjustment."}
+                      {rm?.toneLabel
+                        ? `${rm.toneLabel} text zone.`
+                        : "Text zone selected."}{" "}
+                      {rm?.areaPct
+                        ? `The region covers ${rm.areaPct.toFixed(1)}% of the artwork.`
+                        : "The region size is being factored into the score."}
                     </div>
                   </div>
                 </div>
@@ -912,287 +1285,367 @@ export default function TypographyStressTest({
               }}
             >
               <div className="miniCard" style={{ minWidth: 0 }}>
-                <div className="miniLabel">Style controls</div>
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Size</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {[64, 96, 128, 256].map((sizeValue) => (
-                        <button
-                          key={sizeValue}
-                          type="button"
-                          className={`pillBtn ${sampleSize === sizeValue ? "on" : ""}`}
-                          onClick={() => setSampleSize(sizeValue as SampleSize)}
-                        >
-                          {sizeValue}px
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div style={collapsibleHeaderStyle}>
+                  <div className="miniLabel" style={{ padding: 0, margin: 0 }}>Style controls</div>
+                  <button
+                    type="button"
+                    style={toggleButtonStyle}
+                    onClick={() => setStyleControlsOpen((v) => !v)}
+                    aria-expanded={styleControlsOpen}
+                  >
+                    {styleControlsOpen ? "Collapse" : "Expand"}
+                  </button>
+                </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Font</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {(Object.keys(FONT_OPTIONS) as FontKey[]).map((key) => (
-                        <button
-                          key={key}
-                          type="button"
-                          className={`pillBtn ${font === key ? "on" : ""}`}
-                          onClick={() => {
-                            setFont(key);
-                            setActivePreset(null);
-                          }}
-                          title={FONT_OPTIONS[key].vibe}
-                        >
-                          {FONT_OPTIONS[key].label}
-                        </button>
-                      ))}
+                {styleControlsOpen ? (
+                  <div style={{ display: "grid", gap: 12 }}>
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Size</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {[64, 96, 128, 256].map((sizeValue) => (
+                          <button
+                            key={sizeValue}
+                            type="button"
+                            className={`pillBtn ${sampleSize === sizeValue ? "on" : ""}`}
+                            onClick={() => setSampleSize(sizeValue as SampleSize)}
+                          >
+                            {sizeValue}px
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Weight</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {[400, 500, 600, 700, 800, 900].map((weightValue) => (
-                        <button
-                          key={weightValue}
-                          type="button"
-                          className={`pillBtn ${weight === weightValue ? "on" : ""}`}
-                          onClick={() => {
-                            setWeight(weightValue as WeightMode);
-                            setActivePreset(null);
-                          }}
-                        >
-                          {weightValue}
-                        </button>
-                      ))}
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Font</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {(Object.keys(FONT_OPTIONS) as FontKey[]).map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            className={`pillBtn ${font === key ? "on" : ""}`}
+                            onClick={() => {
+                              setFont(key);
+                              setActivePreset(null);
+                            }}
+                            title={FONT_OPTIONS[key].vibe}
+                          >
+                            {FONT_OPTIONS[key].label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Align</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {(["left", "center", "right"] as AlignMode[]).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          className={`pillBtn ${align === mode ? "on" : ""}`}
-                          onClick={() => setAlign(mode)}
-                        >
-                          {mode.toUpperCase()}
-                        </button>
-                      ))}
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Weight</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {[400, 500, 600, 700, 800, 900].map((weightValue) => (
+                          <button
+                            key={weightValue}
+                            type="button"
+                            className={`pillBtn ${weight === weightValue ? "on" : ""}`}
+                            onClick={() => {
+                              setWeight(weightValue as WeightMode);
+                              setActivePreset(null);
+                            }}
+                          >
+                            {weightValue}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Overlay</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {(["none", "soft", "strong", "gradient", "glass"] as OverlayMode[]).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          className={`pillBtn ${overlay === mode ? "on" : ""}`}
-                          onClick={() => setOverlay(mode)}
-                        >
-                          {mode.toUpperCase()}
-                        </button>
-                      ))}
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Align</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {(["left", "center", "right"] as AlignMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={`pillBtn ${align === mode ? "on" : ""}`}
+                            onClick={() => setAlign(mode)}
+                          >
+                            {mode.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Case</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      {(["title", "upper", "sentence", "lower"] as CaseMode[]).map((mode) => (
-                        <button
-                          key={mode}
-                          type="button"
-                          className={`pillBtn ${caseMode === mode ? "on" : ""}`}
-                          onClick={() => setCaseMode(mode)}
-                        >
-                          {mode.toUpperCase()}
-                        </button>
-                      ))}
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Overlay</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {(["none", "soft", "strong", "gradient", "glass"] as OverlayMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={`pillBtn ${overlay === mode ? "on" : ""}`}
+                            onClick={() => setOverlay(mode)}
+                          >
+                            {mode.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div style={controlRowStyle}>
-                    <div className="miniLabel" style={{ padding: 0 }}>Flavor</div>
-                    <div className="pillRow" style={{ flexWrap: "wrap" }}>
-                      <button
-                        type="button"
-                        className={`pillBtn ${titleItalic ? "on" : ""}`}
-                        onClick={() => setTitleItalic((v) => !v)}
-                      >
-                        TITLE ITALIC
-                      </button>
-                      <button
-                        type="button"
-                        className={`pillBtn ${artistCaps ? "on" : ""}`}
-                        onClick={() => setArtistCaps((v) => !v)}
-                      >
-                        ARTIST CAPS
-                      </button>
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Case</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        {(["title", "upper", "sentence", "lower"] as CaseMode[]).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            className={`pillBtn ${caseMode === mode ? "on" : ""}`}
+                            onClick={() => setCaseMode(mode)}
+                          >
+                            {mode.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={controlRowStyle}>
+                      <div className="miniLabel" style={{ padding: 0 }}>Flavor</div>
+                      <div className="pillRow" style={{ flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className={`pillBtn ${titleItalic ? "on" : ""}`}
+                          onClick={() => setTitleItalic((v) => !v)}
+                        >
+                          TITLE ITALIC
+                        </button>
+                        <button
+                          type="button"
+                          className={`pillBtn ${artistCaps ? "on" : ""}`}
+                          onClick={() => setArtistCaps((v) => !v)}
+                        >
+                          ARTIST CAPS
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="miniSub">
+                    Open this panel to adjust sample size, font, weight, alignment, overlay, casing,
+                    and emphasis choices.
+                  </div>
+                )}
+              </div>
+
+              <div className="miniCard" style={{ minWidth: 0 }}>
+                <div style={collapsibleHeaderStyle}>
+                  <div className="miniLabel" style={{ padding: 0, margin: 0 }}>Text + placement</div>
+                  <button
+                    type="button"
+                    style={toggleButtonStyle}
+                    onClick={() => setTextPlacementOpen((v) => !v)}
+                    aria-expanded={textPlacementOpen}
+                  >
+                    {textPlacementOpen ? "Collapse" : "Expand"}
+                  </button>
+                </div>
+
+                {textPlacementOpen ? (
+                  <>
+                    <div className="typoStressTextInputs" style={{ marginTop: 0 }}>
+                      <div className="typoStressInputBlock">
+                        <div className="miniLabel" style={{ padding: 0 }}>Title text</div>
+                        <input
+                          className="typoStressInput"
+                          value={titleText}
+                          onChange={(e) => setTitleText(e.currentTarget.value)}
+                          placeholder="YOUR TITLE"
+                        />
+                      </div>
+
+                      <div className="typoStressInputBlock">
+                        <div className="miniLabel" style={{ padding: 0 }}>Artist text</div>
+                        <input
+                          className="typoStressInput"
+                          value={artistText}
+                          onChange={(e) => setArtistText(e.currentTarget.value)}
+                          placeholder="Artist Name"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+                      <div style={compactCardStyle}>
+                        <div className="miniLabel" style={{ padding: 0, marginBottom: 10 }}>Type scaling</div>
+                        <div className="mockRangeRow">
+                          <span className="zoomLabel">TITLE</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0.1}
+                            max={0.22}
+                            step={0.005}
+                            value={titleScale}
+                            onChange={(e) => setTitleScale(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{titleScale.toFixed(3)}</span>
+                        </div>
+                        <div className="detailLine" style={{ marginTop: 8 }}>
+                          Larger title scale improves survival, but only if the region remains calm enough
+                          to support it.
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">ARTIST</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0.32}
+                            max={0.7}
+                            step={0.01}
+                            value={artistScale}
+                            onChange={(e) => setArtistScale(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{artistScale.toFixed(2)}</span>
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">TRACKING</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={-0.01}
+                            max={0.06}
+                            step={0.001}
+                            value={tracking}
+                            onChange={(e) => setTracking(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{tracking.toFixed(3)}em</span>
+                        </div>
+                      </div>
+
+                      <div style={compactCardStyle}>
+                        <div className="miniLabel" style={{ padding: 0, marginBottom: 10 }}>Placement inside region</div>
+                        <div className="mockRangeRow">
+                          <span className="zoomLabel">X</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={blockX}
+                            onChange={(e) => setBlockX(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{blockX.toFixed(2)}</span>
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">Y</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={blockY}
+                            onChange={(e) => setBlockY(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{blockY.toFixed(2)}</span>
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">WIDTH</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0.35}
+                            max={1}
+                            step={0.01}
+                            value={blockWidth}
+                            onChange={(e) => setBlockWidth(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{blockWidth.toFixed(2)}</span>
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">TITLE Y</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={-0.35}
+                            max={0.35}
+                            step={0.01}
+                            value={titleLift}
+                            onChange={(e) => setTitleLift(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{titleLift.toFixed(2)}</span>
+                        </div>
+                        <div className="mockRangeRow" style={{ marginTop: 10 }}>
+                          <span className="zoomLabel">GAP</span>
+                          <input
+                            className="mockRange"
+                            type="range"
+                            min={0.45}
+                            max={1.2}
+                            step={0.01}
+                            value={artistGap}
+                            onChange={(e) => setArtistGap(parseFloat(e.currentTarget.value))}
+                          />
+                          <span className="tag">{artistGap.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="miniSub">
+                    Open this panel to edit the title text, artist text, scaling, tracking, and
+                    placement inside the selected region.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)",
+                gap: 16,
+                marginTop: 16,
+              }}
+            >
+              <div className="miniCard" style={{ minWidth: 0 }}>
+                <div className="miniLabel">Main score factors</div>
+                <div className="suggestList" style={{ marginTop: 10 }}>
+                  {evaluation.factors.slice(0, 6).map((factor) => (
+                    <div className="suggestItem" key={factor.key}>
+                      <div className="suggestTitle">
+                        {factor.label} <span style={{ opacity: 0.65 }}>• {factor.value}</span>
+                      </div>
+                      <div className="suggestDetail">
+                        <div className="sLine">
+                          <b>Impact:</b> {factor.effect >= 0 ? "+" : ""}
+                          {factor.effect}
+                        </div>
+                        <div className="sLine">
+                          <b>Why it matters:</b> {factor.basis}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               <div className="miniCard" style={{ minWidth: 0 }}>
-                <div className="miniLabel">Text + placement</div>
-                <div className="typoStressTextInputs" style={{ marginTop: 0 }}>
-                  <div className="typoStressInputBlock">
-                    <div className="miniLabel" style={{ padding: 0 }}>Title text</div>
-                    <input
-                      className="typoStressInput"
-                      value={titleText}
-                      onChange={(e) => setTitleText(e.currentTarget.value)}
-                      placeholder="YOUR TITLE"
-                    />
-                  </div>
-
-                  <div className="typoStressInputBlock">
-                    <div className="miniLabel" style={{ padding: 0 }}>Artist text</div>
-                    <input
-                      className="typoStressInput"
-                      value={artistText}
-                      onChange={(e) => setArtistText(e.currentTarget.value)}
-                      placeholder="Artist Name"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
-                  <div style={compactCardStyle}>
-                    <div className="miniLabel" style={{ padding: 0, marginBottom: 10 }}>Type scaling</div>
-                    <div className="mockRangeRow">
-                      <span className="zoomLabel">TITLE</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0.1}
-                        max={0.22}
-                        step={0.005}
-                        value={titleScale}
-                        onChange={(e) => setTitleScale(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{titleScale.toFixed(3)}</span>
+                <div className="miniLabel">Most important changes</div>
+                <div className="suggestList" style={{ marginTop: 10 }}>
+                  {evaluation.suggestions.map((item) => (
+                    <div className="suggestItem" key={item.key}>
+                      <div className="suggestTitle">{item.title}</div>
+                      <div className="suggestDetail">
+                        <div className="sLine">{item.detail}</div>
+                        <div className="sLine">
+                          <b>Try:</b> {item.tryLine}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">ARTIST</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0.32}
-                        max={0.7}
-                        step={0.01}
-                        value={artistScale}
-                        onChange={(e) => setArtistScale(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{artistScale.toFixed(2)}</span>
-                    </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">TRACKING</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={-0.01}
-                        max={0.06}
-                        step={0.001}
-                        value={tracking}
-                        onChange={(e) => setTracking(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{tracking.toFixed(3)}em</span>
-                    </div>
-                  </div>
-
-                  <div style={compactCardStyle}>
-                    <div className="miniLabel" style={{ padding: 0, marginBottom: 10 }}>Placement inside region</div>
-                    <div className="mockRangeRow">
-                      <span className="zoomLabel">X</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={blockX}
-                        onChange={(e) => setBlockX(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{blockX.toFixed(2)}</span>
-                    </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">Y</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={blockY}
-                        onChange={(e) => setBlockY(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{blockY.toFixed(2)}</span>
-                    </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">WIDTH</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0.35}
-                        max={1}
-                        step={0.01}
-                        value={blockWidth}
-                        onChange={(e) => setBlockWidth(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{blockWidth.toFixed(2)}</span>
-                    </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">TITLE Y</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={-0.35}
-                        max={0.35}
-                        step={0.01}
-                        value={titleLift}
-                        onChange={(e) => setTitleLift(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{titleLift.toFixed(2)}</span>
-                    </div>
-                    <div className="mockRangeRow" style={{ marginTop: 10 }}>
-                      <span className="zoomLabel">GAP</span>
-                      <input
-                        className="mockRange"
-                        type="range"
-                        min={0.45}
-                        max={1.2}
-                        step={0.01}
-                        value={artistGap}
-                        onChange={(e) => setArtistGap(parseFloat(e.currentTarget.value))}
-                      />
-                      <span className="tag">{artistGap.toFixed(2)}</span>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            <div className="suggestList" style={{ marginTop: 16 }}>
-              {notes.map((line, idx) => (
-                <div key={`${idx}-${line}`} className="suggestItem">
-                  <div className="suggestTitle">Stress note</div>
-                  <div className="suggestDetail">
-                    <div className="sLine">{line}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
             <div className="detailLine" style={{ marginTop: 14 }}>
-              This tool is intentionally practical rather than typographically exhaustive. It helps you test
-              whether a believable headline system can survive inside the selected region under streaming-scale pressure.
+              This test is deliberately practical rather than typographically exhaustive. It is meant
+              to explain the main pressures on a streaming-style headline system and point to the most
+              important adjustments first.
             </div>
           </>
         )}
@@ -1200,4 +1653,3 @@ export default function TypographyStressTest({
     </div>
   );
 }
-
