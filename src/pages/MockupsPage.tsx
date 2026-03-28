@@ -7,7 +7,12 @@ import { computeCompositionMetrics, type CompositionMetrics } from "../analysis/
 type MockupsState = { dataUrl?: string };
 
 type UiTheme = "dark" | "light";
-type ThumbSize = 48 | 64 | 96 | 128;
+
+const PX_OPTIONS = [48, 64, 96, 128, 256, 512, 768, 1024, 1500, 2000, 2500, 3000] as const;
+type ThumbSize = (typeof PX_OPTIONS)[number];
+
+const RECOMMENDED_PX = 3000;
+const CONTEXT_PREVIEW_SIZES = { grid: 96, playlist: 64, search: 48, share: 256 } as const;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -476,6 +481,195 @@ function safeInsetRectCss(inset = 0.08) {
   return { left: `${pad}%`, top: `${pad}%`, right: `${pad}%`, bottom: `${pad}%` } as const;
 }
 
+type InsightTone = "good" | "warn" | "bad";
+
+type MockupInsightCard = {
+  title: string;
+  tone: InsightTone;
+  detail: string;
+  basis: string;
+};
+
+type MockupInsightBundle = {
+  summary: string;
+  cards: MockupInsightCard[];
+  priorities: string[];
+  scoreBasis: string[];
+  contextNotes: {
+    grid: string;
+    playlist: string;
+    search: string;
+    share: string;
+  };
+};
+
+function buildMockupInsights(args: {
+  targetPx: number;
+  imageSize: { w: number; h: number } | null;
+  cropSource: { sw: number; sh: number } | null;
+  stats: ColorStats | null;
+  compositionUi: CompositionUiMetrics | null;
+  matchPct: number | null;
+  zoom: number;
+  showOverlay: boolean;
+  overlayStrength: number;
+  safeInset: number;
+}): MockupInsightBundle | null {
+  const {
+    targetPx,
+    imageSize,
+    cropSource,
+    stats,
+    compositionUi,
+    matchPct,
+    zoom,
+    showOverlay,
+    overlayStrength,
+    safeInset,
+  } = args;
+
+  if (!imageSize || !stats || !compositionUi) return null;
+
+  const minSourceDim = Math.min(imageSize.w, imageSize.h);
+  const minCropDim = cropSource ? Math.min(cropSource.sw, cropSource.sh) : minSourceDim;
+  const texture = compositionUi.textureEnergy;
+  const structure = compositionUi.structureScore;
+
+  const sourceSupportsTarget = minSourceDim >= targetPx;
+  const cropSupportsTarget = minCropDim >= targetPx;
+
+  const cards: MockupInsightCard[] = [];
+  const priorities: string[] = [];
+  const scoreBasis: string[] = [];
+
+  const addPriority = (text: string) => {
+    if (!priorities.includes(text)) priorities.push(text);
+  };
+
+  cards.push({
+    title: "Export size readiness",
+    tone: sourceSupportsTarget && cropSupportsTarget ? "good" : sourceSupportsTarget ? "warn" : "bad",
+    detail:
+      sourceSupportsTarget && cropSupportsTarget
+        ? `Your uploaded image and current crop can support a ${targetPx}px square export without forcing upscaling.`
+        : sourceSupportsTarget
+          ? `The full image is large enough for ${targetPx}px, but the current zoom/crop leaves only about ${Math.round(minCropDim)}px of source detail in the square crop.`
+          : `The uploaded source is smaller than the current ${targetPx}px target, so a final export at this size would require upscaling.`,
+    basis: `Source image ${imageSize.w}×${imageSize.h}px • crop source ${Math.round(minCropDim)}px • target ${targetPx}px`,
+  });
+  scoreBasis.push(`Export comments compare the uploaded image size (${imageSize.w}×${imageSize.h}px) and current crop detail (${Math.round(minCropDim)}px minimum side) against the selected target of ${targetPx}px.`);
+  if (!sourceSupportsTarget) {
+    addPriority(`Replace the upload with a larger source image or lower the export target until the file genuinely supports ${targetPx}px.`);
+  }
+  if (sourceSupportsTarget && !cropSupportsTarget) {
+    addPriority(`Reduce zoom slightly or reframe the crop so the selected square still contains enough source detail for ${targetPx}px export.`);
+  }
+
+  const strongIconRead = structure >= 58 && texture <= 62;
+  const muddyIconRisk = texture >= 72 || (structure < 42 && stats.saturationLabel === "muted");
+  cards.push({
+    title: "Thumbnail identity",
+    tone: strongIconRead ? "good" : muddyIconRisk ? "bad" : "warn",
+    detail: strongIconRead
+      ? "The cover has a clear enough shape structure to remain recognisable when the platform shrinks it into a small icon."
+      : muddyIconRisk
+        ? "Fine detail is likely to merge together at very small sizes, so the cover may lose identity in crowded grids or search views."
+        : "The cover should remain understandable, but it may need a stronger focal contrast or simpler shape reading to hold attention quickly.",
+    basis: `Structure ${Math.round(structure)}/100 • texture ${Math.round(texture)}/100 • saturation ${stats.saturationLabel}`,
+  });
+  scoreBasis.push(`Thumbnail identity comments are based on structure (${Math.round(structure)}/100), texture (${Math.round(texture)}/100), and overall colour intensity (${stats.saturationLabel}).`);
+  if (muddyIconRisk) {
+    addPriority("Simplify the busiest focal area or increase one stronger shape/contrast anchor so the cover reads faster at thumbnail size.");
+  }
+
+  const cropPressureHigh = zoom >= 1.55;
+  const cropPressureMid = zoom >= 1.25;
+  cards.push({
+    title: "Crop pressure",
+    tone: cropPressureHigh ? "bad" : cropPressureMid ? "warn" : "good",
+    detail: cropPressureHigh
+      ? "The crop is pushed in quite far, so the meaning of the artwork may shift and the available source detail for export is reduced."
+      : cropPressureMid
+        ? "The crop is moderately tightened. This can improve focus, but it also makes the final framing more sensitive to edge and detail loss."
+        : "The crop is relatively open, so the artwork keeps more context and more usable source detail for export.",
+    basis: `Zoom ${Math.round(zoom * 100)}% • crop source ${Math.round(minCropDim)}px`,
+  });
+  scoreBasis.push(`Crop-pressure comments are based on zoom (${Math.round(zoom * 100)}%) and the amount of original image detail still available inside the crop.`);
+  if (cropPressureHigh) {
+    addPriority("Pull the crop back slightly if the artwork starts to feel over-framed or if the crop is causing your available export detail to drop.");
+  }
+
+  const overlayPressure = showOverlay ? overlayStrength : 0;
+  const overlayRisk = overlayPressure >= 0.68 && stats.brightnessLabel !== "light";
+  cards.push({
+    title: "Overlay tolerance",
+    tone: overlayRisk ? "warn" : "good",
+    detail: overlayRisk
+      ? "Strong interface overlays on a non-light base can further flatten contrast, so the artwork may feel heavier or less open in-app."
+      : "The current mood should tolerate common interface overlays without dramatically changing the overall read.",
+    basis: `Overlay ${showOverlay ? `${Math.round(overlayStrength * 100)}%` : "off"} • brightness ${stats.brightnessLabel}`,
+  });
+  scoreBasis.push(`Overlay comments are triggered from the current overlay setting (${showOverlay ? `${Math.round(overlayStrength * 100)}%` : "off"}) and the cover's overall brightness (${stats.brightnessLabel}).`);
+  if (overlayRisk) {
+    addPriority("Keep the main focal area clear of very dark heavy texture if the cover will often sit under interface overlays.");
+  }
+
+  const safeRisk = safeInset < 0.07;
+  cards.push({
+    title: "Safe margin pressure",
+    tone: safeRisk ? "warn" : "good",
+    detail: safeRisk
+      ? "A tighter safe guide leaves less room for platform framing, rounded corners, and labels, so edge-sensitive details deserve extra checking."
+      : "The current safe-guide setting leaves a sensible buffer for corners, overlays, and tight UI framing.",
+    basis: `Safe guide ${Math.round(safeInset * 100)}% inset`,
+  });
+  scoreBasis.push(`Safe-margin comments come from the current safe-guide inset (${Math.round(safeInset * 100)}%).`);
+  if (safeRisk) {
+    addPriority("Use a slightly larger safe inset when checking mockups if logos, faces, or typography are close to the edges.");
+  }
+
+  if (matchPct != null) {
+    cards.push({
+      title: "Genre/mood alignment",
+      tone: matchPct >= 75 ? "good" : matchPct >= 55 ? "warn" : "bad",
+      detail:
+        matchPct >= 75
+          ? "The cover mood sits close to the selected genre reference, so colour direction and atmosphere already feel coherent."
+          : matchPct >= 55
+            ? "The cover partially matches the selected genre direction. This can work, but the mood reads as a softer or broader interpretation."
+            : "The cover sits quite far from the selected genre reference. That may be intentional, but it increases the need for a clearly readable focal idea.",
+      basis: `Genre alignment ${matchPct}%`,
+    });
+    scoreBasis.push(`Genre comments use the current palette mood match (${matchPct}%) against the selected reference genre.`);
+    if (matchPct < 55) {
+      addPriority("If the genre mismatch is not intentional, adjust palette warmth, saturation, or contrast to move closer to the chosen reference direction.");
+    }
+  }
+
+  const summary = sourceSupportsTarget && cropSupportsTarget && strongIconRead
+    ? `This crop is in a strong position for a ${targetPx}px export: it keeps enough source detail and should still hold a recognisable thumbnail identity.`
+    : `Use this page as a pressure test rather than a pass/fail verdict: the mockups suggest that export size, crop tightness, or thumbnail clarity still need attention before the cover is finalised.`;
+
+  const contextNotes = {
+    grid: muddyIconRisk
+      ? "In a crowded grid, the cover is more likely to merge into neighbouring artwork because its detail level is still high for very small viewing."
+      : strongIconRead
+        ? "In a crowded grid, the artwork should remain recognisable because the main shapes and tonal separation survive downscaling."
+        : "In a crowded grid, recognisability will depend on whether one dominant focal area stays clearer than the surrounding texture.",
+    playlist: texture >= 68
+      ? "In playlist rows, busy texture may compete with the tiny cover size, so the image could feel denser than intended."
+      : "In playlist rows, the cover should stay relatively readable as an icon because the composition is not overly dense.",
+    search: muddyIconRisk
+      ? "At search-result scale, the cover risks becoming more of a colour block than a clear image, so distinct silhouette matters most."
+      : "At search-result scale, the cover should still function as an identifying icon rather than collapsing completely into noise.",
+    share: cropPressureHigh
+      ? "For larger promo/share framing, this crop is quite tight, so double-check that the chosen crop still expresses the project mood and not only the focal object."
+      : "For larger promo/share framing, the current crop keeps enough surrounding context to feel intentional as well as legible.",
+  };
+
+  return { summary, cards, priorities, scoreBasis, contextNotes };
+}
+
 export default function MockupsPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -494,7 +688,7 @@ export default function MockupsPage() {
   const [showSafe, setShowSafe] = React.useState(false);
   const [safeInset, setSafeInset] = React.useState(0.08);
 
-  const [thumbSize, setThumbSize] = React.useState<ThumbSize>(64);
+  const [thumbSize, setThumbSize] = React.useState<ThumbSize>(RECOMMENDED_PX);
   const [distance, setDistance] = React.useState(22);
 
   const [cropPos, setCropPos] = React.useState<{ x: number; y: number }>({ x: 0.5, y: 0.5 });
@@ -576,7 +770,38 @@ export default function MockupsPage() {
   const match = React.useMemo(() => (stats ? scoreMatch(stats, genreProfile) : null), [stats, genreProfile]);
   const compatible = React.useMemo(() => (palette ? deriveCompatible(palette.regionAvg) : null), [palette]);
 
-  const userThumb = thumbs[String(thumbSize)] || thumbs["64"] || dataUrl || "";
+  const selectedThumb = thumbs[String(thumbSize)] || dataUrl || "";
+  const gridThumb = selectedThumb || thumbs[String(CONTEXT_PREVIEW_SIZES.grid)] || thumbs["96"] || thumbs["128"] || dataUrl || "";
+  const playlistThumb = selectedThumb || thumbs[String(CONTEXT_PREVIEW_SIZES.playlist)] || thumbs["64"] || gridThumb || dataUrl || "";
+  const searchThumb = selectedThumb || thumbs[String(CONTEXT_PREVIEW_SIZES.search)] || thumbs["48"] || playlistThumb || dataUrl || "";
+  const shareThumb = selectedThumb || thumbs[String(CONTEXT_PREVIEW_SIZES.share)] || thumbs["256"] || gridThumb || dataUrl || "";
+
+  const thumbRenderSizes = React.useMemo(
+    () => Array.from(new Set<number>([thumbSize, ...Object.values(CONTEXT_PREVIEW_SIZES)])).sort((a, b) => a - b),
+    [thumbSize]
+  );
+
+  const cropSource = React.useMemo(() => {
+    if (!imgSize) return null;
+    return coverCropWithPosZoom(imgSize.w, imgSize.h, 1, 1, cropPos.x, cropPos.y, zoom);
+  }, [imgSize, cropPos.x, cropPos.y, zoom]);
+
+  const mockupInsights = React.useMemo(
+    () =>
+      buildMockupInsights({
+        targetPx: thumbSize,
+        imageSize: imgSize,
+        cropSource,
+        stats,
+        compositionUi,
+        matchPct: match?.pct ?? null,
+        zoom,
+        showOverlay,
+        overlayStrength,
+        safeInset,
+      }),
+    [thumbSize, imgSize, cropSource, stats, compositionUi, match?.pct, zoom, showOverlay, overlayStrength, safeInset]
+  );
 
   React.useEffect(() => {
     if (!dataUrl) {
@@ -615,7 +840,7 @@ export default function MockupsPage() {
 
         setComposition(computeCompositionMetrics(imgData.imageData, cropRect));
 
-        const res = await makeSquareThumbs(dataUrl, [512, 256, 128, 96, 64, 48], cropPos, zoom);
+        const res = await makeSquareThumbs(dataUrl, thumbRenderSizes, cropPos, zoom);
         if (!alive) return;
 
         setThumbs(res.thumbs);
@@ -631,7 +856,7 @@ export default function MockupsPage() {
     return () => {
       alive = false;
     };
-  }, [dataUrl, cropPos.x, cropPos.y, zoom]);
+  }, [dataUrl, cropPos.x, cropPos.y, zoom, thumbRenderSizes]);
 
   React.useEffect(() => {
     if (!sheetMode) return;
@@ -753,7 +978,7 @@ export default function MockupsPage() {
         <h1 className="testTitle">Mockups / Context Preview</h1>
         <p className="testLead">
           This page simulates how your cover is actually encountered on streaming platforms:
-          small grid tiles, playlist rows, and UI overlays. It’s the real-world check after Analyze.
+          small grid tiles, playlist rows, and UI overlays. Use it to pressure-test recognisability at small sizes while still checking whether your chosen crop can support a recommended <b>3000px</b> final square export.
         </p>
 
         <div className="mockBullets">
@@ -792,7 +1017,7 @@ export default function MockupsPage() {
             <div className="panelTop">
               <div className="panelTitle">Controls + Thumbnail Crop</div>
               <div className="panelNote">
-                Use <b>PAN CROP</b> to reposition what the streaming square crop shows. This drives all previews below.
+                Use <b>PAN CROP</b> to reposition what the streaming square crop shows. The selected px target below controls the working/export size being tested, while the preview cards stay locked to realistic small platform sizes so playlist, search, and promo views do not scale unrealistically.
               </div>
             </div>
 
@@ -823,7 +1048,7 @@ export default function MockupsPage() {
                       {imgSize && <span className="tag">{imgSize.w}×{imgSize.h}</span>}
                       <span className="tag">zoom {Math.round(zoom * 100)}%</span>
                       <span className="tag">{panCrop ? "mode: PAN" : "mode: VIEW"}</span>
-                      <span className="tag">thumb {thumbSize}px</span>
+                      <span className="tag">target {thumbSize}px{thumbSize === RECOMMENDED_PX ? " • recommended" : ""}</span>
                     </div>
 
                     {compositionUi && (
@@ -936,17 +1161,23 @@ export default function MockupsPage() {
                     </div>
 
                     <div className="mockControl wide">
-                      <div className="mockLabel">Thumbnail size</div>
-                      <div className="pillRow">
-                        {[48, 64, 96, 128, 256].map((s) => (
-                          <button
-                            key={s}
-                            className={`pillBtn ${thumbSize === s ? "on" : ""}`}
-                            onClick={() => setThumbSize(s as ThumbSize)}
-                          >
-                            {s}px
-                          </button>
-                        ))}
+                      <div className="mockLabel">Working / export size</div>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <div className="pillRow">
+                          {PX_OPTIONS.map((s) => (
+                            <button
+                              key={s}
+                              className={`pillBtn ${thumbSize === s ? "on" : ""}`}
+                              onClick={() => setThumbSize(s)}
+                              title={s === RECOMMENDED_PX ? "Recommended" : undefined}
+                            >
+                              {s}px{s === RECOMMENDED_PX ? " • recommended" : ""}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="miniHint">
+                          <b>Recommended square working/export size:</b> 3000px. The smaller px options are there to pressure-test recognisability and crop stability before you confirm the final export. The examples below now update with your selected px target, while each panel still tells you the usual platform-sized context it is simulating (grid about 96px, playlist about 64px, search about 48px, promo about 256px).
+                        </div>
                       </div>
                     </div>
 
@@ -1002,7 +1233,7 @@ export default function MockupsPage() {
                     <div className="mockGrid">
                       {Array.from({ length: 12 }, (_, i) => {
                         const isCenter = i === 4;
-                        const src = isCenter ? userThumb : neighborCovers[i % neighborCovers.length];
+                        const src = isCenter ? gridThumb : neighborCovers[i % neighborCovers.length];
 
                         return (
                           <div key={i} className="mockCell">
@@ -1019,15 +1250,25 @@ export default function MockupsPage() {
                   </div>
 
                   <div className="miniHint" style={{ marginTop: 12 }}>
-                    If your cover becomes muddy here, use Analyze to increase contrast in the title region or reduce texture behind type.
+                    Grid tiles are usually around {CONTEXT_PREVIEW_SIZES.grid}px here, but the center example updates with your selected {thumbSize}px target. If the cover becomes muddy, use Analyze to increase contrast in the title region or reduce texture behind type.
                   </div>
+                  {mockupInsights && (
+                    <div className="detailLine" style={{ marginTop: 10 }}>
+                      <b>Grid reading:</b> {mockupInsights.contextNotes.grid}
+                    </div>
+                  )}
+                  {mockupInsights && (
+                    <div className="detailLine" style={{ marginTop: 12 }}>
+                      <b>Playlist reading:</b> {mockupInsights.contextNotes.playlist}
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
                 <div className="panelTop" >
                   <div className="panelTitle">Playlist row</div>
-                  <div className="panelNote">Common view: 48–64px covers next to track text.</div>
+                  <div className="panelNote">Common view: usually around 64px on platform, but this example updates with your selected px target so you can compare pressure-test sizes against the usual context.</div>
                 </div>
 
                 <div className="panelBody">
@@ -1038,7 +1279,7 @@ export default function MockupsPage() {
                     <div className="mockList">
                       {Array.from({ length: 6 }, (_, i) => {
                         const isYou = i === 1;
-                        const src = isYou ? userThumb : neighborCovers[(i + 3) % neighborCovers.length];
+                        const src = isYou ? playlistThumb : neighborCovers[(i + 3) % neighborCovers.length];
 
                         return (
                           <div key={i} className="mockRow">
@@ -1047,8 +1288,8 @@ export default function MockupsPage() {
                               style={{
                                 borderRadius: coverRadius,
                                 backgroundImage: `url(${src})`,
-                                width: thumbSize,
-                                height: thumbSize,
+                                width: CONTEXT_PREVIEW_SIZES.playlist,
+                                height: CONTEXT_PREVIEW_SIZES.playlist,
                               }}
                             />
                             <div className="mockText">
@@ -1066,13 +1307,16 @@ export default function MockupsPage() {
                       })}
                     </div>
                   </div>
+                  <div className="detailLine" style={{ marginTop: 12 }}>
+                    <b>Playlist context:</b> The row is simulating a playlist surface that is usually around {CONTEXT_PREVIEW_SIZES.playlist}px, but the cover image inside it is currently being generated from your selected {thumbSize}px target.
+                  </div>
                 </div>
               </div>
 
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Search results</div>
-                  <div className="panelNote">Even smaller thumbnails. Covers must stay distinctive as an icon.</div>
+                  <div className="panelNote">Even smaller thumbnails. Search results are usually around 48px, but this example updates with your selected px target so you can see how the cover survives inside that compact context.</div>
                 </div>
 
                 <div className="panelBody">
@@ -1083,7 +1327,7 @@ export default function MockupsPage() {
                     <div className="mockSearch">
                       {Array.from({ length: 5 }, (_, i) => {
                         const isYou = i === 2;
-                        const src = isYou ? userThumb : neighborCovers[(i + 7) % neighborCovers.length];
+                        const src = isYou ? searchThumb : neighborCovers[(i + 7) % neighborCovers.length];
 
                         return (
                           <div key={i} className="mockSearchRow">
@@ -1092,8 +1336,8 @@ export default function MockupsPage() {
                               style={{
                                 borderRadius: coverRadius,
                                 backgroundImage: `url(${src})`,
-                                width: 48,
-                                height: 48,
+                                width: CONTEXT_PREVIEW_SIZES.search,
+                                height: CONTEXT_PREVIEW_SIZES.search,
                               }}
                             />
                             <div className="mockText">
@@ -1106,13 +1350,21 @@ export default function MockupsPage() {
                       })}
                     </div>
                   </div>
+                  {mockupInsights && (
+                    <div className="detailLine" style={{ marginTop: 12 }}>
+                      <b>Search reading:</b> {mockupInsights.contextNotes.search}
+                    </div>
+                  )}
+                  <div className="detailLine" style={{ marginTop: 12 }}>
+                    <b>Search context:</b> Search results are usually around {CONTEXT_PREVIEW_SIZES.search}px, but this preview is currently using your selected {thumbSize}px source inside that icon-like layout.
+                  </div>
                 </div>
               </div>
 
               <div className={`panelDark mockPanel ${uiTheme === "light" ? "mockLight" : ""}`} style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Share / promo tile</div>
-                  <div className="panelNote">Editorial framing for socials. Checks whether cover still feels on-brand.</div>
+                  <div className="panelNote">Editorial framing for socials. Promo tiles are often larger than playlist/search icons, usually around 256px here, but this example still updates with your selected px target.</div>
                 </div>
 
                 <div className="panelBody">
@@ -1125,7 +1377,7 @@ export default function MockupsPage() {
                     <div className="mockShareCover">
                       <div
                         className="mockCover big"
-                        style={{ borderRadius: coverRadius, backgroundImage: `url(${thumbs["256"] || userThumb})` }}
+                        style={{ borderRadius: coverRadius, backgroundImage: `url(${shareThumb})` }}
                       />
                       {showOverlay && <div className="mockOverlay soft" style={{ opacity: overlayStrength * 0.35 }} />}
                     </div>
@@ -1135,6 +1387,14 @@ export default function MockupsPage() {
                       <div className="mockSubLine">Your Artist</div>
                       <div className="miniHint" style={{ marginTop: 8 }}>
                         If the crop changes the meaning, reposition it with PAN CROP.
+                      </div>
+                      {mockupInsights && (
+                        <div className="detailLine" style={{ marginTop: 10 }}>
+                          <b>Share / promo reading:</b> {mockupInsights.contextNotes.share}
+                        </div>
+                      )}
+                      <div className="detailLine" style={{ marginTop: 10 }}>
+                        <b>Promo context:</b> This tile is representing a promo surface that is usually around {CONTEXT_PREVIEW_SIZES.share}px, while the cover source updates with your selected {thumbSize}px target.
                       </div>
                     </div>
                   </div>
@@ -1150,7 +1410,7 @@ export default function MockupsPage() {
                   <div className="mxChecklist">
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Thumbnail identity</div>
-                      <div className="mxCheckText">At 64px, does it still feel unique and not muddy?</div>
+                      <div className="mxCheckText">At small platform sizes, does it still feel unique and not muddy — and does the selected crop still support your chosen export size?</div>
                     </div>
                     <div className="mxCheckItem">
                       <div className="mxCheckHead">Edge risk</div>
@@ -1180,6 +1440,96 @@ export default function MockupsPage() {
 
             <div className="mockupsRight">
               <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Mockup analysis</div>
+                  <div className="panelNote">
+                    Recommended export size is <b>3000px</b>. These comments explain whether the current source image, crop, and visual character can support that target while still reading in small streaming contexts.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  {!mockupInsights ? (
+                    <div className="miniHint">Upload or select a cover to generate detailed mockup analysis.</div>
+                  ) : (
+                    <>
+                      <div className="metricsGrid">
+                        <div className="metricCard">
+                          <div className="metricLabel">Target size</div>
+                          <div className="metricValue">{thumbSize}px</div>
+                          <div className="metricSub">{thumbSize === RECOMMENDED_PX ? "recommended final square size" : "selected export / working size"}</div>
+                        </div>
+
+                        <div className="metricCard">
+                          <div className="metricLabel">Source image</div>
+                          <div className="metricValue">{imgSize ? `${imgSize.w}×${imgSize.h}` : "—"}</div>
+                          <div className="metricSub">uploaded file dimensions</div>
+                        </div>
+
+                        <div className="metricCard">
+                          <div className="metricLabel">Crop source</div>
+                          <div className="metricValue">{cropSource ? `${Math.round(Math.min(cropSource.sw, cropSource.sh))}px` : "—"}</div>
+                          <div className="metricSub">minimum source detail remaining inside the crop</div>
+                        </div>
+
+                        <div className="metricCard">
+                          <div className="metricLabel">Texture / structure</div>
+                          <div className="metricValue">
+                            {compositionUi ? `${Math.round(compositionUi.textureEnergy)}/${Math.round(compositionUi.structureScore)}` : "—"}
+                          </div>
+                          <div className="metricSub">texture can increase mud; structure helps identity</div>
+                        </div>
+                      </div>
+
+                      <div className="detailLine" style={{ marginTop: 14 }}>
+                        <b>Overall reading:</b> {mockupInsights.summary}
+                      </div>
+
+                      <div className="sectionHead" style={{ marginTop: 18, marginBottom: 10 }}>Main score factors</div>
+                      <div className="suggestList">
+                        {mockupInsights.cards.map((item) => (
+                          <div key={item.title} className="suggestItem">
+                            <div className="suggestTitle">
+                              {item.title} • {item.tone === "good" ? "strong" : item.tone === "warn" ? "watch" : "risk"}
+                            </div>
+                            <div className="suggestDetail">{item.detail}</div>
+                            <div className="detailLine" style={{ marginTop: 8 }}>Basis: {item.basis}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="sectionHead" style={{ marginTop: 18, marginBottom: 10 }}>Most important changes</div>
+                      <div className="suggestList">
+                        {mockupInsights.priorities.length ? (
+                          mockupInsights.priorities.map((item, idx) => (
+                            <div key={item} className="suggestItem">
+                              <div className="suggestTitle">Priority {idx + 1}</div>
+                              <div className="suggestDetail">{item}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="suggestItem">
+                            <div className="suggestTitle">Priority</div>
+                            <div className="suggestDetail">
+                              The current mockup setup is broadly stable. Keep 3000px as the final export target and use Analyze to refine the title region if readability still feels weak.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="sectionHead" style={{ marginTop: 18, marginBottom: 10 }}>Why these comments are showing</div>
+                      <div className="suggestList">
+                        {mockupInsights.scoreBasis.map((item) => (
+                          <div key={item} className="suggestItem">
+                            <div className="suggestDetail">{item}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="panelDark" style={{ marginTop: 25 }}>
                 <div className="panelTop">
                   <div className="panelTitle">Genre Mood Lens</div>
                   <div className="panelNote">
@@ -1317,7 +1667,7 @@ export default function MockupsPage() {
                 <div className="mxPrintTitle">Mockups Evidence Sheet</div>
                 <div className="mxPrintMeta">
                   Date: {new Date().toLocaleString()} • Theme: {uiTheme} • Rounded: {rounded ? "on" : "off"} • Overlay:{" "}
-                  {showOverlay ? `${Math.round(overlayStrength * 100)}%` : "off"} • Thumb: {thumbSize}px
+                  {showOverlay ? `${Math.round(overlayStrength * 100)}%` : "off"} • Target: {thumbSize}px{thumbSize === RECOMMENDED_PX ? " (recommended)" : ""} • Usual contexts: grid ~96px / playlist ~64px / search ~48px / promo ~256px
                 </div>
               </div>
             </div>
@@ -1326,9 +1676,9 @@ export default function MockupsPage() {
               <div className="mxPrintBlock">
                 <div className="mxPrintBlockHead">Grid context</div>
                 <div className="mxPrintSurface">
-                  <img src={thumbs["96"] || userThumb} alt="thumb 96" />
-                  <img src={thumbs["64"] || userThumb} alt="thumb 64" />
-                  <img src={thumbs["48"] || userThumb} alt="thumb 48" />
+                  <img src={gridThumb} alt="thumb 96" />
+                  <img src={playlistThumb} alt="thumb 64" />
+                  <img src={searchThumb} alt="thumb 48" />
                 </div>
                 <div className="mxPrintNotes">
                   Notes:
@@ -1340,7 +1690,7 @@ export default function MockupsPage() {
               <div className="mxPrintBlock">
                 <div className="mxPrintBlockHead">Playlist row</div>
                 <div className="mxPrintSurface">
-                  <img src={thumbs[String(thumbSize)] || userThumb} alt="playlist thumb" />
+                  <img src={playlistThumb} alt="playlist thumb" />
                   <div className="mxPrintText">Does it still feel distinct next to text?</div>
                 </div>
                 <div className="mxPrintNotes">
@@ -1353,7 +1703,7 @@ export default function MockupsPage() {
               <div className="mxPrintBlock">
                 <div className="mxPrintBlockHead">Search / icon</div>
                 <div className="mxPrintSurface">
-                  <img src={thumbs["48"] || userThumb} alt="search thumb" />
+                  <img src={searchThumb} alt="search thumb" />
                   <div className="mxPrintText">If it’s muddy at 48px, improve crop, contrast, or simplify the title zone.</div>
                 </div>
                 <div className="mxPrintNotes">
