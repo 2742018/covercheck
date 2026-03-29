@@ -172,6 +172,96 @@ const SECTIONS: EvidenceSection[] = [
         openAccess: true,
         featured: true,
       },
+      {
+        id: "webaim-evaluating-contrast",
+        title: "Evaluating Contrast and Color Use",
+        source: "WebAIM",
+        year: "2021",
+        kind: "industry",
+        href: "https://webaim.org/articles/contrast/evaluating",
+        summary:
+          "A practical guide to testing contrast in real interfaces, including cases with transparency, gradients, and image backgrounds.",
+        whyItMatters:
+          "Useful when a cover looks acceptable by palette alone but becomes less readable once overlays, transparency, or mixed-image backgrounds are involved.",
+        supports: [
+          "How to evaluate contrast in practice",
+          "Image-background and transparency cases",
+          "Checking effective contrast rather than ideal contrast",
+        ],
+        reportText:
+          "Contrast checks were treated as contextual rather than purely palette-based because transparency, gradients, and image backgrounds can reduce effective readability.",
+        tooltipText:
+          "Real contrast can be weaker than the palette suggests once gradients, overlays, or photos are involved.",
+        tags: ["contrast", "evaluation", "images", "implementation"],
+        openAccess: true,
+      },
+      {
+        id: "nng-visual-treatments-accessibility",
+        title: "5 Visual Treatments that Improve Accessibility",
+        source: "Nielsen Norman Group",
+        year: "2022",
+        kind: "industry",
+        href: "https://www.nngroup.com/articles/visual-treatments-accessibility/",
+        summary:
+          "A practical design article on colour contrast, outlines, spacing, and other visual adjustments that improve accessibility.",
+        whyItMatters:
+          "Helpful for turning warnings into concrete fixes, especially when a cover needs stronger separation without losing its overall mood.",
+        supports: [
+          "Practical accessibility fixes",
+          "Contrast and boundary reinforcement",
+          "Design changes beyond colour alone",
+        ],
+        tooltipText:
+          "If colour distinction weakens, reinforce edges, spacing, or boundaries so the design still reads clearly.",
+        tags: ["accessibility", "contrast", "hierarchy", "fixes"],
+        openAccess: true,
+      },
+      {
+        id: "w3c-use-of-color",
+        title: "Understanding Success Criterion 1.4.1: Use of Color",
+        source: "W3C WAI",
+        year: "Guidance",
+        kind: "standard",
+        href: "https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html",
+        summary:
+          "Explains why colour alone should not be the only signal used to distinguish information, actions, or important visual states.",
+        whyItMatters:
+          "Directly relevant to the Accessibility page, because album covers that rely only on hue difference can lose hierarchy when colour distinction weakens.",
+        supports: [
+          "Do not rely on colour alone",
+          "Accessibility-aware hierarchy",
+          "Supporting non-colour cues",
+        ],
+        reportText:
+          "Accessibility checks consider whether important distinctions rely too heavily on colour alone rather than on luminance, scale, or placement.",
+        tooltipText:
+          "If two areas are separated only by hue, some viewers may not perceive that distinction clearly.",
+        tags: ["accessibility", "color", "contrast", "hierarchy"],
+        openAccess: true,
+      },
+      {
+        id: "w3c-non-text-contrast",
+        title: "Understanding Success Criterion 1.4.11: Non-text Contrast",
+        source: "W3C WAI",
+        year: "Guidance",
+        kind: "standard",
+        href: "https://www.w3.org/WAI/WCAG21/Understanding/non-text-contrast.html",
+        summary:
+          "Explains why meaningful interface graphics and visual boundaries also need enough contrast to remain distinguishable.",
+        whyItMatters:
+          "Useful for supporting comments about focal anchors, boundaries, and non-text visual structure, especially when a cover becomes flatter under simulation.",
+        supports: [
+          "Non-text visual distinction",
+          "Boundaries and focal anchors",
+          "Accessibility beyond text contrast",
+        ],
+        reportText:
+          "Accessibility review considers not only text contrast, but also whether important visual boundaries and focal elements remain distinguishable.",
+        tooltipText:
+          "When colour cues collapse, shapes, edges, and non-text anchors still need enough contrast to hold the layout together.",
+        tags: ["accessibility", "non-text", "contrast", "boundaries"],
+        openAccess: true,
+      },
     ],
   },
   {
@@ -230,24 +320,150 @@ const SECTIONS: EvidenceSection[] = [
         openAccess: true,
       },
       {
-        id: "larson-picard-reading",
-        title: "The Aesthetics of Reading",
-        source: "CHI / ACM",
-        year: "2005",
+        id: "venkatesan-typeface-music",
+        title: "Does the Typeface on Album Cover Influence Expectations and Perception of Music?",
+        source: "Psychology of Aesthetics, Creativity, and the Arts / Oxford Research Archive",
+        year: "2020",
         kind: "peer-reviewed",
-        href: "https://dl.acm.org/doi/10.1145/1054972.1055011",
+        href: "https://ora.ox.ac.uk/objects/uuid%3A7beb83c1-86ab-4fe4-b1d4-78297324d8a5",
         summary:
-          "Explores how typography and visual presentation shape the reading experience.",
+          "Shows that rounded versus angular typefaces on album covers influence expectations about how music will sound and feel.",
         whyItMatters:
-          "Good support for the idea that readability and visual style are linked rather than separate concerns.",
+          "This is one of the most directly relevant sources for CoverCheck because it links album-cover typography to music expectation, not just general page reading.",
         supports: [
-          "Typography as experience",
-          "Legibility and aesthetics together",
-          "Design quality beyond raw text content",
+          "Album-cover typography shapes expectation",
+          "Typeface communicates musical character",
+          "Visual style and perception are linked",
         ],
         reportText:
-          "Typography is treated as both experiential and functional because reading quality is shaped by visual presentation as well as text content.",
-        tags: ["typography", "aesthetics", "reading"],
+          "Typography is treated as communicative rather than decorative because album-cover typeface choices can influence expectations about the music itself.",
+        tooltipText:
+          "Typeface choice can change what the music is expected to feel like before anyone presses play.",
+        tags: ["typography", "album-art", "music", "aesthetics"],
+        openAccess: true,
+        featured: true,
+      },
+      {
+        id: "read-most-eye-tracking",
+        title: "You Read Best What You Read Most: An Eye Tracking Study",
+        source: "Journal of Eye Movement Research",
+        year: "2020",
+        kind: "peer-reviewed",
+        href: "https://www.mdpi.com/1995-8692/13/2/15",
+        summary:
+          "Shows that reading performance improves for more familiar letterforms, linking typographic familiarity to practical legibility.",
+        whyItMatters:
+          "Helpful when explaining why ornate or unusual display treatments may cost legibility at small sizes, especially under glance-based viewing.",
+        supports: [
+          "Typeface familiarity matters",
+          "Eye-tracking evidence for legibility",
+          "Risk of unusual letterforms at small size",
+        ],
+        reportText:
+          "Typography is evaluated functionally because legibility is shaped not only by size, but also by how familiar and quickly readable the letterforms are.",
+        tags: ["typography", "legibility", "eye-tracking", "reading"],
+        openAccess: true,
+      },
+      {
+        id: "frontiers-letter-shape",
+        title: "Influence of Letter Shape on Readers' Emotional Experience, Reading Fluency, and Text Comprehension and Memorisation",
+        source: "Frontiers in Psychology",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2023.1107839/full",
+        summary:
+          "Examines how letter shape influences readers' feelings, reading fluency, and comprehension outcomes.",
+        whyItMatters:
+          "Useful for supporting the idea that type style changes both affective tone and functional reading performance at the same time.",
+        supports: [
+          "Letter shape affects fluency",
+          "Typography changes emotional tone",
+          "Style and readability interact",
+        ],
+        reportText:
+          "Type styling is treated as both expressive and functional because letter shape can influence reading fluency as well as emotional response.",
+        tags: ["typography", "reading", "fluency", "aesthetics"],
+        openAccess: true,
+      },
+      {
+        id: "plos-font-readability-aesthetics",
+        title: "Is Less Readable Liked Better? The Case of Font Readability in Poetry Appreciation",
+        source: "PLOS ONE",
+        year: "2019",
+        kind: "peer-reviewed",
+        href: "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0225757",
+        summary:
+          "Explores how harder-versus-easier reading fonts affect aesthetic appreciation, showing that readability and style can pull in different directions.",
+        whyItMatters:
+          "Useful for dissertation-style writing because it supports the idea that elegant typography can feel appealing while still creating functional reading costs.",
+        supports: [
+          "Aesthetics versus readability trade-off",
+          "Why stylish type can still fail functionally",
+          "Typography affects appreciation as well as fluency",
+        ],
+        tags: ["typography", "aesthetics", "legibility", "reading"],
+        openAccess: true,
+      },
+      {
+        id: "scaltritti-typographic-variables",
+        title: "Investigating Effects of Typographic Variables on Webpage Reading Through Eye Movements",
+        source: "Vision / PMC",
+        year: "2019",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6722069/",
+        summary:
+          "Examines how font type, size, spacing, and spatial distribution affect readability during digital reading.",
+        whyItMatters:
+          "Strong support for treating type size, spacing, and visual distribution as part of readability rather than decoration.",
+        supports: [
+          "Type size and spacing matter",
+          "Spatial distribution affects reading",
+          "Digital reading is shaped by visual typography choices",
+        ],
+        reportText:
+          "Typography settings were treated as functional variables because font size, spacing, and spatial distribution all affect digital readability.",
+        tags: ["typography", "spacing", "size", "digital-reading"],
+        openAccess: true,
+      },
+      {
+        id: "atilgan-print-display-constraints",
+        title: "Reconciling Print-Size and Display-Size Constraints on Reading",
+        source: "PNAS / PMC",
+        year: "2020",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7720185/",
+        summary:
+          "Explains the trade-off between readable print size and the limited space available on small digital displays.",
+        whyItMatters:
+          "Especially helpful for explaining why very small title areas and narrow viewing surfaces place real limits on fluent reading.",
+        supports: [
+          "Small display constraints",
+          "Print size versus screen real estate",
+          "Character-count limits on reading",
+        ],
+        reportText:
+          "Small-display constraints matter because legible print size and available display space compete directly in digital reading conditions.",
+        tags: ["thumbnail", "display-size", "reading", "mobile"],
+        openAccess: true,
+      },
+      {
+        id: "arditi-serifs-legibility",
+        title: "Serifs and Font Legibility",
+        source: "Vision Research / PMC",
+        year: "2005",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4612630/",
+        summary:
+          "Tests serif size and reading performance, showing that letterform decisions affect legibility in measurable ways.",
+        whyItMatters:
+          "Useful when explaining why type choice itself can contribute to survival or failure at small size.",
+        supports: [
+          "Letterform choice affects legibility",
+          "Typeface structure matters",
+          "Small text performance is measurable",
+        ],
+        tags: ["typeface", "legibility", "serif", "reading"],
+        openAccess: true,
       },
     ],
   },
@@ -344,6 +560,46 @@ const SECTIONS: EvidenceSection[] = [
         reportText:
           "Structure and clarity are treated as meaningful because aesthetic response is shaped partly by how fluently visual information is processed.",
         tags: ["fluency", "clarity", "aesthetics", "composition"],
+      },
+      {
+        id: "hubner-balance-proximity",
+        title: "Preference for Symmetry, Balance, or Proximity in Picture Aesthetics Depends on the Method of Evaluation",
+        source: "i-Perception / PMC",
+        year: "2025",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12638637/",
+        summary:
+          "Shows that symmetry, balance, and proximity all matter in picture evaluation, but their relative importance depends on how people judge an image.",
+        whyItMatters:
+          "Useful for discussing composition as a set of interacting principles rather than a single universal rule.",
+        supports: [
+          "Balance as a meaningful variable",
+          "Proximity and layout organisation",
+          "Context-sensitive composition judgement",
+        ],
+        reportText:
+          "Composition is discussed in terms of multiple interacting principles because symmetry, balance, and proximity can shift in importance depending on the viewing task.",
+        tags: ["symmetry", "balance", "composition", "layout"],
+        openAccess: true,
+      },
+      {
+        id: "yoo-processing-fluency-update",
+        title: "Fluency, Prediction and Motivation: How Processing Dynamics, Expectations and Epistemic Goals Shape Aesthetic Judgements",
+        source: "Review / PMC",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10725759/",
+        summary:
+          "Updates classic processing-fluency theory by linking aesthetic judgement to expectations, prediction, and motivation.",
+        whyItMatters:
+          "Helps you write about visual ease and clarity in a more current, academically grounded way.",
+        supports: [
+          "Updated fluency theory",
+          "Expectation and judgement",
+          "Why ease-of-processing still matters",
+        ],
+        tags: ["fluency", "aesthetics", "judgement", "processing"],
+        openAccess: true,
       },
     ],
   },
@@ -464,6 +720,86 @@ const SECTIONS: EvidenceSection[] = [
         reportText:
           "Album covers are treated as relevant evidence because contemporary MIR research still recognises official artwork as a meaningful modality.",
         tags: ["multimodal", "dataset", "genre", "music-research"],
+        openAccess: true,
+      },
+      {
+        id: "wilkes-multimodal-genre-recognition",
+        title: "Statistical and Visual Analysis of Audio, Text, and Image Features for Multi-Modal Music Genre Recognition",
+        source: "Algorithms / PMC",
+        year: "2021",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC8621318/",
+        summary:
+          "A multimodal genre-recognition study that explicitly includes album-cover images alongside audio and lyrics.",
+        whyItMatters:
+          "Useful when explaining that image features in music are not just culturally meaningful but analytically useful in prediction tasks.",
+        supports: [
+          "Album-cover images in genre recognition",
+          "Interpretable multimodal features",
+          "Image information complements audio and text",
+        ],
+        reportText:
+          "Image-based cues are relevant because multimodal genre models improve when album-cover imagery is included alongside audio and text features.",
+        tags: ["genre", "multimodal", "album-art", "prediction"],
+        openAccess: true,
+      },
+      {
+        id: "spence-sensory-translation",
+        title: "Sensory Translation Between Audition and Vision",
+        source: "Review / PMC",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC11061078/",
+        summary:
+          "A broad review of how auditory and visual qualities can be mapped across senses.",
+        whyItMatters:
+          "Helpful for discussing why album-cover mood, tone, and colour may be used to support perceived musical character.",
+        supports: [
+          "Crossmodal audio-visual mapping",
+          "Mood and sensory translation",
+          "Theoretical support for audio-visual alignment",
+        ],
+        tags: ["crossmodal", "mood", "music", "visual-translation"],
+        openAccess: true,
+      },
+      {
+        id: "reymore-color-tone-color",
+        title: "Color and Tone Color: Audiovisual Crossmodal Correspondences and Timbre Semantics in Musicians and Non-Musicians",
+        source: "Frontiers in Psychology",
+        year: "2025",
+        kind: "peer-reviewed",
+        href: "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2024.1520131/full",
+        summary:
+          "Shows that listeners map instrument timbres and pitch registers onto colour choices in systematic ways.",
+        whyItMatters:
+          "Strong support for Match and genre-mood logic because it links musical timbre and colour choice directly through crossmodal semantics.",
+        supports: [
+          "Music-to-colour correspondences",
+          "Timbre semantics and colour",
+          "Crossmodal support for mood alignment",
+        ],
+        reportText:
+          "Audio-visual matching is treated as meaningful because listeners often map timbral qualities onto colour in systematic ways.",
+        tags: ["crossmodal", "music", "color", "mood"],
+        openAccess: true,
+      },
+      {
+        id: "mesz-marble-melancholy",
+        title: "Marble Melancholy: Using Crossmodal Correspondences of Music-Induced Emotions to Generate Visual Material Recommendations",
+        source: "Frontiers in Psychology",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2023.1168258/full",
+        summary:
+          "Investigates how music-induced emotions map onto visual materials and shapes through crossmodal correspondences.",
+        whyItMatters:
+          "Useful for supporting art-direction comments about whether visual texture, tone, and material feel align with the intended emotional character of the music.",
+        supports: [
+          "Emotion-to-visual mapping",
+          "Crossmodal mood correspondence",
+          "Support for audio-visual art direction",
+        ],
+        tags: ["crossmodal", "emotion", "music", "visual-translation"],
         openAccess: true,
       },
     ],
@@ -607,6 +943,46 @@ const SECTIONS: EvidenceSection[] = [
           "Album covers are treated as both aesthetic objects and market-facing communication, not merely decorative wrappers.",
         tags: ["multimodality", "branding", "culture", "thesis"],
       },
+      {
+        id: "spotify-artist-image-guidelines",
+        title: "Artist Image Guidelines",
+        source: "Spotify for Artists",
+        year: "Current guidance",
+        kind: "official",
+        href: "https://support.spotify.com/us/artists/article/artist-image-guidelines/",
+        summary:
+          "Spotify's guidance for artist imagery sets expectations around text, busy backgrounds, quality, and visual clarity.",
+        whyItMatters:
+          "Useful for supporting the idea that artist-facing visual assets are judged as communication surfaces with clarity expectations, not only expressive art.",
+        supports: [
+          "Clarity and quality expectations",
+          "Avoiding busy backgrounds and text clutter",
+          "Artist identity across platform surfaces",
+        ],
+        reportText:
+          "Identity visuals are assessed as communication surfaces because major platforms impose quality and clarity expectations on artist-facing imagery.",
+        tags: ["branding", "artist-identity", "spotify", "clarity"],
+        openAccess: true,
+      },
+      {
+        id: "spotify-canvas-guidelines-branding",
+        title: "Canvas Guidelines",
+        source: "Spotify for Artists",
+        year: "Current guidance",
+        kind: "official",
+        href: "https://support.spotify.com/us/artists/article/canvas-guidelines/",
+        summary:
+          "Shows how release visuals extend beyond the static square into motion and additional listening surfaces.",
+        whyItMatters:
+          "Supports the claim that the cover belongs to a broader visual system rather than acting as a standalone image.",
+        supports: [
+          "Extended campaign surfaces",
+          "Beyond-static-cover thinking",
+          "Motion and release-world continuity",
+        ],
+        tags: ["branding", "campaign", "spotify", "motion"],
+        openAccess: true,
+      },
     ],
   },
   {
@@ -703,6 +1079,25 @@ const SECTIONS: EvidenceSection[] = [
         tags: ["culture", "vinyl", "history", "memory"],
         openAccess: true,
       },
+      {
+        id: "moma-record-jacket-design",
+        title: "The Record Jacket as a Designed Object",
+        source: "MoMA-related design writing",
+        year: "Museum context",
+        kind: "essay",
+        href: "https://www.moma.org/explore/inside_out/2013/09/12/let-them-eat-delias-cake-or-robert-brownjohns-let-it-bleed/",
+        summary:
+          "Museum writing that frames album packaging as part of the designed music object rather than an afterthought.",
+        whyItMatters:
+          "Useful for reinforcing the historical claim that record sleeves and covers have long been treated as meaningful design artefacts.",
+        supports: [
+          "Album packaging as design object",
+          "Museum-level design framing",
+          "Historical significance of sleeves and covers",
+        ],
+        tags: ["history", "museum", "album-cover", "design-object"],
+        openAccess: true,
+      },
     ],
   },
   {
@@ -793,6 +1188,105 @@ const SECTIONS: EvidenceSection[] = [
           "Display consistency",
         ],
         tags: ["spotify", "quality", "square", "display"],
+        openAccess: true,
+      },
+      {
+        id: "koh-thumbnail-visual-attributes",
+        title: "An Exploration of the Relation Between the Visual Attributes of Thumbnails and YouTube Click-Through Rates",
+        source: "Decision Support Systems",
+        year: "2022",
+        kind: "peer-reviewed",
+        href: "https://www.byungwan.com/papers/Thumbnails.pdf",
+        summary:
+          "Examines how measurable thumbnail visual attributes relate to click-through performance and viewer attention on YouTube.",
+        whyItMatters:
+          "Useful for defending Mockups and thumbnail-survival checks, because it shows that small preview images materially affect selection behaviour in competitive feeds.",
+        supports: [
+          "Thumbnail design affects attention",
+          "Small-image competition matters",
+          "Practical support for mockup testing",
+        ],
+        reportText:
+          "Mockup and thumbnail checks are justified because small preview images influence selection behaviour in competitive scrolling environments.",
+        tags: ["thumbnail", "platform", "attention", "streaming"],
+        openAccess: true,
+      },
+      {
+        id: "mendenhall-made-you-look",
+        title: "Made You Look: Do Video Thumbnails with Portraits Attract and Hold Users' Attention?",
+        source: "UNC Chapel Hill master's thesis",
+        year: "2021",
+        kind: "thesis",
+        href: "https://cdr.lib.unc.edu/concern/masters_papers/g158bt278",
+        summary:
+          "A thesis exploring whether portrait-based thumbnails attract attention faster and hold attention longer during information-seeking tasks.",
+        whyItMatters:
+          "Helpful for explaining why identity, focal anchors, and face-like or object-like central cues matter in thumbnail browsing even before any text is read.",
+        supports: [
+          "Thumbnail attention capture",
+          "Focal-anchor importance",
+          "Information-seeking under glance conditions",
+        ],
+        tags: ["thumbnail", "attention", "identity", "browsing"],
+        openAccess: true,
+      },
+      {
+        id: "jama-attention-grabbing-thumbnails",
+        title: "Algorithmic Content Recommendations on a Video-Sharing Platform: Attention-Grabbing Thumbnails and Problematic Recommendations",
+        source: "JAMA Pediatrics / PMC",
+        year: "2024",
+        kind: "peer-reviewed",
+        href: "https://pmc.ncbi.nlm.nih.gov/articles/PMC11137630/",
+        summary:
+          "Examines how video-sharing platforms use attention-grabbing thumbnail design in recommendation contexts.",
+        whyItMatters:
+          "Useful as broader support for the idea that thumbnail presentation is not neutral: small preview images are engineered to compete aggressively for attention.",
+        supports: [
+          "Attention-grabbing thumbnail design",
+          "Recommendation-surface competition",
+          "Why preview-context testing matters",
+        ],
+        tags: ["thumbnail", "attention", "recommendations", "platform"],
+        openAccess: true,
+      },
+      {
+        id: "spotify-design-artwork-integrity",
+        title: "Design & Branding Guidelines",
+        source: "Spotify for Developers",
+        year: "Current guidance",
+        kind: "official",
+        href: "https://developer.spotify.com/documentation/design",
+        summary:
+          "Spotify's design guidance says artwork should remain in its original form and should not be cropped, covered, or overlaid.",
+        whyItMatters:
+          "Strong platform support for discussing artwork integrity, crop risk, and UI interference.",
+        supports: [
+          "Do not crop artwork",
+          "Do not overlay text or controls over art",
+          "Artwork integrity on platform surfaces",
+        ],
+        reportText:
+          "Artwork integrity matters because platform design guidance explicitly warns against cropping, covering, or overlaying the image.",
+        tags: ["spotify", "ui", "integrity", "cropping"],
+        openAccess: true,
+      },
+      {
+        id: "apple-motion-artwork-create",
+        title: "Create Motion Artwork for Apple Music",
+        source: "Apple Music for Artists",
+        year: "Current guidance",
+        kind: "official",
+        href: "https://artists.apple.com/support/5544-create-motion-artwork",
+        summary:
+          "Shows how Apple extends release artwork into motion-based product surfaces beyond the static square.",
+        whyItMatters:
+          "Supports context-aware evaluation by showing that album visuals increasingly need to remain recognisable across multiple presentation formats.",
+        supports: [
+          "Artwork across multiple surfaces",
+          "Motion extensions of release identity",
+          "Cross-surface recognisability",
+        ],
+        tags: ["apple", "motion", "context", "surfaces"],
         openAccess: true,
       },
     ],

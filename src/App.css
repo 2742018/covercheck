@@ -3325,32 +3325,69 @@ body.lightMode .aboutLinkCardV2:hover {
    ========================================================= */
 
 .methodsWrap {
-  width: min(1280px, calc(100% - 32px));
+  width: min(1360px, calc(100% - 28px));
   margin: 0 auto;
-  padding: 24px 0 56px;
+  padding: 22px 0 60px;
   color: rgba(255, 255, 255, 0.96);
 }
 
 .methodsHero {
   padding: 24px;
-  background: rgba(12, 13, 16, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.012)),
+    rgba(12, 13, 16, 0.98);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.26);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .methodsHero .mockHeroTop {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
 }
 
-.methodsHero .mockHeroActions {
+.methodsHero .mockHeroActions,
+.methodsHeroActions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.methodsHeroBackRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.methodsHeroBrand {
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.methodsKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.methodsTitle,
+.testTitle.methodsTitle {
+  max-width: 18ch;
+  line-height: 1.05;
+}
+
+.methodsLead,
+.testLead.methodsLead {
+  max-width: 74ch;
 }
 
 .methodsHeroStats {
@@ -3366,26 +3403,73 @@ body.lightMode .aboutLinkCardV2:hover {
   margin-top: 20px;
 }
 
-.methodsSearch {
-  width: 90%;
+.methodsFilterGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.2fr) repeat(3, minmax(170px, 0.8fr));
+  gap: 12px;
+}
+
+.methodsSearchWrap,
+.methodsSelectWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.methodsInputIcon,
+.methodsSelectIcon {
+  position: absolute;
+  left: 14px;
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.methodsSearch,
+.methodsSelect {
+  width: 100%;
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(116, 115, 115, 0.045);
+  background: rgba(255, 255, 255, 0.045);
   color: inherit;
   border-radius: 16px;
-  padding: 14px 16px;
+  padding: 14px 16px 14px 42px;
   font: inherit;
   outline: none;
-  transition: 0.16s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease,
+    transform 0.16s ease;
+}
+
+.methodsSelect {
+  color-scheme: dark;
+}
+
+.methodsSelect option {
+  background: #111318;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.methodsSelect option:checked,
+.methodsSelect option:hover,
+.methodsSelect option:focus {
+  background: rgba(255, 196, 0, 0.18);
+  color: rgba(255, 255, 255, 0.96);
 }
 
 .methodsSearch::placeholder {
   color: rgba(255, 255, 255, 0.44);
 }
 
-.methodsSearch:focus {
+.methodsSearch:focus,
+.methodsSelect:focus {
   border-color: rgba(255, 196, 0, 0.45);
   box-shadow: 0 0 0 3px rgba(255, 196, 0, 0.1);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.methodsSelect {
+  appearance: none;
+  cursor: pointer;
 }
 
 .methodsTabs {
@@ -3403,7 +3487,7 @@ body.lightMode .aboutLinkCardV2:hover {
   padding: 10px 14px;
   font: inherit;
   cursor: pointer;
-  transition: 0.16s ease;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .methodsTab:hover {
@@ -3440,6 +3524,10 @@ body.lightMode .aboutLinkCardV2:hover {
   top: 18px;
 }
 
+.methodsAside .methodsAsideCard {
+  border-radius: 22px;
+}
+
 .methodSection {
   display: grid;
   gap: 14px;
@@ -3455,8 +3543,9 @@ body.lightMode .aboutLinkCardV2:hover {
 .methodUseCard {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 18px;
+  padding: 15px;
+  min-width: 0;
 }
 
 .methodUseLabel {
@@ -3469,8 +3558,9 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .methodUseText {
-  line-height: 1.58;
-  font-size: 0.95rem;
+  line-height: 1.62;
+  font-size: 0.96rem;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .methodRefsStack {
@@ -3480,12 +3570,19 @@ body.lightMode .aboutLinkCardV2:hover {
 
 .methodRefCard {
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
+  border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.018)),
     linear-gradient(180deg, rgba(17, 18, 22, 0.95), rgba(23, 25, 30, 0.95));
   overflow: hidden;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.methodRefCard:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
 }
 
 .methodRefHead {
@@ -3495,15 +3592,15 @@ body.lightMode .aboutLinkCardV2:hover {
   color: inherit;
   text-align: left;
   cursor: pointer;
-  padding: 16px;
+  padding: 18px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 16px;
 }
 
 .methodRefHead:hover {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(255, 255, 255, 0.022);
 }
 
 .methodRefHeadContent {
@@ -3511,9 +3608,10 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .methodRefTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1.36;
+  font-size: 1.03rem;
+  font-weight: 760;
+  line-height: 1.38;
+  color: rgba(255, 255, 255, 0.98);
 }
 
 .methodRefSub {
@@ -3542,16 +3640,34 @@ body.lightMode .aboutLinkCardV2:hover {
   white-space: nowrap;
 }
 
+.methodRefChevronIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  opacity: 0.86;
+}
+
 .methodRefBody {
-  padding: 0 16px 16px;
+  padding: 0 18px 18px;
   display: grid;
   gap: 14px;
 }
 
 .methodRefSummary {
-  line-height: 1.64;
+  line-height: 1.66;
   font-size: 0.96rem;
-  opacity: 0.9;
+  opacity: 0.92;
+}
+
+.methodRefSummary--closed {
+  margin-top: 10px;
+  opacity: 0.78;
 }
 
 .methodRefBlock {
@@ -3586,7 +3702,7 @@ body.lightMode .aboutLinkCardV2:hover {
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.025);
   border-radius: 10px;
-  line-height: 1.55;
+  line-height: 1.58;
 }
 
 .methodRefActions {
@@ -3594,6 +3710,61 @@ body.lightMode .aboutLinkCardV2:hover {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
+}
+
+.methodRefGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
+  gap: 18px;
+}
+
+.methodRefMainCol,
+.methodRefSideCol {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.methodRefBox {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.methodSupportGrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.methodSupportPill {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.methodTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.methodTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .methodBadge {
@@ -3655,6 +3826,9 @@ body.lightMode .aboutLinkCardV2:hover {
 .methodsNavList {
   display: grid;
   gap: 10px;
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .methodsNavBtn {
@@ -3666,7 +3840,7 @@ body.lightMode .aboutLinkCardV2:hover {
   border-radius: 14px;
   padding: 12px;
   cursor: pointer;
-  transition: 0.16s ease;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .methodsNavBtn:hover {
@@ -3683,6 +3857,7 @@ body.lightMode .aboutLinkCardV2:hover {
 .methodsNavBtnTitle {
   font-weight: 700;
   margin-bottom: 6px;
+  line-height: 1.35;
 }
 
 .methodsNavBtnText {
@@ -3692,7 +3867,7 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .methodsEvidenceNote {
-  margin-top: 16px;
+  margin-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 16px;
   display: grid;
@@ -3700,64 +3875,9 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .methodsEvidenceLine {
-  font-size: 0.92rem;
-  line-height: 1.55;
-  opacity: 0.84;
-}
-
-.methodsHeroBackRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.methodsHeroBrand {
-  font-size: 0.94rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  opacity: 0.9;
-}
-
-.methodsKicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.methodsFilterGrid {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.7fr 0.7fr;
-  gap: 12px;
-}
-
-.methodsSearchWrap,
-.methodsSelectWrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.methodsInputIcon,
-.methodsSelectIcon {
-  position: absolute;
-  left: 14px;
-  opacity: 0.62;
-  pointer-events: none;
-}
-
-.methodsSelect {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.045);
-  color: inherit;
-  border-radius: 16px;
-  padding: 14px 16px 14px 42px;
-  font: inherit;
-  outline: none;
-  appearance: none;
-  cursor: pointer;
+  font-size: 0.93rem;
+  line-height: 1.6;
+  opacity: 0.86;
 }
 
 .methodsFeatured {
@@ -3783,7 +3903,7 @@ body.lightMode .aboutLinkCardV2:hover {
 }
 
 .methodsFeaturedTitle {
-  font-size: 1.7rem;
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
   line-height: 1.15;
   margin: 0;
 }
@@ -3807,6 +3927,7 @@ body.lightMode .aboutLinkCardV2:hover {
   border-radius: 22px;
   padding: 18px;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  min-width: 0;
 }
 
 .methodsFeaturedBadges {
@@ -3831,7 +3952,7 @@ body.lightMode .aboutLinkCardV2:hover {
 
 .methodsFeaturedCardText {
   font-size: 0.95rem;
-  line-height: 1.6;
+  line-height: 1.62;
   opacity: 0.9;
   margin-bottom: 14px;
 }
@@ -3870,84 +3991,9 @@ body.lightMode .aboutLinkCardV2:hover {
   line-height: 1;
 }
 
-.methodRefCard--clean .methodRefMeta {
-  margin-bottom: 10px;
-}
-
-.methodRefSummary--closed {
-  margin-top: 10px;
-  opacity: 0.78;
-}
-
-.methodRefChevronIcon {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  opacity: 0.86;
-}
-
-.methodRefGrid {
-  display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
-  gap: 18px;
-}
-
-.methodRefMainCol,
-.methodRefSideCol {
-  display: grid;
-  gap: 14px;
-}
-
-.methodRefBox {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
-  border-radius: 16px;
-  padding: 14px;
-}
-
-.methodSupportGrid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.methodSupportPill {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 14px;
-  padding: 10px 12px;
-  line-height: 1.45;
-}
-
-.methodTagRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.methodTag {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-}
-
 .methodsEmptyState {
   text-align: center;
+  padding: 26px;
 }
 
 .methodsEmptyTitle {
@@ -3959,6 +4005,96 @@ body.lightMode .aboutLinkCardV2:hover {
   margin-top: 16px;
   display: flex;
   justify-content: center;
+}
+
+@media (max-width: 1180px) {
+  .methodsLayout,
+  .methodsLayoutWide {
+    grid-template-columns: 1fr;
+  }
+
+  .methodsAside {
+    position: static;
+  }
+
+  .methodsNavList {
+    max-height: none;
+  }
+
+  .methodsFeaturedGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .methodRefGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .methodsWrap {
+    width: min(100%, calc(100% - 24px));
+    padding: 18px 0 44px;
+  }
+
+  .methodsHero {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .methodsHero .mockHeroTop {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .methodsHero .mockHeroActions,
+  .methodsHeroActions {
+    justify-content: flex-start;
+  }
+
+  .methodsHeroStats,
+  .methodsFilterGrid,
+  .methodsFeaturedGrid,
+  .methodUseGrid,
+  .methodSupportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .methodsFeaturedHead,
+  .methodsSectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .methodsWrap {
+    width: min(100%, calc(100% - 18px));
+  }
+
+  .methodsHero {
+    padding: 16px;
+  }
+
+  .methodRefHead,
+  .methodRefBody,
+  .methodsFeaturedCard,
+  .methodsAsideCard {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .methodRefTitle {
+    font-size: 0.98rem;
+  }
+
+  .methodsFeaturedTitle {
+    font-size: 1.25rem;
+  }
+
+  .methodsCountCard {
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 /* =========================================================
