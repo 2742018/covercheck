@@ -5,10 +5,9 @@ import {
   type PaletteSwatch,
   type SimSummary,
   type VisionMode,
+  buildAccessibilityAnalysis,
   getModeDescription,
   getModeLabel,
-  buildActionSuggestions,
-  buildAutoInsights,
   makeSimulatedImage,
 } from "../lib/accessibility";
 import { Printer } from "lucide-react";
@@ -19,6 +18,18 @@ type AccessibilityState = {
 
 async function loadFromFile(file: File) {
   return await fileToObjectUrl(file);
+}
+
+function toneForScore(score: number | null) {
+  if (score == null) return "default";
+  if (score >= 76) return "good";
+  if (score >= 52) return "warn";
+  return "bad";
+}
+
+function labelForDifference(diff: number) {
+  if (Math.abs(diff) < 6) return "stable";
+  return diff > 0 ? "higher" : "lower";
 }
 
 export default function AccessibilityPage() {
@@ -102,8 +113,23 @@ export default function AccessibilityPage() {
     }
   }
 
-  const insightLines = buildAutoInsights(originalSummary, simulatedSummary, mode);
-  const actionLines = buildActionSuggestions(originalSummary, simulatedSummary);
+  const analysis = React.useMemo(
+    () => buildAccessibilityAnalysis(originalSummary, simulatedSummary, mode),
+    [originalSummary, simulatedSummary, mode]
+  );
+
+  const brightnessDiff =
+    originalSummary && simulatedSummary
+      ? simulatedSummary.averageBrightness - originalSummary.averageBrightness
+      : null;
+  const spreadDiff =
+    originalSummary && simulatedSummary
+      ? simulatedSummary.paletteSpread - originalSummary.paletteSpread
+      : null;
+  const dominanceDiff =
+    originalSummary && simulatedSummary
+      ? simulatedSummary.dominantStrength - originalSummary.dominantStrength
+      : null;
 
   return (
     <div className="analyzeWrap accessibilityWrap">
@@ -141,34 +167,35 @@ export default function AccessibilityPage() {
           </div>
         </div>
 
-        <div className="testKicker"> Colour Simulation</div>
+        <div className="testKicker">Colour Simulation</div>
         <div className="testTitle">Accessibility</div>
         <div className="testLead">
           Preview how your cover may appear under common colour-vision deficiency
-          simulations. Use this page to check whether important palette distinctions,
-          focal emphasis, and visual hierarchy still hold up when colour cues change.
+          simulations. This page is not judging whether the artwork is good or bad — it
+          is checking whether hierarchy, emphasis, and key distinctions still hold once
+          colour cues become less dependable.
         </div>
 
         <div className="compareHeroBullets accessibilityIntroGrid">
           <div className="mockBullet">
             <div className="mockBulletHead">Why it matters</div>
             <div className="mockBulletText">
-              Strong covers should not depend entirely on fragile hue differences for
-              recognition, emphasis, or separation.
+              Covers that depend too heavily on hue difference alone can flatten quickly
+              when colour distinction changes.
             </div>
           </div>
           <div className="mockBullet">
-            <div className="mockBulletHead">What this page does</div>
+            <div className="mockBulletHead">What this page checks</div>
             <div className="mockBulletText">
-              It simulates common colour-vision conditions, compares palette change,
-              and generates an automatic summary of likely accessibility risks.
+              It compares original and simulated palette behaviour, then explains which
+              differences are most likely to affect readability and focal clarity.
             </div>
           </div>
           <div className="mockBullet">
             <div className="mockBulletHead">How to use it</div>
             <div className="mockBulletText">
-              Start here for a quick colour-accessibility check, then move into Analyze
-              if the simulation suggests weak separation or hierarchy.
+              Treat this as a quick accessibility-aware filter, then move into Analyze or
+              Mockups if the simulation suggests weak separation or flattened emphasis.
             </div>
           </div>
         </div>
@@ -188,6 +215,53 @@ export default function AccessibilityPage() {
         />
       </div>
 
+      <div className="panelDark" style={{ marginTop: 16 }}>
+        <div className="panelTop">
+          <div className="panelTitle">How to use this page</div>
+          <div className="panelNote">A simple accessibility-aware review workflow.</div>
+        </div>
+
+        <div className="panelBody">
+          <div className="suggestList">
+            <div className="suggestItem">
+              <div className="suggestTitle">1. Load a cover</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Start with your current artwork or open this page after working elsewhere in CoverCheck.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">2. Change simulation mode</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  Switch between protanopia, deuteranopia, tritanopia, and achromatopsia to see whether your cover depends on one fragile colour relationship.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">3. Read the explanation, not just the preview</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  The page explains what each value means, what changed, and why the comments are appearing.
+                </div>
+              </div>
+            </div>
+
+            <div className="suggestItem">
+              <div className="suggestTitle">4. Fix hierarchy elsewhere if needed</div>
+              <div className="suggestDetail">
+                <div className="sLine">
+                  If separation weakens here, improve the title zone, contrast, or focal structure in Analyze and then confirm it again in Mockups.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {!dataUrl && (
         <div className="emptyState">
           <div className="emptyTitle">No cover selected.</div>
@@ -201,65 +275,14 @@ export default function AccessibilityPage() {
         </div>
       )}
 
-
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">How to use this page</div>
-                <div className="panelNote">
-                  A simple accessibility-aware colour review workflow.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                <div className="suggestList">
-                  <div className="suggestItem">
-                    <div className="suggestTitle">1. Load a cover</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Start with your current cover or open this page after working elsewhere in CoverCheck.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">2. Change simulation mode</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Switch through different colour-vision deficiency simulations and compare how the image changes.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">3. Read the auto analysis</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Use the generated observations to identify whether your cover depends too heavily on colour difference alone.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="suggestItem">
-                    <div className="suggestTitle">4. Refine elsewhere if needed</div>
-                    <div className="suggestDetail">
-                      <div className="sLine">
-                        Move back into Analyze or Compare if the simulation reveals weak hierarchy or palette collapse.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
       {dataUrl && (
         <>
-          <div className="panelDark">
+          <div className="panelDark" style={{ marginTop: 16 }}>
             <div className="panelTop">
               <div className="panelTitle">Simulator controls</div>
               <div className="panelNote">
                 Choose a simulation mode, switch display options, and show or hide the
-                automatic analysis layer.
+                analysis layer.
               </div>
             </div>
 
@@ -301,7 +324,7 @@ export default function AccessibilityPage() {
                       className={`pillBtn ${showAnalysis ? "on" : ""}`}
                       onClick={() => setShowAnalysis((v) => !v)}
                     >
-                      AUTO ANALYSIS
+                      DETAIL ANALYSIS
                     </button>
                   </div>
                 </div>
@@ -327,6 +350,90 @@ export default function AccessibilityPage() {
             </div>
           </div>
 
+          {analysis && showAnalysis && (
+            <div className="reportGrid" style={{ marginTop: 16 }}>
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Analysis at a glance</div>
+                  <div className="panelNote">
+                    A quick reading of how stable the cover remains under the selected simulation.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                      gap: 10,
+                    }}
+                  >
+                    <div className="miniCard">
+                      <div className="miniLabel">Accessibility stability</div>
+                      <div className="readyTop" style={{ marginBottom: 8 }}>
+                        <span className={`statusTag ${toneForScore(analysis.score) === "good" ? "pass" : toneForScore(analysis.score) === "bad" ? "fail" : ""}`}>
+                          {analysis.label.toUpperCase()} • {analysis.score}/100
+                        </span>
+                      </div>
+                      <div className="miniSub">{analysis.summary}</div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Brightness shift</div>
+                      <div className="miniValue">
+                        {brightnessDiff == null ? "—" : `${brightnessDiff > 0 ? "+" : ""}${brightnessDiff}`}
+                      </div>
+                      <div className="miniSub">
+                        {brightnessDiff == null ? "Not available" : `Overall image becomes ${labelForDifference(brightnessDiff)} in brightness.`}
+                      </div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Palette spread change</div>
+                      <div className="miniValue">
+                        {spreadDiff == null ? "—" : `${spreadDiff > 0 ? "+" : ""}${spreadDiff}`}
+                      </div>
+                      <div className="miniSub">Negative values usually mean weaker colour separation.</div>
+                    </div>
+
+                    <div className="miniCard">
+                      <div className="miniLabel">Dominant tone change</div>
+                      <div className="miniValue">
+                        {dominanceDiff == null ? "—" : `${dominanceDiff > 0 ? "+" : ""}${dominanceDiff}`}
+                      </div>
+                      <div className="miniSub">Positive values usually mean a flatter overall tonal reading.</div>
+                    </div>
+                  </div>
+
+                  <div className="detailLine" style={{ marginTop: 14 }}>
+                    <b>Mode reading:</b> {analysis.modeNote}
+                  </div>
+                </div>
+              </div>
+
+              <div className="panelDark">
+                <div className="panelTop">
+                  <div className="panelTitle">Why these comments are showing</div>
+                  <div className="panelNote">
+                    The analysis explains the main triggers behind the current accessibility reading.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  <div className="suggestList">
+                    {analysis.triggerNotes.map((line) => (
+                      <div key={line} className="suggestItem">
+                        <div className="suggestDetail">
+                          <div className="sLine">{line}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div
             className={`compareGrid ${showSplit ? "" : "compareMode-left"}`}
             style={{ marginTop: 16 }}
@@ -350,21 +457,19 @@ export default function AccessibilityPage() {
                     <div className="miniCard">
                       <div className="miniLabel">Brightness</div>
                       <div className="miniValue">{originalSummary.brightnessLabel}</div>
-                      <div className="miniSub">
-                        {originalSummary.averageBrightness}/100
-                      </div>
+                      <div className="miniSub">{originalSummary.averageBrightness}/100</div>
                     </div>
 
                     <div className="miniCard">
                       <div className="miniLabel">Palette spread</div>
                       <div className="miniValue">{originalSummary.paletteSpread}</div>
-                      <div className="miniSub">more spread = more separation</div>
+                      <div className="miniSub">Higher spread usually means stronger tonal separation.</div>
                     </div>
 
                     <div className="miniCard">
                       <div className="miniLabel">Dominant tone</div>
                       <div className="miniValue">{originalSummary.dominantStrength}</div>
-                      <div className="miniSub">higher = flatter dominance</div>
+                      <div className="miniSub">Higher values usually mean a flatter dominant tonal mass.</div>
                     </div>
                   </div>
                 )}
@@ -415,21 +520,19 @@ export default function AccessibilityPage() {
                       <div className="miniCard">
                         <div className="miniLabel">Brightness</div>
                         <div className="miniValue">{simulatedSummary.brightnessLabel}</div>
-                        <div className="miniSub">
-                          {simulatedSummary.averageBrightness}/100
-                        </div>
+                        <div className="miniSub">{simulatedSummary.averageBrightness}/100</div>
                       </div>
 
                       <div className="miniCard">
                         <div className="miniLabel">Palette spread</div>
                         <div className="miniValue">{simulatedSummary.paletteSpread}</div>
-                        <div className="miniSub">separation after simulation</div>
+                        <div className="miniSub">Lower spread suggests weaker separation after simulation.</div>
                       </div>
 
                       <div className="miniCard">
                         <div className="miniLabel">Dominant tone</div>
                         <div className="miniValue">{simulatedSummary.dominantStrength}</div>
-                        <div className="miniSub">higher = flatter dominance</div>
+                        <div className="miniSub">Higher values suggest a flatter simulated tonal reading.</div>
                       </div>
                     </div>
                   )}
@@ -446,129 +549,146 @@ export default function AccessibilityPage() {
                             title={c.hex}
                           />
                         ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
             )}
           </div>
 
-          {showAnalysis && (
-            <div className="reportGrid" style={{ marginTop: 16 }}>
-              <div className="panelDark">
+          {showAnalysis && analysis && (
+            <>
+              <div className="panelDark" style={{ marginTop: 16 }}>
                 <div className="panelTop">
-                  <div className="panelTitle">Auto-generated analysis</div>
+                  <div className="panelTitle">Main analysis factors</div>
                   <div className="panelNote">
-                    A quick interpretation of what changes under the selected simulation.
+                    The most important changes, ranked by how strongly they affect accessibility reading.
                   </div>
                 </div>
 
                 <div className="panelBody">
-                  {!originalSummary || !simulatedSummary ? (
-                    <div className="miniHint">
-                      Upload a cover to generate automatic accessibility insights.
+                  <div className="suggestList">
+                    {analysis.factors.map((factor) => (
+                      <div key={factor.key} className="suggestItem">
+                        <div className="suggestTitle">{factor.title}</div>
+                        <div className="suggestDetail">
+                          <div className="sLine">{factor.detail}</div>
+                          <div className="sLine"><b>Basis:</b> {factor.basis}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="panelDark" style={{ marginTop: 16 }}>
+                <div className="panelTop">
+                  <div className="panelTitle">What each value means</div>
+                  <div className="panelNote">
+                    A more detailed explanation of the values used to build the accessibility comments.
+                  </div>
+                </div>
+
+                <div className="panelBody">
+                  <div className="suggestList">
+                    {analysis.metricRows.map((row) => (
+                      <div key={row.key} className="suggestItem">
+                        <div className="suggestTitle">{row.title}</div>
+                        <div className="suggestDetail">
+                          <div className="sLine">
+                            <b>Original:</b> {row.originalValue} • <b>Simulated:</b> {row.simulatedValue} • <b>Change:</b> {row.delta}
+                          </div>
+                          <div className="sLine"><b>Meaning:</b> {row.meaning}</div>
+                          <div className="sLine"><b>Basis:</b> {row.basis}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="reportGrid" style={{ marginTop: 16 }}>
+                <div className="panelDark">
+                  <div className="panelTop">
+                    <div className="panelTitle">Most important fixes</div>
+                    <div className="panelNote">
+                      Prioritised actions if the simulation reveals weaker distinction or hierarchy.
                     </div>
-                  ) : (
+                  </div>
+
+                  <div className="panelBody">
                     <div className="suggestList">
-                      {insightLines.map((line) => (
+                      {analysis.actions.map((line, idx) => (
                         <div key={line} className="suggestItem">
+                          <div className="suggestTitle">Priority {idx + 1}</div>
                           <div className="suggestDetail">
                             <div className="sLine">{line}</div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="panelDark">
-                <div className="panelTop">
-                  <div className="panelTitle">What to do next</div>
-                  <div className="panelNote">
-                    Suggested directions if the simulation reveals weaker distinction or hierarchy.
                   </div>
                 </div>
 
-                <div className="panelBody">
-                  {!originalSummary || !simulatedSummary ? (
-                    <div className="miniHint">
-                      Suggestions will appear once the simulated preview is available.
+                <div className="panelDark">
+                  <div className="panelTop">
+                    <div className="panelTitle">What to check next</div>
+                    <div className="panelNote">
+                      Use these prompts to confirm whether the cover still communicates beyond colour alone.
                     </div>
-                  ) : (
-                    <div className="suggestList">
-                      {actionLines.map((line) => (
-                        <div key={line} className="suggestItem">
-                          <div className="suggestDetail">
-                            <div className="sLine">{line}</div>
-                          </div>
+                  </div>
+
+                  <div className="panelBody">
+                    <div className="mxChecklist">
+                      <div className="mxCheckItem">
+                        <div className="mxCheckHead">Title / artist emphasis</div>
+                        <div className="mxCheckText">
+                          Does the main information still feel clearly separated from the background even if colour contrast weakens?
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
 
-                  <div className="readyActions" style={{ marginTop: 18 }}>
-                    <button
-                      className="primaryBtn"
-                      onClick={() => navigate("/analyze", { state: { dataUrl } })}
-                    >
-                      OPEN IN ANALYZE
-                    </button>
-                    <button
-                      className="ghostBtn"
-                      onClick={() => navigate("/compare", { state: { leftDataUrl: dataUrl } })}
-                    >
-                      OPEN IN COMPARE
-                    </button>
+                      <div className="mxCheckItem">
+                        <div className="mxCheckHead">Palette separation</div>
+                        <div className="mxCheckText">
+                          Do previously distinct colours collapse into a similar tone, or do they remain separately readable?
+                        </div>
+                      </div>
+
+                      <div className="mxCheckItem">
+                        <div className="mxCheckHead">Hierarchy</div>
+                        <div className="mxCheckText">
+                          Does the focal point still stand out, or does the cover flatten into one overall mass?
+                        </div>
+                      </div>
+
+                      <div className="mxCheckItem">
+                        <div className="mxCheckHead">Identity</div>
+                        <div className="mxCheckText">
+                          Does the cover remain recognizable and intentional once colour distinction becomes less reliable?
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="readyActions" style={{ marginTop: 18 }}>
+                      <button
+                        className="primaryBtn"
+                        onClick={() => navigate("/analyze", { state: { dataUrl } })}
+                      >
+                        OPEN IN ANALYZE
+                      </button>
+                      <button
+                        className="ghostBtn"
+                        onClick={() => navigate("/compare", { state: { leftDataUrl: dataUrl } })}
+                      >
+                        OPEN IN COMPARE
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
-
-          <div className="reportGrid" style={{ marginTop: 16 }}>
-            <div className="panelDark">
-              <div className="panelTop">
-                <div className="panelTitle">What to check</div>
-                <div className="panelNote">
-                  Use these prompts to assess whether visual distinctions still survive.
-                </div>
-              </div>
-
-              <div className="panelBody">
-                <div className="mxChecklist">
-                  <div className="mxCheckItem">
-                    <div className="mxCheckHead">Title / artist emphasis</div>
-                    <div className="mxCheckText">
-                      Does the main information still feel clearly separated from the background?
-                    </div>
-                  </div>
-
-                  <div className="mxCheckItem">
-                    <div className="mxCheckHead">Palette separation</div>
-                    <div className="mxCheckText">
-                      Do previously distinct colours begin to collapse into a similar tone?
-                    </div>
-                  </div>
-
-                  <div className="mxCheckItem">
-                    <div className="mxCheckHead">Hierarchy</div>
-                    <div className="mxCheckText">
-                      Does the focal point still stand out, or does the cover flatten visually?
-                    </div>
-                  </div>
-
-                  <div className="mxCheckItem">
-                    <div className="mxCheckHead">Identity</div>
-                    <div className="mxCheckText">
-                      Does the cover still feel recognizable and intentional, even with reduced colour distinction?
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </>
       )}
     </div>
