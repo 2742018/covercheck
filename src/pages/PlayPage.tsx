@@ -10,7 +10,7 @@ type PlayState = {
   uploadedDataUrl?: string | null;
 };
 
-const STATIC_COUNT = 21;
+const STATIC_COUNT = 39;
 const VISIBLE_STATIC = 11;
 const TOTAL_TILES = 12;
 const UPLOAD_INDEX = 6;
