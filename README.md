@@ -195,6 +195,14 @@ This makes it useful for:
 
 ---
 
+## License
+
+The source code in this repository is licensed under the MIT License. See the `LICENSE` file for details.
+
+Unless otherwise stated, the text (academic-related), screenshots, branding, and other non-code materials are © 2742018 2026. All rights reserved.
+
+---
+
 ## Development notes
 
 - fully client-side

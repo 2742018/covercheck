@@ -11,7 +11,7 @@ export default function LicensingPage() {
   useEffect(() => {
     const hadLightMode = document.body.classList.contains("lightMode");
     document.body.classList.add("lightMode");
-    document.title = "Use & Privacy — CoverCheck";
+    document.title = "Use, Privacy & Licensing — CoverCheck";
 
     return () => {
       if (!hadLightMode) document.body.classList.remove("lightMode");
@@ -36,7 +36,7 @@ export default function LicensingPage() {
 
         <div className="aboutEditorialHeading">
           <div>
-            <h1 className="aboutEditorialTitle">Use &amp; Privacy</h1>
+            <h1 className="aboutEditorialTitle">Use, Privacy &amp; Licensing</h1>
             <p className="aboutEditorialSubtitle">
               CoverCheck analyses album artwork locally in the browser. It does
               not store, host, or redistribute uploaded images.
@@ -50,7 +50,7 @@ export default function LicensingPage() {
               <p>
                 Images are used only for analysis during the session. CoverCheck
                 is designed as a privacy-first evaluation tool rather than an
-                image hosting or publishing platform.
+                image hosting, publishing, or archiving platform.
               </p>
             </aside>
           </div>
@@ -71,7 +71,7 @@ export default function LicensingPage() {
       <div className="aboutEditorialGrid">
         <aside
           className="aboutEditorialRail"
-          aria-label="Use and privacy page navigation"
+          aria-label="Use, privacy, and licensing page navigation"
         >
           <div className="aboutEditorialRailBlock">
             <div className="aboutEditorialLabel">Key points</div>
@@ -79,7 +79,8 @@ export default function LicensingPage() {
               <li>Images are analysed locally in the browser.</li>
               <li>CoverCheck does not store uploaded files.</li>
               <li>CoverCheck does not host or redistribute artwork.</li>
-              <li>The tool is for evaluation, not publishing.</li>
+              <li>The source code is licensed under MIT.</li>
+              <li>Non-code project materials remain separately protected.</li>
               <li>Users remain responsible for the images they choose to test.</li>
             </ul>
           </div>
@@ -100,9 +101,9 @@ export default function LicensingPage() {
                 covers and does not treat uploads as stored content.
               </p>
               <p>
-                This makes the page more appropriate as a privacy and use note
-                than a formal copyright policy. The main role of the tool is to
-                evaluate artwork temporarily during use.
+                The tool is intended for temporary evaluation during use. It
+                does not publish uploaded images, create a public library of
+                artwork, or claim ownership over the files users choose to test.
               </p>
             </div>
           </section>
@@ -131,11 +132,11 @@ export default function LicensingPage() {
               </div>
 
               <div className="aboutEditorialQuality">
-                <h3>Simple and relevant</h3>
+                <h3>Clearer ownership</h3>
                 <p>
-                  This keeps the page aligned with what CoverCheck actually
-                  does, instead of overstating legal or licensing concerns that
-                  are not central to the project.
+                  The page distinguishes between the MIT-licensed source code
+                  and non-code project materials, which may remain separately
+                  protected.
                 </p>
               </div>
             </div>
@@ -157,7 +158,29 @@ export default function LicensingPage() {
               <p>
                 In practice, this means CoverCheck supports temporary analysis
                 only. It does not claim rights over uploaded work and does not
-                present uploaded images as part of a public library.
+                present uploaded images as part of a public collection.
+              </p>
+            </div>
+          </section>
+
+          <section id="license" className="aboutEditorialSection">
+            <div className="aboutEditorialSectionLabel">License</div>
+            <h2 className="aboutEditorialSectionTitle">Source code license</h2>
+
+            <div className="aboutEditorialTextBlock">
+              <p>
+                The source code for CoverCheck is licensed under the MIT License.
+                This means the code may be used, copied, modified, and distributed
+                under the terms of that license.
+              </p>
+              <p>
+                Unless otherwise stated, any academic related text, screenshots, branding,
+                and other non-code project materials are © 2742018 2026. All
+                rights reserved.
+              </p>
+              <p>
+                For the full license text, see the <code>LICENSE</code> file in
+                the project repository.
               </p>
             </div>
           </section>
@@ -168,41 +191,44 @@ export default function LicensingPage() {
 
             <div className="aboutEditorialTextBlock">
               <p>
-                This page explains how CoverCheck handles images within the
-                project. It is not legal advice. If you are unsure about your
-                right to use a particular image outside this tool, you should
-                check the relevant permissions or source terms yourself.
+                This page explains how CoverCheck handles images and licensing
+                within the project. It is not legal advice. If you are unsure
+                about your right to use a particular image outside this tool,
+                you should check the relevant permissions or source terms
+                yourself.
               </p>
             </div>
           </section>
 
           <section id="references" className="aboutEditorialSection">
             <div className="aboutEditorialSectionLabel">Project</div>
-              <h2 className="aboutEditorialSectionTitle">Project reference</h2>
+            <h2 className="aboutEditorialSectionTitle">Project reference</h2>
 
             <div className="aboutEditorialTextBlock">
               <p>
-                 The repository contains the source code and implementation context for
-                  CoverCheck.
+                The repository contains the source code and implementation
+                context for CoverCheck.
               </p>
-      </div>
+            </div>
 
-      <div className="aboutEditorialNoteCard aboutEditorialReferenceCard">
-        <div className="aboutEditorialNoteLabel">Source code</div>
-          <h3 className="aboutEditorialReferenceTitle">CoverCheck on GitHub</h3>
-            <p>
-              View the project repository for the codebase, structure, and development
-              context.
-            </p>
+            <div className="aboutEditorialNoteCard aboutEditorialReferenceCard">
+              <div className="aboutEditorialNoteLabel">Source code</div>
+              <h3 className="aboutEditorialReferenceTitle">
+                CoverCheck on GitHub
+              </h3>
+              <p>
+                View the project repository for the codebase, structure, and
+                development context.
+              </p>
 
-            <a
-              className="aboutEditorialReferenceButton"
-              href={LINKS.github}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open GitHub repository
-            </a>
+              <a
+                className="aboutEditorialReferenceButton"
+                href={LINKS.github}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open GitHub repository
+              </a>
             </div>
           </section>
         </div>
