@@ -26,7 +26,7 @@ CoverCheck is designed for:
 
 - musicians and independent artists preparing release artwork
 - design students testing readability and composition
-- tutors, reviewers, or supervisors discussing visual decisions
+- reviewers, or any other users who want to analyze and discuss cover art or visual decisions in more detail
 - portfolio and coursework projects that need clearer evaluation evidence
 
 ---

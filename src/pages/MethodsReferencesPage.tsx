@@ -1291,6 +1291,527 @@ const SECTIONS: EvidenceSection[] = [
       },
     ],
   },
+  {
+    id: "methods-additional-references",
+    title: "Additional references that supports methods rationale and design decisions for album art evaluation",
+    intro: "These references are appended alongside the original library entries so the existing sources remain untouched while the extra citations are also searchable on the page.",
+    reportUse: "Use this section when you want the exact extra references added to the methods page without replacing the original curated entries.",
+    tooltipUse: "Useful for broadening the methods bibliography across accessibility, album-art history, streaming, DIY practice, and visual analysis.",
+    refs: [
+      {
+        id: "add-bennett-2018",
+        title: "Youth, music and DIY careers",
+        source: "Cultural Sociology",
+        year: "2018",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1177/1749975518765858",
+        summary: "Discusses youth music culture and DIY career pathways.",
+        whyItMatters: "Useful for framing independent music practice, self-made careers, and the broader culture around DIY release work.",
+        supports: [
+          "DIY careers",
+          "Youth music culture",
+          "Independent practice"
+        ],
+        tags: [
+          "album-art",
+          "branding",
+          "history",
+          "diy"
+        ]
+      },
+      {
+        id: "add-bestley-2018",
+        title: "Design it yourself? Punk’s division of labour",
+        source: "Punk & Post-Punk",
+        year: "2018",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1386/punk.7.1.7_1",
+        summary: "Examines DIY design and labour within punk production cultures.",
+        whyItMatters: "Helpful when discussing artist-controlled design, scene aesthetics, and how visual work is distributed inside music-making communities.",
+        supports: [
+          "DIY design practice",
+          "Punk visual culture",
+          "Creative labour"
+        ],
+        tags: [
+          "album-art",
+          "branding",
+          "history",
+          "diy"
+        ]
+      },
+      {
+        id: "add-burrell-2023",
+        title: "Towards accessible, open, and ethical design-led digital humanities visualization projects on the web",
+        source: "Digital Studies/Le champ numérique",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.16995/dscn.9597",
+        summary: "Argues for accessible, open, and ethical web-based visualisation practice in digital humanities.",
+        whyItMatters: "Useful for methods rationale when the page itself is a design-led digital artefact that needs clear accessibility and ethical framing.",
+        supports: [
+          "Accessible visualisation",
+          "Digital humanities methods",
+          "Ethical web design"
+        ],
+        tags: [
+          "platform",
+          "methods",
+          "accessibility",
+          "visualisation"
+        ],
+        openAccess: true
+      },
+      {
+        id: "add-campos-bueno-2015",
+        title: "Emotional dimensions of music and painting and their interaction",
+        source: "The Spanish Journal of Psychology",
+        year: "2015",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1017/sjp.2015.53",
+        summary: "Studies how emotional responses to music and painting interact.",
+        whyItMatters: "Useful for supporting cross-modal links between sound, image, and emotional interpretation in album-art analysis.",
+        supports: [
+          "Music and image interaction",
+          "Emotion across media",
+          "Cross-modal interpretation"
+        ],
+        tags: [
+          "composition",
+          "album-art",
+          "emotion"
+        ]
+      },
+      {
+        id: "add-carroll-2016",
+        title: "The art of the sleeve: every album cover tells a story",
+        source: "The Irish Times",
+        year: "2016",
+        kind: "industry",
+        href: "https://www.irishtimes.com/culture/music/the-art-of-the-sleeve-every-album-cover-tells-a-story-1.2821084",
+        summary: "A cultural overview of why album sleeves matter and how they communicate story and identity.",
+        whyItMatters: "Useful as an accessible cultural source on the narrative role of sleeves and the enduring significance of album artwork.",
+        supports: [
+          "Sleeve history",
+          "Narrative value of album art",
+          "Cultural significance"
+        ],
+        tags: [
+          "history",
+          "album-art",
+          "branding"
+        ]
+      },
+      {
+        id: "add-chilton-2026",
+        title: "Cover Story: A History Of Album Artwork",
+        source: "uDiscover Music",
+        year: "2026",
+        kind: "industry",
+        href: "https://www.udiscovermusic.com/in-depth-features/history-album-artwork/",
+        summary: "A broad history of album artwork and its changing role across formats and eras.",
+        whyItMatters: "Helpful for general historical framing and for connecting contemporary platform display back to longer artwork traditions.",
+        supports: [
+          "Album-art history",
+          "Format shifts",
+          "Visual culture"
+        ],
+        tags: [
+          "history",
+          "album-art",
+          "platform"
+        ]
+      },
+      {
+        id: "add-cook-2013",
+        title: "Music industry market research: The effect of cover artwork on the music industry",
+        source: "California Polytechnic State University",
+        year: "2013",
+        kind: "thesis",
+        href: "https://digitalcommons.calpoly.edu/cgi/viewcontent.cgi?article=1108&context=grcsp",
+        summary: "Student research project focused on the commercial effect of cover artwork in the music industry.",
+        whyItMatters: "Useful as a practice-facing source that directly centres cover artwork as a market and communication variable.",
+        supports: [
+          "Cover-art impact",
+          "Market research",
+          "Industry-facing evidence"
+        ],
+        tags: [
+          "album-art",
+          "branding",
+          "platform"
+        ]
+      },
+      {
+        id: "add-datta-2018",
+        title: "Changing their tune: How consumers’ adoption of online streaming affects music consumption and discovery",
+        source: "Marketing Science",
+        year: "2018",
+        kind: "peer-reviewed",
+        href: "https://www-jstor-org.ezproxy1.lib.gla.ac.uk/stable/48748410",
+        summary: "Analyses how streaming adoption changes listening behaviour and music discovery.",
+        whyItMatters: "Useful when linking album-art visibility to platform discovery conditions rather than to physical retail alone.",
+        supports: [
+          "Streaming behaviour",
+          "Music discovery",
+          "Platform consumption"
+        ],
+        tags: [
+          "platform",
+          "streaming",
+          "discovery"
+        ]
+      },
+      {
+        id: "add-das-2024",
+        title: "Visual narratives in music: Exploring Leonard Cohen’s album art",
+        source: "Rupkatha Journal on Interdisciplinary Studies in Humanities",
+        year: "2024",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.21659/rupkatha.v16n4.11",
+        summary: "Explores narrative meaning in Leonard Cohen’s album artwork.",
+        whyItMatters: "Useful as a close-reading example of how album covers can be analysed as visual narratives rather than as packaging alone.",
+        supports: [
+          "Visual narrative",
+          "Album-art interpretation",
+          "Case-study analysis"
+        ],
+        tags: [
+          "album-art",
+          "history",
+          "branding"
+        ]
+      },
+      {
+        id: "add-fracaro-2025",
+        title: "Disc-cover complexity trends in music illustrations from Sinatra to Swift",
+        source: "arXiv",
+        year: "2025",
+        kind: "industry",
+        href: "https://arxiv.org/abs/2510.00990",
+        summary: "A preprint tracking long-run complexity trends in music-cover illustration.",
+        whyItMatters: "Useful for methods sections that compare visual complexity over time or want recent computational work on cover imagery.",
+        supports: [
+          "Cover complexity",
+          "Long-run trends",
+          "Computational analysis"
+        ],
+        tags: [
+          "album-art",
+          "composition",
+          "history"
+        ],
+        openAccess: true
+      },
+      {
+        id: "add-harley-2015",
+        title: "Ensure high contrast for text over images",
+        source: "Nielsen Norman Group",
+        year: "2015",
+        kind: "industry",
+        href: "https://www.nngroup.com/articles/text-over-images/",
+        summary: "Practical guidance on keeping text legible when it sits on top of imagery.",
+        whyItMatters: "Useful for accessibility and readability decisions when album art carries type over complex backgrounds.",
+        supports: [
+          "Text-over-image contrast",
+          "Readability",
+          "Accessibility"
+        ],
+        tags: [
+          "contrast",
+          "thumbnail",
+          "typography",
+          "album-art"
+        ],
+        openAccess: true
+      },
+      {
+        id: "add-inglis-2001",
+        title: "“Nothing you can see that isn’t shown”: the album covers of the Beatles",
+        source: "Popular Music",
+        year: "2001",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1017/S0261143001001325",
+        summary: "A close analysis of the Beatles’ album covers and their visual significance.",
+        whyItMatters: "Useful as a foundational scholarly example of album-cover analysis in popular music studies.",
+        supports: [
+          "Album-cover history",
+          "Canonical case study",
+          "Visual analysis"
+        ],
+        tags: [
+          "history",
+          "album-art",
+          "branding"
+        ]
+      },
+      {
+        id: "add-janicke-2022",
+        title: "A research-teaching guide for visual data analysis in digital humanities",
+        source: "In VISIGRAPP 2020 (Springer)",
+        year: "2022",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1007/978-3-030-94893-1_9",
+        summary: "Offers guidance for visual data analysis in digital humanities contexts.",
+        whyItMatters: "Useful for describing method design, teaching-oriented analysis workflows, and reflective visual-analysis practice.",
+        supports: [
+          "Visual data analysis",
+          "Digital humanities methods",
+          "Research-teaching practice"
+        ],
+        tags: [
+          "methods",
+          "visualisation",
+          "platform"
+        ]
+      },
+      {
+        id: "add-jones-sorger-1999",
+        title: "Covering music: A brief history and analysis of album cover design",
+        source: "Journal of Popular Music Studies",
+        year: "1999",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1111/j.1533-1598.1999.tb00004.x",
+        summary: "A historical and analytical overview of album cover design.",
+        whyItMatters: "Useful as a core source on the design history of album covers and their role in music culture.",
+        supports: [
+          "Album-cover history",
+          "Design analysis",
+          "Music culture"
+        ],
+        tags: [
+          "history",
+          "album-art",
+          "branding"
+        ]
+      },
+      {
+        id: "add-joye-fennis-2024",
+        title: "Set that record straight! Cardinal line orientations in music album artwork boost market performance and music consumption",
+        source: "Psychology & Marketing",
+        year: "2024",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1002/mar.21959",
+        summary: "Examines how line orientation in album artwork relates to market performance and consumption.",
+        whyItMatters: "Useful when discussing measurable links between visual form and downstream audience response.",
+        supports: [
+          "Visual orientation",
+          "Album-art performance",
+          "Consumer response"
+        ],
+        tags: [
+          "composition",
+          "album-art",
+          "branding"
+        ]
+      },
+      {
+        id: "add-le-2020",
+        title: "Visual metaphors on album covers: an analysis into graphic design’s effectiveness at conveying music genres",
+        source: "Oregon State University",
+        year: "2020",
+        kind: "thesis",
+        href: "https://ir.library.oregonstate.edu/concern/honors_college_theses/0r967b03c",
+        summary: "Honors thesis on how album-cover metaphors communicate genre.",
+        whyItMatters: "Useful for genre-signalling arguments and for discussing graphic design as a communicative layer in music packaging.",
+        supports: [
+          "Visual metaphor",
+          "Genre signalling",
+          "Graphic design analysis"
+        ],
+        tags: [
+          "genre",
+          "album-art",
+          "branding"
+        ],
+        openAccess: true
+      },
+      {
+        id: "add-lesota-2025",
+        title: "Investigating music track liking in the halo of album covers",
+        source: "ISMIR 2025",
+        year: "2025",
+        kind: "peer-reviewed",
+        href: "https://ismir2025program.ismir.net/poster_128.html",
+        summary: "Conference paper examining how album covers influence track liking.",
+        whyItMatters: "Useful for methods that link visual context to listener evaluation and preference formation.",
+        supports: [
+          "Album-cover halo effect",
+          "Track liking",
+          "Listener judgement"
+        ],
+        tags: [
+          "album-art",
+          "platform",
+          "emotion"
+        ]
+      },
+      {
+        id: "add-li-2022",
+        title: "Are users attracted by playlist titles and covers? Understanding playlist selection behavior on a music streaming platform",
+        source: "Journal of Innovation & Knowledge",
+        year: "2022",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1016/j.jik.2022.100212",
+        summary: "Studies how playlist covers and titles affect user selection on a streaming platform.",
+        whyItMatters: "Useful for platform-context arguments because it shows visual and textual packaging matters in streaming choice behaviour.",
+        supports: [
+          "Playlist-cover effects",
+          "Selection behaviour",
+          "Streaming interfaces"
+        ],
+        tags: [
+          "platform",
+          "streaming",
+          "thumbnail",
+          "branding"
+        ]
+      },
+      {
+        id: "add-libeks-2011",
+        title: "You can judge an artist by an album cover: Using images for music annotation",
+        source: "IEEE MultiMedia",
+        year: "2011",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1109/MMUL.2011.1",
+        summary: "Shows how album-cover imagery can support music annotation.",
+        whyItMatters: "Useful for arguments that cover images encode usable information about music and artist identity.",
+        supports: [
+          "Image-based annotation",
+          "Music metadata",
+          "Visual cues"
+        ],
+        tags: [
+          "genre",
+          "album-art",
+          "platform"
+        ]
+      },
+      {
+        id: "add-lopez-medel-2014",
+        title: "The death and resurrection of the album cover",
+        source: "index.comunicación",
+        year: "2014",
+        kind: "peer-reviewed",
+        href: "https://www.researchgate.net/publication/260424430_Death_and_resurrection_of_the_album_cover",
+        summary: "Discusses the decline and renewal of the album cover across media shifts.",
+        whyItMatters: "Useful for historical framing about how album art persists and adapts in digital distribution contexts.",
+        supports: [
+          "Album-cover history",
+          "Digital transition",
+          "Persistence of artwork"
+        ],
+        tags: [
+          "history",
+          "album-art",
+          "platform"
+        ]
+      },
+      {
+        id: "add-moscati-2022",
+        title: "Music4All-Onion — a large-scale multi-faceted content-centric music recommendation dataset",
+        source: "CIKM ’22",
+        year: "2022",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1145/3511808.3557656",
+        summary: "Introduces a large-scale dataset for content-centric music recommendation research.",
+        whyItMatters: "Useful for methods sections that reference datasets, multimodal recommendation, or computational analysis of music and visuals.",
+        supports: [
+          "Recommendation datasets",
+          "Multimodal music data",
+          "Computational methods"
+        ],
+        tags: [
+          "platform",
+          "methods",
+          "dataset"
+        ]
+      },
+      {
+        id: "add-qu-2023",
+        title: "Music streaming platforms and self-releasing musicians: the case of China",
+        source: "Information, Communication & Society",
+        year: "2023",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1080/1369118X.2021.1971280",
+        summary: "Analyses streaming platforms in relation to self-releasing musicians.",
+        whyItMatters: "Useful for contextualising platform power, self-release practice, and how musicians manage visibility in streaming ecosystems.",
+        supports: [
+          "Self-releasing musicians",
+          "Streaming platforms",
+          "Platform power"
+        ],
+        tags: [
+          "platform",
+          "streaming",
+          "diy"
+        ]
+      },
+      {
+        id: "add-spotify-support-2024",
+        title: "Cover art requirements – Spotify",
+        source: "Spotify Support",
+        year: "2024",
+        kind: "official",
+        href: "https://support.spotify.com/us/artists/article/cover-art-requirements/",
+        summary: "Spotify’s support guidance for accepted cover-art files and restrictions.",
+        whyItMatters: "Useful as an official platform reference when discussing practical artwork requirements in distribution workflows.",
+        supports: [
+          "Platform requirements",
+          "Artwork submission",
+          "Distribution constraints"
+        ],
+        tags: [
+          "platform",
+          "album-art",
+          "branding"
+        ],
+        openAccess: true
+      },
+      {
+        id: "add-venkatesan-2022",
+        title: "Does the typeface on album cover influence expectations and perception of music?",
+        source: "Psychology of Aesthetics, Creativity, and the Arts",
+        year: "2022",
+        kind: "peer-reviewed",
+        href: "https://doi.org/10.1037/aca0000330",
+        summary: "Examines how album-cover typography shapes expectations and perception of music.",
+        whyItMatters: "Useful for justifying typographic choices as meaning-making cues rather than surface decoration.",
+        supports: [
+          "Typeface effects",
+          "Expectation setting",
+          "Perception of music"
+        ],
+        tags: [
+          "typography",
+          "genre",
+          "album-art"
+        ]
+      },
+      {
+        id: "add-w3c-contrast-2026",
+        title: "Understanding Success Criterion 1.4.3: Contrast (Minimum)",
+        source: "W3C WAI",
+        year: "2026",
+        kind: "official",
+        href: "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+        summary: "W3C guidance explaining the purpose and interpretation of minimum contrast requirements.",
+        whyItMatters: "Useful when the methods page needs an official accessibility rationale for contrast decisions, especially for text over artwork.",
+        supports: [
+          "Minimum contrast rationale",
+          "Accessibility guidance",
+          "Text legibility"
+        ],
+        tags: [
+          "contrast",
+          "accessibility",
+          "typography",
+          "platform"
+        ],
+        openAccess: true
+      }
+    ]
+  }
 ];
 
 const KIND_OPTIONS: { value: "all" | EvidenceKind; label: string }[] = [
@@ -1300,7 +1821,7 @@ const KIND_OPTIONS: { value: "all" | EvidenceKind; label: string }[] = [
   { value: "official", label: "Official platform" },
   { value: "industry", label: "Industry" },
   { value: "essay", label: "Essays / museum" },
-  { value: "thesis", label: "Theses" },
+  { value: "thesis", label: "Thesis" },
 ];
 
 const TAG_OPTIONS = [

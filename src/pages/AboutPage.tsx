@@ -233,7 +233,7 @@ export default function AboutPage() {
                 recommendation panels, and reduced thumbnail views.
               </p>
               <p>
-                It is also relevant for tutors, supervisors, and reviewers
+                It is also relevant for reviewers or any other users who want to analyze and discuss cover art in more detail,
                 because it supports discussion. Instead of only giving a final
                 opinion on a cover, the tool creates a clearer basis for talking
                 about contrast, clutter, placement, and whether the design still
