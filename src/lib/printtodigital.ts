@@ -1,4 +1,3 @@
-
 export type PrintDigitalInput = {
   textDensity: "low" | "medium" | "high";
   edgeRisk: "low" | "medium" | "high";

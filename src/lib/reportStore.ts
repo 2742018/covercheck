@@ -1,4 +1,3 @@
-// File: src/lib/reportStore.ts
 import { useSyncExternalStore } from "react";
 
 type StoredPayloadV3 = {

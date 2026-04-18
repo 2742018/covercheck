@@ -1,9 +1,8 @@
-// src/analysis/coverMood.ts
 export type CoverMood = {
-  brightness: number;   // 0..1
-  saturation: number;   // 0..1
-  warmth: number;       // 0..1 (warm reds/oranges higher)
-  complexity: number;   // 0..1 (edge density proxy)
+  brightness: number;   
+  saturation: number;   
+  warmth: number;       
+  complexity: number;   
 };
 
 function clamp01(x: number) {

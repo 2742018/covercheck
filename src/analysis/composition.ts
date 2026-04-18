@@ -45,7 +45,7 @@ export type CompositionMetrics = {
     explanation: string;
   };
   organicTechnical: {
-    score: number; // 0..100 (higher = technical)
+    score: number; // 0..100
     label: "Organic" | "Balanced" | "Technical";
     basis: string;
     explanation: string;

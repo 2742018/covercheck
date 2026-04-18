@@ -1,17 +1,17 @@
 export type NormalizedRect = { x: number; y: number; w: number; h: number };
 
 export type RegionMetrics = {
-  contrastRatio: number;      // WCAG-style ratio from sampled luminance percentiles
-  contrastScore: number;      // 0–100 derived
-  clutterScore: number;       // 0–100 (higher = cleaner)
-  uniformityScore: number;    // 0–100 (higher = more uniform)
-  averageLuminance: number;   // 0–100
-  luminanceSpread: number;    // 0–100
-  luminanceStdDev: number;    // 0–100
-  p10Luminance: number;       // 0–100
-  p90Luminance: number;       // 0–100
-  edgeMean: number;           // raw edge strength mean (not normalized)
-  areaPct: number;            // region area as percentage of image area
+  contrastRatio: number;      
+  contrastScore: number;     
+  clutterScore: number;       
+  uniformityScore: number;    
+  averageLuminance: number;   
+  luminanceSpread: number; 
+  luminanceStdDev: number;    
+  p10Luminance: number;       
+  p90Luminance: number;       
+  edgeMean: number;           
+  areaPct: number;            
   pixelWidth: number;
   pixelHeight: number;
   sampleCount: number;

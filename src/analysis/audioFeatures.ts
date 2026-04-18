@@ -1,4 +1,3 @@
-// src/analysis/audioFeatures.ts
 export type AudioFeatures = {
   durationSec: number;
   bpm: number | null;

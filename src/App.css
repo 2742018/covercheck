@@ -1,15 +1,4 @@
 /* =========================================================
-   FILE: src/styles.css
-   CLEANED / CONSOLIDATED VERSION
-   ---------------------------------------------------------
-   Goals:
-   - keep the current visual language
-   - remove overlapping global definitions
-   - preserve page-specific layouts
-   - keep light pages coherent with the newer shared system
-   ========================================================= */
-
-/* =========================================================
    TOKENS
    ========================================================= */
 
@@ -1408,7 +1397,7 @@ body.lightMode .miniValue {
 }
 
 /* =========================================================
-   ABOUT — LIGHT PAGE STYLE (UI refresh)
+   ABOUT — LIGHT PAGE STYLE
    ========================================================= */
 
 .aboutEditorial {
@@ -1825,7 +1814,6 @@ body.lightMode .miniValue {
     width: 62px;
   }
 } 
-
 
 
 /* =========================================================
