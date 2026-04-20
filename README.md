@@ -181,7 +181,7 @@ This makes it useful for:
 - visual communication evaluation
 - interface and interaction design reflection
 - before / after comparison
-- supervisor or tutor discussion
+- discussion 
 
 ---
 
